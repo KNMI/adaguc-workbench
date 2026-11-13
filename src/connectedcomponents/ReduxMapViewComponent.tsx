@@ -1,6 +1,7 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import * as React from 'react';
 import { View } from 'ol';
+import { get as getOlProjection } from 'ol/proj';
 import { debounce } from 'lodash';
 import { Tooltip } from '@mui/material';
 import { LayerType, getWMLayerById } from '@opengeoweb/webmap';
@@ -25,6 +26,9 @@ import { ReduxMapLayer } from './ReduxMapLayer';
 import { AnimationClock, AnimationTick } from './AnimationClock';
 import { ErrorBoundary } from '../components/ErrorBoundary/ErrorBoundary';
 import OpenLayersHistogramBoxSelect from './OpenLayersHistogramBoxSelect';
+import { registerExtraProjections } from '../utils/registerExtraProjections';
+
+registerExtraProjections();
 
 export interface ReduxMapViewComponentProps {
   mapId: string;
@@ -179,6 +183,18 @@ export const ReduxMapViewComponent = ({
       return;
     }
     lastAppliedViewCommandId.current = viewCommand.requestId;
+    // OpenLayers can only build a View for an srs proj4 has a definition
+    // for (see registerExtraProjections) - for any other, makeView throws
+    // and takes the whole app down. A layer's projection table lists
+    // whatever its GetCapabilities advertises, and a permalink can carry any
+    // srs at all, so keep the current view rather than crash.
+    if (!getOlProjection(viewCommand.srs)) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Projection ${viewCommand.srs} is not supported by this viewer; keeping the current projection.`,
+      );
+      return;
+    }
     // Fitting the extent here, before this view is attached to the map,
     // would use the view's default (and wrong) assumed viewport size of
     // 100x100 - defer it to the effect below instead, which (as a parent

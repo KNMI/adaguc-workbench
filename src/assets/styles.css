@@ -202,6 +202,15 @@ tr:hover {
   background-color: #e4ebf2;
 }
 
+tr.unavailable td {
+  color: rgba(0, 0, 0, 0.38);
+}
+
+tr.unavailable:hover {
+  background-color: white;
+  cursor: not-allowed;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;

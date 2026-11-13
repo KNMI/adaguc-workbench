@@ -36,6 +36,7 @@ const mockQueryWMSLayers = jest.mocked(queryWMSLayers);
 
 describe('LayerDetailsComponent', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     lastWCSPanelDialogProps = undefined;
     mockQueryWMSLayers.mockResolvedValue([]);
     mockGetWMLayerById.mockReturnValue({
@@ -62,5 +63,32 @@ describe('LayerDetailsComponent', () => {
     });
 
     expect(screen.queryByTestId('wcs-panel-dialog')).not.toBeInTheDocument();
+  });
+
+  it('renders once the layer becomes available after first showing "No layer found"', () => {
+    // Regression guard: the early "No layer found" return used to sit
+    // before some of this component's hooks, so a render without the
+    // layer called fewer hooks than a later render with it - React then
+    // throws "Rendered more hooks than during the previous render".
+    mockGetWMLayerById.mockReturnValue(undefined);
+    const { rerender } = render(
+      <LayerDetailsComponent mapId="map1" layerId="layer-1" />,
+    );
+    expect(screen.getByText('No layer found')).toBeInTheDocument();
+    expect(mockQueryWMSLayers).not.toHaveBeenCalled();
+
+    mockGetWMLayerById.mockReturnValue({
+      id: 'layer-1',
+      name: 'air_pressure_msl',
+      title: 'Air pressure',
+      service: 'http://example.com/wms?',
+      dimensions: [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    rerender(<LayerDetailsComponent mapId="map1" layerId="layer-1" />);
+
+    expect(screen.queryByText('No layer found')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'WCS' })).toBeInTheDocument();
+    expect(mockQueryWMSLayers).toHaveBeenCalledWith('http://example.com/wms?');
   });
 });

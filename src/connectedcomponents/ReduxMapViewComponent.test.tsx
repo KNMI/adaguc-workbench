@@ -7,6 +7,7 @@ import {
   useAnimationForLayer,
 } from '@opengeoweb/webmap-react';
 import { getWMLayerById } from '@opengeoweb/webmap';
+import { get as getOlProjection } from 'ol/proj';
 import { useAppDispatch, useAppSelector } from '../store/store';
 import { AdagucLayer, ViewerState } from '../store/types';
 import { ReduxMapViewComponent } from './ReduxMapViewComponent';
@@ -16,6 +17,15 @@ import { ReduxMapViewComponent } from './ReduxMapViewComponent';
 jest.mock('./OpenLayersHistogramBoxSelect', () => ({
   __esModule: true,
   default: () => null,
+}));
+
+// ol is ESM-only; by default every srs counts as one OpenLayers knows.
+jest.mock('ol/proj', () => ({
+  get: jest.fn(() => ({})),
+}));
+
+jest.mock('../utils/registerExtraProjections', () => ({
+  registerExtraProjections: jest.fn(),
 }));
 
 jest.mock('@opengeoweb/webmap', () => ({
@@ -106,6 +116,7 @@ const mockGetLayerExtentForProjection = jest.mocked(
 );
 const mockUseAnimationForLayer = jest.mocked(useAnimationForLayer);
 const mockGetWMLayerById = jest.mocked(getWMLayerById);
+const mockGetOlProjection = jest.mocked(getOlProjection);
 const mockUseAppDispatch = jest.mocked(useAppDispatch);
 const mockUseAppSelector = jest.mocked(useAppSelector);
 
@@ -125,6 +136,9 @@ describe('ReduxMapViewComponent', () => {
     mockOpenLayersLayerCalls = [];
     mockUseAppDispatch.mockReturnValue(jest.fn());
     mockGetWMLayerById.mockReturnValue(undefined);
+    mockGetOlProjection.mockImplementation(
+      () => ({}) as ReturnType<typeof getOlProjection>,
+    );
     mockUseAnimationForLayer.mockReturnValue({
       dimensions: [],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -400,6 +414,46 @@ describe('ReduxMapViewComponent', () => {
     );
 
     jest.useRealTimers();
+  });
+
+  it('keeps the current view, without crashing, when asked to switch to an srs OpenLayers does not know', () => {
+    // Regression guard: makeView throws ("Cannot read properties of null
+    // (reading 'getExtent')") for an srs with no proj4 definition, e.g.
+    // one picked from a layer's projection table or carried in a
+    // permalink - which used to take the whole app down.
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    mockGetOlProjection.mockImplementation((srs) =>
+      srs === 'EPSG:9999' ? null : ({} as ReturnType<typeof getOlProjection>),
+    );
+    const { rerender } = render(
+      <ReduxMapViewComponent mapId={mapId} update={jest.fn()} />,
+    );
+    callOrder.length = 0;
+
+    act(() => {
+      mockState = {
+        ...mockState,
+        viewer: {
+          ...mockState.viewer,
+          maps: {
+            ...mockState.viewer.maps,
+            [mapId]: {
+              ...mockState.viewer.maps[mapId],
+              viewCommand: {
+                srs: 'EPSG:9999',
+                bbox: { left: 0, bottom: 0, right: 1, top: 1 },
+                requestId: 1,
+              },
+            },
+          },
+        },
+      };
+      rerender(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+    });
+
+    expect(callOrder).toEqual([]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('EPSG:9999'));
+    warn.mockRestore();
   });
 
   it('does not re-fit when the component re-renders without a new viewCommand', () => {

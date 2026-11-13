@@ -16,7 +16,7 @@ import {
   getPredefinedAreaThumbnailUrl,
   predefinedAreas,
 } from '../utils/predefinedAreas';
-import { registerPredefinedAreaProjections } from '../utils/registerPredefinedAreaProjections';
+import { registerExtraProjections } from '../utils/registerExtraProjections';
 
 export interface PredefinedAreasDialogProps {
   isDialogOpen: boolean;
@@ -25,7 +25,7 @@ export interface PredefinedAreasDialogProps {
 
 // Runs once, as soon as this module loads (AdagucAppBar always mounts this
 // dialog), well before the user can click any preset.
-registerPredefinedAreaProjections();
+registerExtraProjections();
 
 // Ported from adaguc-viewer's MapTypeSelector panel: a grid of preset
 // srs/bbox combinations (see utils/predefinedAreas.ts) the user can jump
@@ -81,7 +81,7 @@ const PredefinedAreasDialog = ({
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
           {predefinedAreas.map((area) => {
             // OpenLayers can only build a View for an srs proj4 actually
-            // has a definition for (see registerPredefinedAreaProjections) -
+            // has a definition for (see registerExtraProjections) -
             // without one, ol/proj's get() returns null, and View
             // construction throws trying to read its extent. Rather than
             // crash on click, disable whichever preset that's still true

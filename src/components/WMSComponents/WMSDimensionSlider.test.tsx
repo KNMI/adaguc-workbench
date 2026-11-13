@@ -202,4 +202,101 @@ describe('WMSDimensionSlider', () => {
       jest.useRealTimers();
     }
   });
+
+  it('renders nothing, without crashing, when its dimension goes away after having been shown', () => {
+    // All hooks now run before the "no layer / no dimension" early returns,
+    // so a render without the dimension (e.g. mid capabilities refresh)
+    // must still call every one of them before bailing out.
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { rerender } = renderSlider(makeDimension());
+    expect(screen.getByRole('slider')).toBeInTheDocument();
+
+    mockGetWMLayerById.mockReturnValue({
+      getDimension: () => undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    rerender(
+      <WMSDimensionSlider
+        selectedDimensionValue={values[10]}
+        layerId={layerId}
+        onSelectDimensionValue={jest.fn()}
+        dimensionName="time"
+        linked={false}
+        onToggleLinked={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    warn.mockRestore();
+  });
+
+  it('syncs to the selected value once its layer becomes available after first rendering nothing', () => {
+    // With the hooks running before the layer exists, the effect that
+    // looks up the index has to re-run once layerDim shows up - even though
+    // selectedDimensionValue itself hasn't changed in the meantime.
+    mockGetWMLayerById.mockReturnValue(undefined);
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    // A fresh element each time - re-rendering the very same element object
+    // would let React skip the render entirely.
+    const slider = () => (
+      <WMSDimensionSlider
+        selectedDimensionValue={values[10]}
+        layerId={layerId}
+        onSelectDimensionValue={jest.fn()}
+        dimensionName="time"
+        linked={false}
+        onToggleLinked={jest.fn()}
+      />
+    );
+    const { rerender } = render(slider());
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+
+    const dimension = makeDimension();
+    mockGetWMLayerById.mockReturnValue({
+      getDimension: (name: string) => (name === 'time' ? dimension : undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    rerender(slider());
+
+    // Not stuck on its initial index of 0.
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '10');
+    warn.mockRestore();
+  });
+
+  it('commits through the latest onSelectDimensionValue, not the one it was first rendered with', () => {
+    // The debounced commit is created only once, so it must not close over
+    // the first render's onSelectDimensionValue: the parent's version of
+    // that callback updates the store by the layer's *position* in the
+    // list. Today LayerComponent happens to remount this slider whenever
+    // its layer moves (layerIndex is part of the row's key), which hides
+    // the problem - this keeps it from resurfacing if that key changes.
+    jest.useFakeTimers();
+    try {
+      const dimension = makeDimension();
+      const { rerender, onSelectDimensionValue: firstCallback } =
+        renderSlider(dimension);
+      const latestCallback = jest.fn();
+      rerender(
+        <WMSDimensionSlider
+          selectedDimensionValue={values[10]}
+          layerId={layerId}
+          onSelectDimensionValue={latestCallback}
+          dimensionName="time"
+          linked={false}
+          onToggleLinked={jest.fn()}
+        />,
+      );
+
+      act(() => {
+        fireEvent.change(screen.getByRole('slider'), {
+          target: { value: '20' },
+        });
+      });
+
+      expect(latestCallback).toHaveBeenCalledWith(values[20]);
+      expect(firstCallback).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

@@ -23,8 +23,8 @@ jest.mock('ol/proj', () => ({
 
 const mockGetOlProjection = jest.mocked(getOlProjection);
 
-jest.mock('../utils/registerPredefinedAreaProjections', () => ({
-  registerPredefinedAreaProjections: jest.fn(),
+jest.mock('../utils/registerExtraProjections', () => ({
+  registerExtraProjections: jest.fn(),
 }));
 
 const mockUseAppDispatch = jest.mocked(useAppDispatch);

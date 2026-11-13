@@ -45,15 +45,11 @@ const WMSDimensionSlider = ({
   onToggleLinked,
 }: WMSDimensionSliderProps): React.ReactElement<WMSDimensionSliderProps> => {
   const wmLayer = getWMLayerById(layerId);
-  if (!wmLayer) {
-    console.warn(`No layer exists for ${layerId}`);
-    return null;
-  }
-  const layerDim = wmLayer.getDimension(dimensionName);
-  if (!layerDim) {
-    console.warn(`No dimension exists for ${layerId}`);
-    return null;
-  }
+  const layerDim = wmLayer?.getDimension(dimensionName);
+  // All hooks run before the "no layer / no dimension" early returns
+  // below, so every render calls the same hooks in the same order - the
+  // layer (and so its dimension) can easily be missing on a first render
+  // and only become available on a later one.
   const [stateDimIndex, setStateDimIndex] = React.useState<number>(0);
   // The last value this slider itself committed via onSelectDimValue -
   // when selectedDimValue's own prop update is just that same value
@@ -69,18 +65,32 @@ const WMSDimensionSlider = ({
   const lastCommittedValueRef = React.useRef<string | undefined>(undefined);
 
   React.useEffect(() => {
-    if (selectedDimValue === lastCommittedValueRef.current) {
+    if (!layerDim || selectedDimValue === lastCommittedValueRef.current) {
       return;
     }
     setStateDimIndex(layerDim.getIndexForValue(selectedDimValue));
-  }, [selectedDimValue]);
+  }, [selectedDimValue, layerDim]);
+
+  // The debounced callback below is created only once, so it reads these
+  // through refs rather than closing over whatever they were on the first
+  // render - layerDim may not have existed yet then, and onSelectDimValue
+  // is a fresh closure from the parent every render (one that knows this
+  // layer's current position in the list).
+  const layerDimRef = React.useRef(layerDim);
+  layerDimRef.current = layerDim;
+  const onSelectDimValueRef = React.useRef(onSelectDimValue);
+  onSelectDimValueRef.current = onSelectDimValue;
 
   const debouncedHandleChange = React.useRef(
     debounce(
       (dstateDimIndex) => {
-        const newValue = layerDim.getValueForIndex(dstateDimIndex) as string;
+        const currentDim = layerDimRef.current;
+        if (!currentDim) {
+          return;
+        }
+        const newValue = currentDim.getValueForIndex(dstateDimIndex) as string;
         lastCommittedValueRef.current = newValue;
-        onSelectDimValue(newValue);
+        onSelectDimValueRef.current(newValue);
       },
       DEBOUNCE_MS,
       { leading: true, trailing: true, maxWait: DEBOUNCE_MS },
@@ -89,12 +99,20 @@ const WMSDimensionSlider = ({
 
   // Cancels a pending trailing commit if this slider unmounts mid-drag
   // (e.g. its layer is removed, or the panel closes) - otherwise it could
-  // still fire afterwards against a stale layerDim/onSelectDimValue
-  // closure.
+  // still fire afterwards for a slider that no longer exists.
   React.useEffect(
     () => () => debouncedHandleChange.cancel(),
     [debouncedHandleChange],
   );
+
+  if (!wmLayer) {
+    console.warn(`No layer exists for ${layerId}`);
+    return null;
+  }
+  if (!layerDim) {
+    console.warn(`No dimension exists for ${layerId}`);
+    return null;
+  }
 
   const handleChange = (event: Event, value: number) => {
     let dimIndex = value;

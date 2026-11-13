@@ -47,25 +47,21 @@ const LayerDetailsComponent = ({
   const [layerIdState] = React.useState(layerId);
   const [value, setValue] = React.useState(0);
   const [isWCSPanelOpen, setIsWCSPanelOpen] = React.useState(false);
-
-  const wmLayer = getWMLayerById(layerIdState);
-
-  if (!wmLayer) {
-    return <div>No layer found</div>;
-  }
-
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue);
-  };
-
   const [layerObject, setLayerObject] = React.useState<object>();
 
+  const wmLayer = getWMLayerById(layerIdState);
+  const wmLayerService = wmLayer?.service;
+  const wmLayerName = wmLayer?.name;
+
   React.useEffect(() => {
+    if (!wmLayerService) {
+      return;
+    }
     setLayerObject({});
-    queryWMSLayers(wmLayer.service)
+    queryWMSLayers(wmLayerService)
       .then((s) => {
         const r = s.filter((_layer) => {
-          return _layer?.name === wmLayer?.name;
+          return _layer?.name === wmLayerName;
         });
         if (r.length === 1) {
           setLayerObject(r[0]);
@@ -75,7 +71,15 @@ const LayerDetailsComponent = ({
         // eslint-disable-next-line no-console
         console.error(e);
       });
-  }, []);
+  }, [wmLayerService, wmLayerName]);
+
+  if (!wmLayer) {
+    return <div>No layer found</div>;
+  }
+
+  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    setValue(newValue);
+  };
 
   return (
     <Box
