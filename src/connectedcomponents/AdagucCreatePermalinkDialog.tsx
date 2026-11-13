@@ -36,7 +36,7 @@ const AdagucCreatePermalinkDialog = ({
   const map = useAppSelector(
     (state: ViewerState): AdagucMap => state?.viewer?.maps.map1,
   );
-  const link = makePermaLink('map1', map);
+  const link = makePermaLink(map);
 
   // Anchors the fallback share menu (Email/WhatsApp/X) below - only shown
   // on browsers without the native Web Share API, which most desktop

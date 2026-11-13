@@ -16,7 +16,7 @@ jest.mock('./AutoWMS', () => ({ __esModule: true, default: () => null }));
 jest.mock('./QueryPanel', () => ({
   __esModule: true,
   default: (props: { mapId: string; isActive: boolean }) => {
-    // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+    // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-call
     require('react').useEffect(() => {
       mockQueryPanelRenders.push(props);
     });

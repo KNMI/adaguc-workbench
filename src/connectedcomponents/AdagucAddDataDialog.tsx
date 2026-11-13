@@ -18,7 +18,6 @@ const AdagucAddDataDialog = ({
 
   const handleAddData = (args: DataElementType) => {
     onDialogOpen(false);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     dispatch(
       thunks.addLayer({
         mapId,

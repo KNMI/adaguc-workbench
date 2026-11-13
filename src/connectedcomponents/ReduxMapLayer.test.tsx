@@ -16,8 +16,7 @@ jest.mock('@opengeoweb/webmap-react', () => {
      global-require,
      @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call,
-     @typescript-eslint/no-unsafe-return,
-     @typescript-eslint/no-unsafe-member-access */
+     @typescript-eslint/no-unsafe-return */
   const ReactLib = require('react');
   const MockTimeContext = ReactLib.createContext({});
   return {
@@ -42,8 +41,7 @@ jest.mock('@opengeoweb/webmap-react', () => {
      global-require,
      @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call,
-     @typescript-eslint/no-unsafe-return,
-     @typescript-eslint/no-unsafe-member-access */
+     @typescript-eslint/no-unsafe-return */
 });
 
 jest.mock('../store/store', () => ({

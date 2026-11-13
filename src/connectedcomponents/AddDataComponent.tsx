@@ -1,5 +1,4 @@
 /* eslint-disable react/jsx-props-no-spreading */
-/* eslint-disable @typescript-eslint/no-floating-promises */
 import * as React from 'react';
 import { ThemeWrapper } from '@opengeoweb/theme';
 import 'react-mosaic-component/react-mosaic-component.css';

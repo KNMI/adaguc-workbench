@@ -95,7 +95,7 @@ describe('makePermaLink', () => {
       },
     };
 
-    const link = makePermaLink('map1', map);
+    const link = makePermaLink(map);
 
     expect(link.startsWith('http://localhost/adaguc-workbench/?')).toBe(true);
   });

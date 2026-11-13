@@ -58,19 +58,15 @@ export const getMapLayers = createSelector(
 );
 
 export const getMapLayerById = createSelector(
-  [
-    getMapById,
-    (_, mapId: string) => mapId,
-    (_1, _2, layerId: string) => layerId,
-  ],
-  (map: AdagucMap, mapId, layerId): AdagucLayer | null => {
+  [getMapById, (_1, _2, layerId: string) => layerId],
+  (map: AdagucMap, layerId): AdagucLayer | null => {
     return map?.layers.find((l) => l.id === layerId);
   },
   selectorMemoizationOptions,
 );
 
 export const isMapAnimating = createSelector(
-  [getMapById, (_, mapId: string) => mapId],
+  [getMapById],
   (map: AdagucMap): boolean | null => {
     return map?.isAnimating;
   },

@@ -36,7 +36,6 @@ const parseBboxFromPositions = (positions: XmlJsonNode[]): Bbox => {
 // Ports webmapjsext's WCSPanel.js / WMJSCoverage.js parseDescribeCoverage,
 // which this app's own copy of a DescribeCoverage request/response
 // otherwise has no reason to differ from.
-// eslint-disable-next-line import/prefer-default-export
 export const parseDescribeCoverage = (
   json: XmlJsonNode,
   service: string,

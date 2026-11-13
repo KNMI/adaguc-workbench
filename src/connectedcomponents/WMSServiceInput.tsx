@@ -85,7 +85,6 @@ const WMSServiceInput = ({
       onHandled?.();
     };
     const addAsLayer = (): Promise<void> =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       dispatch(thunks.addLayer({ mapId, serviceUrl: service, name: undefined }))
         .unwrap()
         .then(() => finish());

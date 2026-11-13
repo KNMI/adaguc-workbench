@@ -57,7 +57,6 @@ const addLayers = async (
     resolve();
   });
 };
-// eslint-disable-next-line import/prefer-default-export
 export const handleWindowLocationQueryString = (
   mapId: string,
   dispatch: AppThunkDispatch,
@@ -121,7 +120,7 @@ export const handleWindowLocationQueryString = (
   }
 };
 
-export const makePermaLink = (mapId: string, map: AdagucMap): string => {
+export const makePermaLink = (map: AdagucMap): string => {
   if (!map) return '';
   // origin alone drops the path the app is actually served under - fine on
   // a site served from the domain root, but this app is also deployed as a

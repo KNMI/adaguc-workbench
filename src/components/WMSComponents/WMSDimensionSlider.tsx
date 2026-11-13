@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-/* eslint-disable react/jsx-props-no-spreading */
 import * as React from 'react';
 import { Box, IconButton, Slider, Tooltip, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';

@@ -8,8 +8,7 @@ jest.mock('@opengeoweb/webmap-react', () => {
   /* eslint-disable
      global-require,
      @typescript-eslint/no-var-requires,
-     @typescript-eslint/no-unsafe-call,
-     @typescript-eslint/no-unsafe-return */
+     @typescript-eslint/no-unsafe-call */
   const ReactLib = require('react');
   return {
     MapContext: ReactLib.createContext({ map: null }),
@@ -17,8 +16,7 @@ jest.mock('@opengeoweb/webmap-react', () => {
   /* eslint-enable
      global-require,
      @typescript-eslint/no-var-requires,
-     @typescript-eslint/no-unsafe-call,
-     @typescript-eslint/no-unsafe-return */
+     @typescript-eslint/no-unsafe-call */
 });
 
 jest.mock('ol/interaction/DragPan', () => ({

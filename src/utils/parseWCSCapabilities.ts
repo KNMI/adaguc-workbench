@@ -11,7 +11,6 @@ export interface WCSCoverageSummary {
 // coverages it offers (WCS_Capabilities.ContentMetadata.CoverageOfferingBrief),
 // so the panel can offer a "switch coverage" dropdown instead of being
 // stuck on whichever one the layer itself happened to be added as.
-// eslint-disable-next-line import/prefer-default-export
 export const parseWCSCapabilities = (
   json: XmlJsonNode,
 ): WCSCoverageSummary[] => {

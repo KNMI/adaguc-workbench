@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-floating-promises */
 import * as React from 'react';
 import { ThemeWrapper } from '@opengeoweb/theme';
 

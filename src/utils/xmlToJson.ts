@@ -43,7 +43,6 @@ const traverseXmlChildren = (
   });
 };
 
-// eslint-disable-next-line import/prefer-default-export
 export const xmlToJson = (document: Document): XmlJsonNode => {
   const draftJson: XmlJsonNode = { attr: {} };
   traverseXmlChildren(document, draftJson);

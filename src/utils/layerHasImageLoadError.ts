@@ -36,7 +36,6 @@ export const imageSrcBelongsToLayer = (
 // addImageEventCallback/removeEventCallback on WMImageStore, which fire
 // in true chronological order of real network activity rather than
 // relying on a heuristic snapshot like this one.
-// eslint-disable-next-line import/prefer-default-export
 export const layerHasImageLoadError = (
   imageStore: Pick<WMImageStore, 'imagesbysrc'>,
   wmLayer: Pick<WMLayer, 'getmapURL' | 'name'> | undefined,

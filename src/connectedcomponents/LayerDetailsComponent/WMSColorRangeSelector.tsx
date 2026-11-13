@@ -32,7 +32,6 @@ const WMSColorRangeSelector = ({
   }, []);
 
   const updateColorRange = () => {
-    // eslint-disable-next-line no-param-reassign
     const minValueFloat = parseFloat(minValue).toFixed(3);
     const maxValueFloat = parseFloat(maxValue).toFixed(3);
     setMinValue(`${minValueFloat}`);
