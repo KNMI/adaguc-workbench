@@ -14,19 +14,19 @@ const PERMALINK = makePermaLink(map, []);
 
 const renderDialog = () =>
   renderWithStore(
-    <AdagucCreatePermalinkDialog isDialogOpen onDialogOpen={jest.fn()} />,
+    <AdagucCreatePermalinkDialog isDialogOpen onDialogOpen={vi.fn()} />,
     { map1: map },
   );
 
 describe('AdagucCreatePermalinkDialog', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (navigator as any).share;
   });
 
   it('invokes the native Web Share API directly when the browser supports it, without showing a fallback menu', () => {
-    const mockShare = jest.fn().mockResolvedValue(undefined);
+    const mockShare = vi.fn().mockResolvedValue(undefined);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigator as any).share = mockShare;
 
@@ -47,8 +47,8 @@ describe('AdagucCreatePermalinkDialog', () => {
       name: 'AbortError',
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (navigator as any).share = jest.fn().mockRejectedValue(abortError);
-    const consoleError = jest
+    (navigator as any).share = vi.fn().mockRejectedValue(abortError);
+    const consoleError = vi
       .spyOn(console, 'error')
       .mockImplementation(() => {});
 

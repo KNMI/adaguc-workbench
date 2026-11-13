@@ -2,11 +2,11 @@ import { parseAddLayerHash, handleAddLayerHash } from './handleAddLayerHashTag';
 import { thunks } from '../store/thunks';
 import { AdagucLayer } from '../store/types';
 
-jest.mock('../store/thunks', () => ({
-  thunks: { addLayer: jest.fn() },
+vi.mock('../store/thunks', () => ({
+  thunks: { addLayer: vi.fn() },
 }));
 
-const mockAddLayer = jest.mocked(thunks.addLayer);
+const mockAddLayer = vi.mocked(thunks.addLayer);
 
 const mapId = 'map1';
 const serviceUrl =
@@ -72,12 +72,12 @@ describe('handleAddLayerHash', () => {
 
   afterEach(() => {
     setHash('');
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('adds the layer from the hash when it is not already on the map', () => {
     setHash(`#addlayer('${serviceUrl}','${name}')`);
-    const dispatch = jest
+    const dispatch = vi
       .fn()
       .mockReturnValue({ unwrap: () => Promise.resolve() });
 
@@ -91,7 +91,7 @@ describe('handleAddLayerHash', () => {
 
   it('does not re-add a layer that is already on the map (same dedup rule as adaguc-viewer)', () => {
     setHash(`#addlayer('${serviceUrl}','${name}')`);
-    const dispatch = jest.fn();
+    const dispatch = vi.fn();
 
     handleAddLayerHash(mapId, dispatch, [makeLayer()]);
 
@@ -100,7 +100,7 @@ describe('handleAddLayerHash', () => {
 
   it('does nothing when the hash is not an addlayer(...) command', () => {
     setHash('#somethingelse');
-    const dispatch = jest.fn();
+    const dispatch = vi.fn();
 
     handleAddLayerHash(mapId, dispatch, []);
 
@@ -111,7 +111,7 @@ describe('handleAddLayerHash', () => {
 
   it('clears the addlayer(...) hash once handled, so the url goes back to looking clean', () => {
     setHash(`#addlayer('${serviceUrl}','${name}')`);
-    const dispatch = jest
+    const dispatch = vi
       .fn()
       .mockReturnValue({ unwrap: () => Promise.resolve() });
 
@@ -122,7 +122,7 @@ describe('handleAddLayerHash', () => {
 
   it('clears the hash even when the layer was already on the map (dedup case)', () => {
     setHash(`#addlayer('${serviceUrl}','${name}')`);
-    const dispatch = jest.fn();
+    const dispatch = vi.fn();
 
     handleAddLayerHash(mapId, dispatch, [makeLayer()]);
 

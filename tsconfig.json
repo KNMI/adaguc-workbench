@@ -1,29 +1,19 @@
 {
   "compilerOptions": {
-    "outDir": "./dist/",
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    // Type checking only - Vite compiles (and Vitest runs) the code.
+    "noEmit": true,
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "jsx": "react-jsx",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-
-    "jsx": "react",
-    "declaration": true
+    "resolveJsonModule": true
   },
-  "include": ["src", "stories", "webpack.config.js", "jest.config.js"],
-  "exclude": [
-    "node_modules",
-    "build",
-    "dist",
-    "scripts",
-    "acceptance-tests",
-    "webpack",
-    "jest",
-    "examples"
-  ]
+  "include": ["src", "stories", "vite.config.ts"]
 }

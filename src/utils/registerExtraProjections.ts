@@ -1,4 +1,5 @@
 import proj4 from 'proj4';
+import { get as getOlProjection } from 'ol/proj';
 import { register } from 'ol/proj/proj4';
 import { projections } from './projections';
 
@@ -20,4 +21,9 @@ export const registerExtraProjections = (): void => {
     }
   });
   register(proj4);
+  Object.entries(projections).forEach(([code, { extent }]) => {
+    if (extent) {
+      getOlProjection(code)?.setExtent(extent);
+    }
+  });
 };

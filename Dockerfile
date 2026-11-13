@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /usr/src/app
 
@@ -9,10 +9,9 @@ RUN npm ci
 
 COPY . .
 
-# Fail the image build itself on any type error, lint error, or test
-RUN npx tsc --noEmit -p . \
-    && npm run lint \
-    && npm test -- --ci
+# Fail the image build itself on any lint error or failing test - and on any
+# type error, which `npm run build` checks first.
+RUN npm run lint && npm test
 
 RUN npm run build
 

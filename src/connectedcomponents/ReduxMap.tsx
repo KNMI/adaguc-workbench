@@ -1,6 +1,4 @@
 import * as React from 'react';
-import { ThemeWrapper } from '@opengeoweb/theme';
-import { appTheme } from '../application/appTheme';
 
 import { actions, useAppDispatch, useAppSelector } from '../store/store';
 import { MAP_ID } from '../store/mapId';
@@ -123,36 +121,34 @@ const ReduxMap = (): React.ReactElement => {
   );
 
   return (
-    <ThemeWrapper theme={appTheme}>
-      <div
-        style={{
-          width: '100vw',
-          height: '100vh',
-          display: 'flex',
-          flexFlow: 'column wrap',
-          margin: 0,
-          padding: 0,
-          overflow: 'hidden',
-        }}
-      >
-        {/* No explicit height here: the toolbar's own minHeight (see
+    <div
+      style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        flexFlow: 'column wrap',
+        margin: 0,
+        padding: 0,
+        overflow: 'hidden',
+      }}
+    >
+      {/* No explicit height here: the toolbar's own minHeight (see
             AdagucAppBar) is the only source of truth for the header's
             height. Pinning this wrapper to a separate fixed height too
             left a gap below the AppBar whenever the two didn't match
             exactly, showing the theme's grey body background through it
             as a thin bar. */}
-        <div>
-          <AdagucAppBar />
-        </div>
-        <div style={{ flex: 1 }}>
-          <AdagucMosaic
-            mosaicItems={mosaicItems}
-            layerPanelIsExpanded={layerPanelIsExpanded}
-            toolsPanelIsExpanded={toolsPanelIsExpanded}
-          />
-        </div>
+      <div>
+        <AdagucAppBar />
       </div>
-    </ThemeWrapper>
+      <div style={{ flex: 1 }}>
+        <AdagucMosaic
+          mosaicItems={mosaicItems}
+          layerPanelIsExpanded={layerPanelIsExpanded}
+          toolsPanelIsExpanded={toolsPanelIsExpanded}
+        />
+      </div>
+    </div>
   );
 };
 

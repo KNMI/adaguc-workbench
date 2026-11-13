@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { awbColors } from '../../application/appTheme';
 import { Popper, DialogContent, DialogTitle, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { WMLayer } from '@opengeoweb/webmap';
@@ -27,8 +28,8 @@ const WCSPanelDialog = ({
         top: '50%',
         transform: 'translate(-50%, -50%)',
         zIndex: 2000,
-        background: 'white',
-        border: '1px solid rgba(0, 0, 0, 0.3)',
+        background: awbColors.surface,
+        border: `1px solid ${awbColors.waterDark}`,
         height: '90vh',
         width: '90vw',
         overflow: 'auto',

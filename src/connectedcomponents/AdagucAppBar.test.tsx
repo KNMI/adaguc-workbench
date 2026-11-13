@@ -2,17 +2,14 @@ import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import AdagucAppBar from './AdagucAppBar';
 
-jest.mock('./AdagucAddDataDialog', () => ({
-  __esModule: true,
+vi.mock('./AdagucAddDataDialog', () => ({
   default: () => null,
 }));
-jest.mock('./AdagucCreatePermalinkDialog', () => ({
-  __esModule: true,
+vi.mock('./AdagucCreatePermalinkDialog', () => ({
   default: ({ isDialogOpen }: { isDialogOpen: boolean }) =>
     isDialogOpen ? <div data-testid="permalink-dialog" /> : null,
 }));
-jest.mock('./PredefinedAreasDialog', () => ({
-  __esModule: true,
+vi.mock('./PredefinedAreasDialog', () => ({
   default: ({ isDialogOpen }: { isDialogOpen: boolean }) =>
     isDialogOpen ? <div data-testid="predefined-areas-dialog" /> : null,
 }));
@@ -20,8 +17,7 @@ jest.mock('./PredefinedAreasDialog', () => ({
 // The service-url routing/history logic itself lives in, and is fully
 // covered by, WMSServiceInput.test.tsx - here, only that AdagucAppBar
 // actually renders it is under test.
-jest.mock('./WMSServiceInput', () => ({
-  __esModule: true,
+vi.mock('./WMSServiceInput', () => ({
   default: () => <div data-testid="wms-service-input" />,
 }));
 

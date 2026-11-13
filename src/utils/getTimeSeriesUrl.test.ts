@@ -1,3 +1,4 @@
+import type { MockedFunction } from 'vitest';
 import { getWMLayerById } from '@opengeoweb/webmap';
 import type { WMLayer } from '@opengeoweb/webmap';
 import { MapLocation } from '@opengeoweb/webmap-react';
@@ -10,15 +11,17 @@ import {
 } from './getTimeSeriesUrl';
 import { AdagucLayer } from '../store/types';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
+vi.mock('@opengeoweb/webmap', () => ({
+  getWMLayerById: vi.fn(),
   getCorrectWMSDimName: (name: string) => name.toUpperCase(),
 }));
 
-jest.mock('ol/source', () => ({
-  ImageWMS: jest.fn().mockImplementation(() => ({
-    getFeatureInfoUrl: () => 'http://example.com/wms?LAYERS=air_pressure_msl',
-  })),
+vi.mock('ol/source', () => ({
+  ImageWMS: vi.fn(function ImageWMSMock() {
+    return {
+      getFeatureInfoUrl: () => 'http://example.com/wms?LAYERS=air_pressure_msl',
+    };
+  }),
 }));
 
 // opengeoweb types this as always returning a WMLayer, but it returns
@@ -31,7 +34,7 @@ const requireUrl = (url: string | undefined): string => {
   return url;
 };
 
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
 

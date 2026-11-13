@@ -4,7 +4,7 @@ import AdagucAboutDialog from './AdagucAboutDialog';
 
 describe('AdagucAboutDialog', () => {
   it('renders nothing when closed', () => {
-    render(<AdagucAboutDialog isDialogOpen={false} onDialogOpen={jest.fn()} />);
+    render(<AdagucAboutDialog isDialogOpen={false} onDialogOpen={vi.fn()} />);
 
     expect(
       screen.queryByText('About Adaguc Workbench'),
@@ -12,7 +12,7 @@ describe('AdagucAboutDialog', () => {
   });
 
   it('shows the target audience and a link to the GitHub repo when open', () => {
-    render(<AdagucAboutDialog isDialogOpen onDialogOpen={jest.fn()} />);
+    render(<AdagucAboutDialog isDialogOpen onDialogOpen={vi.fn()} />);
 
     expect(screen.getByText('About Adaguc Workbench')).toBeInTheDocument();
     expect(
@@ -43,10 +43,9 @@ describe('AdagucAboutDialog', () => {
     expect(serverLink).toHaveAttribute('target', '_blank');
   });
 
-  it('shows the build date, injected by webpack at build time', () => {
-    // jest.config.js stands in for webpack's DefinePlugin substitution
-    // with a fixed sentinel value, since jest never runs webpack itself.
-    render(<AdagucAboutDialog isDialogOpen onDialogOpen={jest.fn()} />);
+  it('shows the build date, injected at build time', () => {
+    // vite.config.ts defines a fixed sentinel value for test runs.
+    render(<AdagucAboutDialog isDialogOpen onDialogOpen={vi.fn()} />);
 
     expect(
       screen.getByText(
@@ -56,7 +55,7 @@ describe('AdagucAboutDialog', () => {
   });
 
   it('closes when the close button is clicked', () => {
-    const onDialogOpen = jest.fn();
+    const onDialogOpen = vi.fn();
     render(<AdagucAboutDialog isDialogOpen onDialogOpen={onDialogOpen} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'close' }));

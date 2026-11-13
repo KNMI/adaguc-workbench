@@ -1,34 +1,17 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { useAppDispatch, useAppSelector } from '../../store/store';
+import { Provider } from 'react-redux';
+import { LayerType } from '@opengeoweb/webmap';
+import { createAppStore } from '../../store/store';
 import { AdagucBaseLayer } from '../../store/types';
 import BaseLayersPanel from './BaseLayersPanel';
-
-jest.mock('@opengeoweb/webmap', () => ({
-  LayerType: { baseLayer: 'baseLayer', overLayer: 'overLayer' },
-}));
-
-jest.mock('../../store/store', () => ({
-  actions: {
-    setBaseLayerEnabled: (payload: unknown) => ({
-      type: 'wmsservices/setBaseLayerEnabled',
-      payload,
-    }),
-  },
-  useAppDispatch: jest.fn(),
-  useAppSelector: jest.fn(),
-}));
-
-const mockUseAppDispatch = jest.mocked(useAppDispatch);
-const mockUseAppSelector = jest.mocked(useAppSelector);
 
 const baseMap: AdagucBaseLayer = {
   id: 'baselayer-worldmap',
   name: 'WorldMap',
   title: 'KNMI Basemap',
   type: 'twms',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  layerType: 'baseLayer' as any,
+  layerType: LayerType.baseLayer,
   enabled: true,
 };
 
@@ -38,29 +21,32 @@ const overlay: AdagucBaseLayer = {
   title: 'World country borders',
   format: 'image/png',
   service: 'https://geoservices.knmi.nl/wms?DATASET=baselayers&',
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  layerType: 'overLayer' as any,
+  layerType: LayerType.overLayer,
   enabled: false,
 };
 
+// Renders the panel inside a real store holding just these two base layers.
+const renderPanel = () => {
+  const store = createAppStore({
+    viewer: { maps: {}, services: {}, baseLayers: [baseMap, overlay] },
+  });
+  render(
+    <Provider store={store}>
+      <BaseLayersPanel />
+    </Provider>,
+  );
+  return store;
+};
+
+const isEnabled = (
+  store: ReturnType<typeof createAppStore>,
+  id: string,
+): boolean | undefined =>
+  store.getState().viewer.baseLayers.find((layer) => layer.id === id)?.enabled;
+
 describe('BaseLayersPanel', () => {
-  let mockDispatch: jest.Mock;
-
-  beforeEach(() => {
-    mockDispatch = jest.fn();
-    mockUseAppDispatch.mockReturnValue(mockDispatch);
-    mockUseAppSelector.mockImplementation((selector) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      selector({ viewer: { baseLayers: [baseMap, overlay] } } as any),
-    );
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   it('renders base maps and overlays with their current enabled state', () => {
-    render(<BaseLayersPanel />);
+    renderPanel();
 
     expect(screen.getByText('KNMI Basemap')).toBeInTheDocument();
     expect(screen.getByText('World country borders')).toBeInTheDocument();
@@ -72,23 +58,23 @@ describe('BaseLayersPanel', () => {
     ).not.toBeChecked();
   });
 
-  it('dispatches setBaseLayerEnabled when a checkbox is toggled', () => {
-    render(<BaseLayersPanel />);
+  it('toggles the enabled state of a base layer in the store when its checkbox is clicked', () => {
+    const store = renderPanel();
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'KNMI Basemap' }));
 
-    expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'wmsservices/setBaseLayerEnabled',
-      payload: { id: 'baselayer-worldmap', enabled: false },
-    });
+    expect(isEnabled(store, 'baselayer-worldmap')).toBe(false);
+    expect(
+      screen.getByRole('checkbox', { name: 'KNMI Basemap' }),
+    ).not.toBeChecked();
 
     fireEvent.click(
       screen.getByRole('checkbox', { name: 'World country borders' }),
     );
 
-    expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'wmsservices/setBaseLayerEnabled',
-      payload: { id: 'overlay-countryborders', enabled: true },
-    });
+    expect(isEnabled(store, 'overlay-countryborders')).toBe(true);
+    expect(
+      screen.getByRole('checkbox', { name: 'World country borders' }),
+    ).toBeChecked();
   });
 });

@@ -1,3 +1,4 @@
+import type { Mock, MockedFunction, MockInstance } from 'vitest';
 import * as React from 'react';
 import {
   act,
@@ -7,9 +8,10 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Provider } from 'react-redux';
 import { getWMLayerById } from '@opengeoweb/webmap';
 import type { WMLayer } from '@opengeoweb/webmap';
-import { useAppDispatch, useAppSelector } from '../../store/store';
+import { actions, createAppStore } from '../../store/store';
 import { AdagucLayer, ViewerState } from '../../store/types';
 import { getFeatureInfoUrl } from '../../utils/getFeatureInfoUrl';
 import {
@@ -19,40 +21,26 @@ import {
 import { getHistogramUrl } from '../../utils/getHistogramUrl';
 import QueryPanel from './QueryPanel';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
+vi.mock('@opengeoweb/webmap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@opengeoweb/webmap')>()),
+  getWMLayerById: vi.fn(),
 }));
 
 // The url builders are stubbed so each test controls exactly which
 // requests the panel makes - building real ones (they have their own tests)
 // would need a fully parsed WMLayer behind every layer here.
-jest.mock('../../utils/getFeatureInfoUrl', () => ({
-  getFeatureInfoUrl: jest.fn(),
+vi.mock('../../utils/getFeatureInfoUrl', () => ({
+  getFeatureInfoUrl: vi.fn(),
 }));
-jest.mock('../../utils/getTimeSeriesUrl', () => ({
-  getTimeSeriesUrl: jest.fn(),
+vi.mock('../../utils/getTimeSeriesUrl', () => ({
+  getTimeSeriesUrl: vi.fn(),
   // Used only to compute what the two range fields show before the user
   // sets their own override - not what any of these tests are about.
-  getTimeDimensionRange: jest.fn(),
+  getTimeDimensionRange: vi.fn(),
   DEFAULT_MAX_TIME_STEPS: 64,
 }));
-jest.mock('../../utils/getHistogramUrl', () => ({
-  getHistogramUrl: jest.fn(),
-}));
-
-jest.mock('../../store/store', () => ({
-  actions: {
-    changeLayerDimension: (payload: unknown) => ({
-      type: 'wmsservices/changeLayerDimension',
-      payload,
-    }),
-    setHistogramBoxSelectActive: (payload: unknown) => ({
-      type: 'wmsservices/setHistogramBoxSelectActive',
-      payload,
-    }),
-  },
-  useAppDispatch: jest.fn(),
-  useAppSelector: jest.fn(),
+vi.mock('../../utils/getHistogramUrl', () => ({
+  getHistogramUrl: vi.fn(),
 }));
 
 // recharts renders real SVG geometry based on measured DOM layout, which
@@ -60,12 +48,12 @@ jest.mock('../../store/store', () => ({
 // can't be exercised this way. Standing in for LineChart/BarChart with
 // plain divs lets these tests focus on what is actually ours to verify.
 let mockClickedChartLabel: string | undefined;
-jest.mock('recharts', () => {
+vi.mock('recharts', async () => {
   /* eslint-disable
      @typescript-eslint/no-unsafe-call,
      @typescript-eslint/no-unsafe-return,
      @typescript-eslint/no-explicit-any */
-  const ReactLib = require('react');
+  const ReactLib = await import('react');
   return {
     ResponsiveContainer: ({ children }: { children: React.ReactNode }) =>
       children,
@@ -109,15 +97,13 @@ jest.mock('recharts', () => {
 
 // opengeoweb types this as always returning a WMLayer, but it returns
 // undefined for an unknown id - which these tests stub too.
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
-const mockGetFeatureInfoUrl = jest.mocked(getFeatureInfoUrl);
-const mockGetTimeSeriesUrl = jest.mocked(getTimeSeriesUrl);
-const mockGetTimeDimensionRange = jest.mocked(getTimeDimensionRange);
-const mockGetHistogramUrl = jest.mocked(getHistogramUrl);
-const mockUseAppDispatch = jest.mocked(useAppDispatch);
-const mockUseAppSelector = jest.mocked(useAppSelector);
+const mockGetFeatureInfoUrl = vi.mocked(getFeatureInfoUrl);
+const mockGetTimeSeriesUrl = vi.mocked(getTimeSeriesUrl);
+const mockGetTimeDimensionRange = vi.mocked(getTimeDimensionRange);
+const mockGetHistogramUrl = vi.mocked(getHistogramUrl);
 
 const mapId = 'map1';
 const layerId = 'layer-1';
@@ -193,16 +179,27 @@ const fakeHistogramResponse = {
 // The panel fetches through React Query - a fresh client per test, so
 // nothing cached by one test can leak into another.
 let queryClient: QueryClient;
-const render = (ui: React.ReactElement) =>
-  renderWithoutQueryClient(ui, {
-    wrapper: ({ children }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    ),
-  });
 
 describe('QueryPanel', () => {
-  let mockDispatch: jest.Mock;
+  // The state a test starts from - render() creates a real store with it.
   let fakeState: ViewerState;
+  let store: ReturnType<typeof createAppStore>;
+  // Every action dispatched, from the panels or the test itself.
+  let mockDispatch: MockInstance;
+
+  const render = (ui: React.ReactElement) => {
+    store = createAppStore(fakeState);
+    mockDispatch = vi.spyOn(store, 'dispatch');
+    return renderWithoutQueryClient(ui, {
+      wrapper: ({ children }) => (
+        <Provider store={store}>
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </Provider>
+      ),
+    });
+  };
 
   const buildState = (
     overrides: Partial<ViewerState['viewer']['maps']['map1']> = {},
@@ -228,13 +225,9 @@ describe('QueryPanel', () => {
 
   beforeEach(() => {
     queryClient = new QueryClient();
-    mockDispatch = jest.fn();
-    mockUseAppDispatch.mockReturnValue(mockDispatch);
-
     fakeState = buildState();
-    mockUseAppSelector.mockImplementation((selector) => selector(fakeState));
 
-    // jest.clearAllMocks() (below) only clears recorded calls, not a
+    // vi.clearAllMocks() (below) only clears recorded calls, not a
     // previously configured mockReturnValue - without resetting this here
     // too, a custom getWMLayerById return value set by one test could
     // otherwise leak into a later one that never sets its own.
@@ -260,9 +253,9 @@ describe('QueryPanel', () => {
 
   afterEach(() => {
     queryClient.clear();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (global as any).fetch;
+    delete (globalThis as any).fetch;
   });
 
   it('fetches and renders GetFeatureInfo results for the clicked point by default', async () => {
@@ -271,7 +264,7 @@ describe('QueryPanel', () => {
     // the response needs to match each effect's own request url, since
     // TimeSeries now reads the body via .text() too (to recognise a
     // non-JSON OGC exception on failure) rather than only ever .json().
-    global.fetch = jest.fn((url: string) => {
+    globalThis.fetch = vi.fn((url: string) => {
       if (url.includes('mock=timeseries')) {
         return Promise.resolve({
           ok: true,
@@ -291,7 +284,7 @@ describe('QueryPanel', () => {
       screen.getByRole('button', { name: 'GetFeatureInfo' }).className,
     ).toContain('MuiButton-contained');
     await waitFor(() =>
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         'http://localhost:8080/adagucserver?mock=getfeatureinfo',
       ),
     );
@@ -299,7 +292,7 @@ describe('QueryPanel', () => {
   });
 
   it('snaps a clicked time series point to the dimension and jumps the layer to it', async () => {
-    global.fetch = jest.fn((url: string) => {
+    globalThis.fetch = vi.fn((url: string) => {
       if (url.includes('mock=timeseries')) {
         return Promise.resolve({
           ok: true,
@@ -313,7 +306,7 @@ describe('QueryPanel', () => {
     }) as unknown as typeof fetch;
     fakeState = buildState({ mapPinLocation: fakeMapPinLocation });
 
-    const mockGetClosestValue = jest.fn().mockReturnValue(
+    const mockGetClosestValue = vi.fn().mockReturnValue(
       // A different value than what was clicked, to prove the snapped
       // value (not the raw click) is what ends up dispatched.
       '2025-01-01T01:30:00Z',
@@ -353,14 +346,14 @@ describe('QueryPanel', () => {
     // request should be several times within a fraction of a second -
     // without debouncing, each of those would fire its own request
     // instead of only the last one actually mattering.
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
-      global.fetch = jest.fn(() =>
+      globalThis.fetch = vi.fn(() =>
         Promise.resolve({ ok: true, text: () => Promise.resolve('{}') }),
       ) as unknown as typeof fetch;
       fakeState = buildState({ mapPinLocation: fakeMapPinLocation });
 
-      const { rerender } = render(<QueryPanel mapId={mapId} isActive />);
+      render(<QueryPanel mapId={mapId} isActive />);
       act(() => {
         fireEvent.click(screen.getByRole('button', { name: 'TimeSeries' }));
       });
@@ -369,44 +362,56 @@ describe('QueryPanel', () => {
       // (rather than the sync advanceTimersByTime) also flushes the
       // microtasks the resulting fetch promise chain needs, so its own
       // state update isn't left dangling outside of act().
-      await act(() => jest.advanceTimersByTimeAsync(500));
-      (global.fetch as jest.Mock).mockClear();
+      await act(() => vi.advanceTimersByTimeAsync(500));
+      (globalThis.fetch as Mock).mockClear();
 
       const timeSeriesFetchCount = (): number =>
-        (global.fetch as jest.Mock).mock.calls.filter(([url]) =>
+        (globalThis.fetch as Mock).mock.calls.filter(([url]) =>
           String(url).includes('mock=timeseries'),
         ).length;
 
       // Three rapid changes (e.g. three map-pin clicks, or "Follow current
       // time" ticking across three consecutive animation steps), each
       // still within the debounce window of the one before it.
-      await act(() => jest.advanceTimersByTimeAsync(100));
-      fakeState = buildState({
-        mapPinLocation: { ...fakeMapPinLocation, lat: 51 },
+      await act(() => vi.advanceTimersByTimeAsync(100));
+      act(() => {
+        store.dispatch(
+          actions.setMapPinLocation({
+            mapId,
+            location: { ...fakeMapPinLocation, lat: 51 },
+          }),
+        );
       });
-      rerender(<QueryPanel mapId={mapId} isActive />);
 
-      await act(() => jest.advanceTimersByTimeAsync(100));
-      fakeState = buildState({
-        mapPinLocation: { ...fakeMapPinLocation, lat: 52 },
+      await act(() => vi.advanceTimersByTimeAsync(100));
+      act(() => {
+        store.dispatch(
+          actions.setMapPinLocation({
+            mapId,
+            location: { ...fakeMapPinLocation, lat: 52 },
+          }),
+        );
       });
-      rerender(<QueryPanel mapId={mapId} isActive />);
 
-      await act(() => jest.advanceTimersByTimeAsync(100));
-      fakeState = buildState({
-        mapPinLocation: { ...fakeMapPinLocation, lat: 53 },
+      await act(() => vi.advanceTimersByTimeAsync(100));
+      act(() => {
+        store.dispatch(
+          actions.setMapPinLocation({
+            mapId,
+            location: { ...fakeMapPinLocation, lat: 53 },
+          }),
+        );
       });
-      rerender(<QueryPanel mapId={mapId} isActive />);
 
       // Still well within the debounce window since the last of the three
       // changes above.
       expect(timeSeriesFetchCount()).toBe(0);
 
-      await act(() => jest.advanceTimersByTimeAsync(500));
+      await act(() => vi.advanceTimersByTimeAsync(500));
 
       expect(timeSeriesFetchCount()).toBe(1);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -422,7 +427,7 @@ describe('QueryPanel', () => {
     Requested data exceeded maxquerylimit=512;
   </ServiceException>
 </ServiceExceptionReport>`;
-    global.fetch = jest.fn((url: string) => {
+    globalThis.fetch = vi.fn((url: string) => {
       if (url.includes('mock=timeseries')) {
         return Promise.resolve({
           ok: false,
@@ -474,7 +479,7 @@ describe('QueryPanel', () => {
           ? 'http://localhost:8080/adagucserver?mock=timeseries-retry'
           : 'http://localhost:8080/adagucserver?mock=timeseries',
     );
-    global.fetch = jest.fn((url: string) => {
+    globalThis.fetch = vi.fn((url: string) => {
       if (url.includes('mock=timeseries-retry')) {
         return Promise.resolve({
           ok: true,
@@ -518,7 +523,7 @@ describe('QueryPanel', () => {
   });
 
   it("shows the layer time dimension's own default range in the editable Start/End fields", async () => {
-    const timeDimension = { getClosestValue: jest.fn() };
+    const timeDimension = { getClosestValue: vi.fn() };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
         name === 'time' ? timeDimension : undefined,
@@ -528,7 +533,7 @@ describe('QueryPanel', () => {
       start: '2025-01-01T00:00:00Z',
       end: '2025-01-01T05:00:00Z',
     });
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -553,7 +558,7 @@ describe('QueryPanel', () => {
   });
 
   it('applies an edited Start/End range as an override to the TimeSeries request, and resets it via Auto', async () => {
-    const timeDimension = { getClosestValue: jest.fn() };
+    const timeDimension = { getClosestValue: vi.fn() };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
         name === 'time' ? timeDimension : undefined,
@@ -563,7 +568,7 @@ describe('QueryPanel', () => {
       start: '2025-01-01T00:00:00Z',
       end: '2025-01-01T05:00:00Z',
     });
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -610,7 +615,7 @@ describe('QueryPanel', () => {
   });
 
   it('keeps the TimeSeries range override when switching to another subtab and back', () => {
-    const timeDimension = { getClosestValue: jest.fn() };
+    const timeDimension = { getClosestValue: vi.fn() };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
         name === 'time' ? timeDimension : undefined,
@@ -620,7 +625,7 @@ describe('QueryPanel', () => {
       start: '2025-01-01T00:00:00Z',
       end: '2025-01-01T05:00:00Z',
     });
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -649,7 +654,7 @@ describe('QueryPanel', () => {
   it('fetches the time series for a new pin while the GetFeatureInfo subtab is shown', async () => {
     // GetFeatureInfo and TimeSeries share the map-click pin: both are
     // fetched right away, so either is ready to switch to.
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -660,7 +665,7 @@ describe('QueryPanel', () => {
     render(<QueryPanel mapId={mapId} isActive />);
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('mock=timeseries'),
       );
     });
@@ -674,7 +679,7 @@ describe('QueryPanel', () => {
     // edited, so that commit used to go out with End's old value, and the
     // override it set then re-synced (and so overwrote) whatever the user
     // typed into End next, before they could even blur it themselves.
-    const timeDimension = { getClosestValue: jest.fn() };
+    const timeDimension = { getClosestValue: vi.fn() };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
         name === 'time' ? timeDimension : undefined,
@@ -684,7 +689,7 @@ describe('QueryPanel', () => {
       start: '2025-01-01T00:00:00Z',
       end: '2025-01-01T05:00:00Z',
     });
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -723,7 +728,7 @@ describe('QueryPanel', () => {
   });
 
   it('reverts an unparsable Start/End edit instead of applying it', async () => {
-    const timeDimension = { getClosestValue: jest.fn() };
+    const timeDimension = { getClosestValue: vi.fn() };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
         name === 'time' ? timeDimension : undefined,
@@ -733,7 +738,7 @@ describe('QueryPanel', () => {
       start: '2025-01-01T00:00:00Z',
       end: '2025-01-01T05:00:00Z',
     });
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -761,7 +766,7 @@ describe('QueryPanel', () => {
   });
 
   it('checking "Follow current time" centers the request on the reference layer\'s own current value, and disables manual editing', async () => {
-    const timeDimension = { getClosestValue: jest.fn() };
+    const timeDimension = { getClosestValue: vi.fn() };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
         name === 'time' ? timeDimension : undefined,
@@ -773,7 +778,7 @@ describe('QueryPanel', () => {
           ? { start: '2025-01-01T01:00:00Z', end: '2025-01-01T05:00:00Z' }
           : { start: '2025-01-01T00:00:00Z', end: '2025-01-01T06:00:00Z' },
     );
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -819,7 +824,7 @@ describe('QueryPanel', () => {
   });
 
   it("tracks the layer's current value as it moves while following, refetching with the updated range", async () => {
-    const timeDimension = { getClosestValue: jest.fn() };
+    const timeDimension = { getClosestValue: vi.fn() };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
         name === 'time' ? timeDimension : undefined,
@@ -834,7 +839,7 @@ describe('QueryPanel', () => {
             }
           : { start: '2025-01-01T00:00:00Z', end: '2025-01-01T06:00:00Z' },
     );
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -842,7 +847,7 @@ describe('QueryPanel', () => {
     ) as unknown as typeof fetch;
     fakeState = buildState({ mapPinLocation: fakeMapPinLocation });
 
-    const { rerender } = render(<QueryPanel mapId={mapId} isActive />);
+    render(<QueryPanel mapId={mapId} isActive />);
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'TimeSeries' }));
     });
@@ -851,19 +856,17 @@ describe('QueryPanel', () => {
     );
 
     mockGetTimeSeriesUrl.mockClear();
-    // Simulates the layer's time stepping/animating forward - a new redux
-    // state with a different currentValue, same as a real dimensionChange
-    // dispatch would produce.
-    fakeState = buildState({
-      mapPinLocation: fakeMapPinLocation,
-      layers: [
-        {
-          ...fakeLayer,
-          dimensions: [{ name: 'time', currentValue: '2025-01-01T02:00:00Z' }],
-        },
-      ],
+    // The layer's time stepping/animating forward.
+    act(() => {
+      store.dispatch(
+        actions.changeLayerDimension({
+          mapId,
+          layerIndex: 0,
+          dimensionName: 'time',
+          dimensionValue: '2025-01-01T02:00:00Z',
+        }),
+      );
     });
-    rerender(<QueryPanel mapId={mapId} isActive />);
 
     expect(screen.getByLabelText('Start')).toHaveValue(
       '2025-01-01T02:00:00Z-window-start',
@@ -882,7 +885,7 @@ describe('QueryPanel', () => {
   });
 
   it('unchecking "Follow current time" freezes the fields at the last value following had, not the manual override from before', async () => {
-    const timeDimension = { getClosestValue: jest.fn() };
+    const timeDimension = { getClosestValue: vi.fn() };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
         name === 'time' ? timeDimension : undefined,
@@ -894,7 +897,7 @@ describe('QueryPanel', () => {
           ? { start: '2025-01-01T01:00:00Z', end: '2025-01-01T05:00:00Z' }
           : { start: '2025-01-01T00:00:00Z', end: '2025-01-01T06:00:00Z' },
     );
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -941,7 +944,7 @@ describe('QueryPanel', () => {
   });
 
   it('unchecking "Follow current time" with no prior manual override still freezes at the last followed value, not the automatic default', async () => {
-    const timeDimension = { getClosestValue: jest.fn() };
+    const timeDimension = { getClosestValue: vi.fn() };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
         name === 'time' ? timeDimension : undefined,
@@ -953,7 +956,7 @@ describe('QueryPanel', () => {
           ? { start: '2025-01-01T01:00:00Z', end: '2025-01-01T05:00:00Z' }
           : { start: '2025-01-01T00:00:00Z', end: '2025-01-01T06:00:00Z' },
     );
-    global.fetch = jest.fn(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
@@ -984,7 +987,7 @@ describe('QueryPanel', () => {
   });
 
   it('dims every series but the one hovered in the legend', async () => {
-    global.fetch = jest.fn((url: string) => {
+    globalThis.fetch = vi.fn((url: string) => {
       if (url.includes('mock=timeseries')) {
         return Promise.resolve({
           ok: true,
@@ -1044,7 +1047,7 @@ describe('QueryPanel', () => {
   });
 
   it('pins a series when its legend entry is clicked, staying dimmed after the mouse leaves', async () => {
-    global.fetch = jest.fn((url: string) => {
+    globalThis.fetch = vi.fn((url: string) => {
       if (url.includes('mock=timeseries')) {
         return Promise.resolve({
           ok: true,
@@ -1107,7 +1110,7 @@ describe('QueryPanel', () => {
   });
 
   it('pins more than one legend entry at once, showing all of them', async () => {
-    global.fetch = jest.fn((url: string) => {
+    globalThis.fetch = vi.fn((url: string) => {
       if (url.includes('mock=timeseries')) {
         return Promise.resolve({
           ok: true,
@@ -1174,18 +1177,19 @@ describe('QueryPanel', () => {
     Requested data exceeded maxquerylimit=512;
   </ServiceException>
 </ServiceExceptionReport>`;
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       text: () => Promise.resolve(serviceExceptionXml),
     });
 
-    const { rerender } = render(<QueryPanel mapId={mapId} isActive />);
+    render(<QueryPanel mapId={mapId} isActive />);
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Histogram' }));
     });
 
-    fakeState = buildState({ histogramBox: fakeHistogramBox });
-    rerender(<QueryPanel mapId={mapId} isActive />);
+    act(() => {
+      store.dispatch(actions.setHistogramBox({ mapId, box: fakeHistogramBox }));
+    });
 
     expect(
       await screen.findByText(
@@ -1195,12 +1199,12 @@ describe('QueryPanel', () => {
   });
 
   it('toggles histogram box-select and renders bins once a box is dragged', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       text: () => Promise.resolve(JSON.stringify(fakeHistogramResponse)),
     });
 
-    const { rerender } = render(<QueryPanel mapId={mapId} isActive />);
+    render(<QueryPanel mapId={mapId} isActive />);
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Histogram' }));
     });
@@ -1215,8 +1219,9 @@ describe('QueryPanel', () => {
       payload: { mapId, active: true },
     });
 
-    fakeState = buildState({ histogramBox: fakeHistogramBox });
-    rerender(<QueryPanel mapId={mapId} isActive />);
+    act(() => {
+      store.dispatch(actions.setHistogramBox({ mapId, box: fakeHistogramBox }));
+    });
 
     const chart = await waitFor(() => screen.getByTestId('histogram-chart'));
     expect(chart.getAttribute('data-bin-count')).toBe('2');

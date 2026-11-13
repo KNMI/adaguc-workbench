@@ -1,4 +1,5 @@
 import React from 'react';
+import { awbColors } from '../../application/appTheme';
 import { WMLayer } from '@opengeoweb/webmap';
 import { Button, TextField } from '@mui/material';
 import { setWMSExtensionUrl } from '../../utils/setWMSExtensionUrl';
@@ -41,7 +42,7 @@ const WMSColorRangeSelector = ({
   };
 
   return (
-    <div style={{ padding: '10px', background: 'white' }}>
+    <div style={{ padding: '10px', background: awbColors.surface }}>
       <TextField
         label="Min value"
         value={minValue}

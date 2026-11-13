@@ -4,8 +4,8 @@ import type { WMLayer } from '@opengeoweb/webmap';
 import { refreshLayerSource } from '../../utils/refreshLayerSource';
 import WMSColorRangeSelector from './WMSColorRangeSelector';
 
-jest.mock('../../utils/refreshLayerSource', () => ({
-  refreshLayerSource: jest.fn(),
+vi.mock('../../utils/refreshLayerSource', () => ({
+  refreshLayerSource: vi.fn(),
 }));
 
 const makeLayer = (url: string): WMLayer =>
@@ -13,7 +13,7 @@ const makeLayer = (url: string): WMLayer =>
 
 describe('WMSColorRangeSelector', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('starts from the color scale range the layer already requests', () => {

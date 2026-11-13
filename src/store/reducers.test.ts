@@ -3,8 +3,8 @@ import { reducers } from './reducers';
 import { isLayerInAnimation } from './animation';
 import { AdagucMapsState } from './types';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
+vi.mock('@opengeoweb/webmap', () => ({
+  getWMLayerById: vi.fn(),
 }));
 
 describe('reducers.setGetFeatureInfoActive', () => {
@@ -666,10 +666,10 @@ describe('reducers: layers that are missing or unknown', () => {
   });
 
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('setLayerOrderByIds skips an id that is not on the map instead of leaving a hole', () => {

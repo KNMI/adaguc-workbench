@@ -1,25 +1,9 @@
+import type { Mock } from 'vitest';
 import * as React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
-import { WMLayer } from '@opengeoweb/webmap';
-import { useAppSelector } from '../../store/store';
-import { ViewerState } from '../../store/types';
+import { fireEvent, screen, within } from '@testing-library/react';
+import type { WMLayer } from '@opengeoweb/webmap';
+import { emptyMap, renderWithStore } from '../../testUtils/renderWithStore';
 import WCSPanel from './WCSPanel';
-
-jest.mock('@opengeoweb/webmap', () => ({
-  // parseDescribeCoverage's only runtime (non-type-only) dependency.
-  toArray: (value: unknown): unknown[] => {
-    if (value === null || value === undefined) {
-      return [];
-    }
-    return Array.isArray(value) ? value : [value];
-  },
-}));
-
-jest.mock('../../store/store', () => ({
-  useAppSelector: jest.fn(),
-}));
-
-const mockUseAppSelector = jest.mocked(useAppSelector);
 
 const DESCRIBE_COVERAGE_XML = `<?xml version='1.0' encoding="ISO-8859-1" ?>
 <CoverageDescription
@@ -86,8 +70,8 @@ const AIR_TEMPERATURE_DESCRIBE_COVERAGE_XML = DESCRIBE_COVERAGE_XML.replace(
   '<label>Air temperature</label>',
 );
 
-const makeFetchMock = (): jest.Mock =>
-  jest.fn((url: string) => {
+const makeFetchMock = (): Mock =>
+  vi.fn((url: string) => {
     if (url.includes('REQUEST=GetCapabilities')) {
       return Promise.resolve({
         text: () => Promise.resolve(WCS_CAPABILITIES_XML),
@@ -115,44 +99,35 @@ const makeWMLayer = (overrides: Partial<WMLayer> = {}): WMLayer =>
 
 const mapId = 'map1';
 
-const buildState = (): ViewerState => ({
-  viewer: {
-    services: {},
-    baseLayers: [],
-    maps: {
-      [mapId]: {
-        isAnimating: false,
-        isGetFeatureInfoActive: false,
-        isHistogramBoxSelectActive: false,
-        layers: [],
-        view: {
-          srs: 'EPSG:3857',
-          bbox: { left: -1, bottom: -1, right: 1, top: 1 },
-        },
+// The panel reads only the map's current view from the store (offered as
+// an extra projection option) - its layer comes in as a prop.
+const renderPanel = (wmLayer: WMLayer): ReturnType<typeof renderWithStore> =>
+  renderWithStore(<WCSPanel mapId={mapId} wmLayer={wmLayer} />, {
+    [mapId]: emptyMap({
+      view: {
+        srs: 'EPSG:3857',
+        bbox: { left: -1, bottom: -1, right: 1, top: 1 },
       },
-    },
-  },
-});
+    }),
+  });
 
 describe('WCSPanel', () => {
   beforeEach(() => {
-    const state = buildState();
-    mockUseAppSelector.mockImplementation((selector) => selector(state));
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       text: () => Promise.resolve(DESCRIBE_COVERAGE_XML),
     });
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (global as any).fetch;
+    delete (globalThis as any).fetch;
   });
 
   it('fetches DescribeCoverage for this layer and shows its title/abstract', async () => {
-    render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
+    renderPanel(makeWMLayer());
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining(
         'https://geoservices.knmi.nl/adagucserver?dataset=test&SERVICE=WCS&REQUEST=DescribeCoverage&COVERAGE=air_pressure_msl',
       ),
@@ -165,7 +140,7 @@ describe('WCSPanel', () => {
   });
 
   it('shows a GetCoverage request url using the native projection, falling back to AAIGRID when NetCDF is not offered', async () => {
-    render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
+    renderPanel(makeWMLayer());
 
     const link = await screen.findByRole('link');
     expect(link.getAttribute('href')).toContain('CRS=EPSG%3A4326');
@@ -174,7 +149,7 @@ describe('WCSPanel', () => {
   });
 
   it('defaults to NetCDF when the service offers it, even alongside AAIGRID', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       text: () =>
         Promise.resolve(
           DESCRIBE_COVERAGE_XML.replace(
@@ -184,21 +159,21 @@ describe('WCSPanel', () => {
         ),
     });
 
-    render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
+    renderPanel(makeWMLayer());
 
     const link = await screen.findByRole('link');
     expect(link.getAttribute('href')).toContain('FORMAT=NetCDF4');
   });
 
   it("includes this layer's current dimension values in the GetCoverage url", async () => {
-    render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
+    renderPanel(makeWMLayer());
 
     const link = await screen.findByRole('link');
     expect(link.getAttribute('href')).toContain('TIME=2024-01-01T00:00:00Z');
   });
 
   it('offers the current map view as an extra projection option', async () => {
-    render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
+    renderPanel(makeWMLayer());
     await screen.findByRole('link');
 
     // The CRS select is the first of the two Selects on the page (the
@@ -213,14 +188,14 @@ describe('WCSPanel', () => {
   });
 
   it('shows an error message when the layer has no coverage', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       text: () =>
         Promise.resolve(
           '<CoverageDescription><ServiceExceptionReport/></CoverageDescription>',
         ),
     });
 
-    render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
+    renderPanel(makeWMLayer());
 
     expect(
       await screen.findByText('This layer has no Web Coverage Service.'),
@@ -228,9 +203,9 @@ describe('WCSPanel', () => {
   });
 
   it('lists the coverages offered by the service and switches to the one picked', async () => {
-    global.fetch = makeFetchMock();
+    globalThis.fetch = makeFetchMock();
 
-    render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
+    renderPanel(makeWMLayer());
 
     await screen.findByRole('link');
 

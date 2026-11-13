@@ -1,3 +1,4 @@
+import type { MockedFunction } from 'vitest';
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import { getWMLayerById } from '@opengeoweb/webmap';
@@ -6,19 +7,19 @@ import { useAnimationForLayer } from '@opengeoweb/webmap-react';
 import { AdagucLayer } from '../store/types';
 import { AnimationClock, getNumStepsFromCurrentTime } from './AnimationClock';
 
-jest.mock('@opengeoweb/webmap', () => ({
+vi.mock('@opengeoweb/webmap', () => ({
   LayerType: { mapLayer: 'mapLayer' },
-  getWMLayerById: jest.fn(),
+  getWMLayerById: vi.fn(),
 }));
 
-jest.mock('@opengeoweb/webmap-react', () => ({
-  useAnimationForLayer: jest.fn(),
+vi.mock('@opengeoweb/webmap-react', () => ({
+  useAnimationForLayer: vi.fn(),
 }));
 
-const mockUseAnimationForLayer = jest.mocked(useAnimationForLayer);
+const mockUseAnimationForLayer = vi.mocked(useAnimationForLayer);
 // opengeoweb types this as always returning a WMLayer, but it returns
 // undefined for an unknown id - which these tests stub too.
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
 
@@ -38,7 +39,7 @@ describe('getNumStepsFromCurrentTime', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("starts the animation from the layer's currently selected time, not the library default", () => {
@@ -53,8 +54,8 @@ describe('getNumStepsFromCurrentTime', () => {
       dimensions: [{ name: 'time', currentValue: '2025-01-01T10:00:00Z' }],
     };
     const fakeTimeDimension = {
-      getIndexForValue: jest.fn(() => 10),
-      size: jest.fn(() => 24),
+      getIndexForValue: vi.fn(() => 10),
+      size: vi.fn(() => 24),
     };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
@@ -80,8 +81,8 @@ describe('getNumStepsFromCurrentTime', () => {
       dimensions: [{ name: 'time', currentValue: '2025-01-01T23:00:00Z' }],
     };
     const fakeTimeDimension = {
-      getIndexForValue: jest.fn(() => 23),
-      size: jest.fn(() => 24),
+      getIndexForValue: vi.fn(() => 23),
+      size: vi.fn(() => 24),
     };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
@@ -100,8 +101,8 @@ describe('getNumStepsFromCurrentTime', () => {
       dimensions: [{ name: 'time', currentValue: '2025-01-01T04:00:00Z' }],
     };
     const fakeTimeDimension = {
-      getIndexForValue: jest.fn(() => 4),
-      size: jest.fn(() => 5),
+      getIndexForValue: vi.fn(() => 4),
+      size: vi.fn(() => 5),
     };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
@@ -115,7 +116,7 @@ describe('getNumStepsFromCurrentTime', () => {
 
 describe('AnimationClock', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('reports each animated time step via onTick', () => {
@@ -123,7 +124,7 @@ describe('AnimationClock', () => {
       dimensions: [{ name: 'time', currentValue: '2025-01-01T00:00:00Z' }],
       timeContext: { isAnimating: true, prefetchList: [1, 2, 3] },
     });
-    const onTick = jest.fn();
+    const onTick = vi.fn();
 
     render(<AnimationClock layer={layer} onTick={onTick} />);
 
@@ -138,7 +139,7 @@ describe('AnimationClock', () => {
       dimensions: [],
       timeContext: { isAnimating: true, prefetchList: [] },
     });
-    const onTick = jest.fn();
+    const onTick = vi.fn();
 
     render(<AnimationClock layer={layer} onTick={onTick} />);
 
@@ -152,7 +153,7 @@ describe('AnimationClock', () => {
     });
 
     const { container } = render(
-      <AnimationClock layer={layer} onTick={jest.fn()} />,
+      <AnimationClock layer={layer} onTick={vi.fn()} />,
     );
 
     expect(container).toBeEmptyDOMElement();

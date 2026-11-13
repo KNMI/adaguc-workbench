@@ -1,114 +1,82 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { useAppDispatch, useAppSelector } from '../../store/store';
+import { Provider } from 'react-redux';
+import { actions, createAppStore } from '../../store/store';
+import { MAP_ID } from '../../store/mapId';
+import { emptyMap } from '../../testUtils/renderWithStore';
 import SideToolPanel from './SideToolPanel';
-
-jest.mock('../../store/thunks', () => ({
-  thunks: { addLayer: jest.fn() },
-}));
 
 // The panels' own content/behaviour isn't under test here - only how
 // SideToolPanel drives the shared pin-mode flag and the Query tab's
 // `isActive` prop as tabs change. QueryPanel is mocked with a function that
 // records the props it was rendered with, so tests can assert on those.
 const mockQueryPanelRenders: Array<{ mapId: string; isActive: boolean }> = [];
-jest.mock('./AutoWMS', () => ({ __esModule: true, default: () => null }));
-jest.mock('./QueryPanel', () => ({
-  __esModule: true,
-  default: (props: { mapId: string; isActive: boolean }) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    require('react').useEffect(() => {
+vi.mock('./AutoWMS', () => ({ default: () => null }));
+vi.mock('./QueryPanel', () => ({
+  default: function QueryPanelMock(props: {
+    mapId: string;
+    isActive: boolean;
+  }) {
+    React.useEffect(() => {
       mockQueryPanelRenders.push(props);
     });
     return null;
   },
 }));
-jest.mock('./LegendPanel', () => ({ __esModule: true, default: () => null }));
-jest.mock('./BaseLayersPanel', () => ({
-  __esModule: true,
+vi.mock('./LegendPanel', () => ({ default: () => null }));
+vi.mock('./BaseLayersPanel', () => ({
   default: () => null,
 }));
-jest.mock('./TimePanel', () => ({ __esModule: true, default: () => null }));
+vi.mock('./TimePanel', () => ({ default: () => null }));
 
-jest.mock('../../store/store', () => ({
-  actions: {
-    setGetFeatureInfoActive: (payload: unknown) => ({
-      type: 'wmsservices/setGetFeatureInfoActive',
-      payload,
-    }),
-  },
-  useAppDispatch: jest.fn(),
-  useAppSelector: jest.fn(),
-}));
-
-const mockUseAppDispatch = jest.mocked(useAppDispatch);
-const mockUseAppSelector = jest.mocked(useAppSelector);
-
-const PIN_MODE_ACTION = 'wmsservices/setGetFeatureInfoActive';
-
-interface DispatchedAction {
-  type: string;
-  payload: { mapId: string; active: boolean };
-}
+// Renders the panel inside a real store holding the app's one map. Pin
+// mode starts on there, so the tests can tell the panel actually switched
+// it off rather than it just being off already.
+const renderPanel = () => {
+  const store = createAppStore({
+    viewer: {
+      maps: { [MAP_ID]: emptyMap({ isGetFeatureInfoActive: true }) },
+      services: {},
+      baseLayers: [],
+    },
+  });
+  const renderResult = render(
+    <Provider store={store}>
+      <SideToolPanel toolsPanelIsExpanded toggleExpandToolsPanel={vi.fn()} />
+    </Provider>,
+  );
+  return { store, ...renderResult };
+};
 
 describe('SideToolPanel', () => {
-  let mockDispatch: jest.Mock;
-
   beforeEach(() => {
     mockQueryPanelRenders.length = 0;
-    mockDispatch = jest.fn();
-    mockUseAppDispatch.mockReturnValue(mockDispatch);
-    mockUseAppSelector.mockImplementation((selector) =>
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      selector({ viewer: {} } as any),
-    );
   });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  const pinModeDispatches = (): Array<{ mapId: string; active: boolean }> =>
-    (mockDispatch.mock.calls as [DispatchedAction][])
-      .map(([dispatchedAction]) => dispatchedAction)
-      .filter((dispatchedAction) => dispatchedAction.type === PIN_MODE_ACTION)
-      .map((dispatchedAction) => dispatchedAction.payload);
 
   it('turns pin mode on for Query and off for AutoWMS', () => {
-    render(
-      <SideToolPanel toolsPanelIsExpanded toggleExpandToolsPanel={jest.fn()} />,
-    );
+    const { store } = renderPanel();
+    const isPinModeActive = (): boolean =>
+      store.getState().viewer.maps[MAP_ID].isGetFeatureInfoActive;
 
     // AUTOWMS is the default tab, so pin mode starts off.
-    expect(pinModeDispatches().at(-1)).toEqual({
-      mapId: 'map1',
-      active: false,
-    });
+    expect(isPinModeActive()).toBe(false);
 
     act(() => {
       fireEvent.click(screen.getByText('Queries'));
     });
-    expect(pinModeDispatches().at(-1)).toEqual({
-      mapId: 'map1',
-      active: true,
-    });
+    expect(isPinModeActive()).toBe(true);
 
     act(() => {
       fireEvent.click(screen.getByText('AutoWMS'));
     });
-    expect(pinModeDispatches().at(-1)).toEqual({
-      mapId: 'map1',
-      active: false,
-    });
+    expect(isPinModeActive()).toBe(false);
   });
 
   it('only marks QueryPanel active while the Query tab is shown', () => {
     // Regression guard: QueryPanel stays mounted (just hidden) while another
     // main tab is shown, so it relies on this prop - rather than unmounting
     // - to know when to stop owning the map's histogram box-select mode.
-    render(
-      <SideToolPanel toolsPanelIsExpanded toggleExpandToolsPanel={jest.fn()} />,
-    );
+    renderPanel();
     expect(mockQueryPanelRenders.at(-1)).toEqual({
       mapId: 'map1',
       isActive: false,
@@ -136,13 +104,7 @@ describe('SideToolPanel', () => {
     // AdagucAppBar) can send an AutoWMS explorer url here instead of
     // adding a layer - that's only useful if the user actually lands on
     // the tab showing it.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let state: any = { viewer: {} };
-    mockUseAppSelector.mockImplementation((selector) => selector(state));
-
-    const { rerender } = render(
-      <SideToolPanel toolsPanelIsExpanded toggleExpandToolsPanel={jest.fn()} />,
-    );
+    const { store } = renderPanel();
 
     act(() => {
       fireEvent.click(screen.getByText('Queries'));
@@ -151,17 +113,9 @@ describe('SideToolPanel', () => {
       'MuiButton-contained',
     );
 
-    state = {
-      viewer: {
-        autoWMSServiceCommand: { service: 'http://x/autowms?', requestId: 1 },
-      },
-    };
     act(() => {
-      rerender(
-        <SideToolPanel
-          toolsPanelIsExpanded
-          toggleExpandToolsPanel={jest.fn()}
-        />,
+      store.dispatch(
+        actions.requestAutoWMSService({ service: 'http://x/autowms?' }),
       );
     });
 
@@ -176,9 +130,7 @@ describe('SideToolPanel', () => {
     // clip at the first line, so that wrapped second line overflowed
     // and overlapped whatever rendered right after this bar instead of
     // the bar growing to fit it.
-    const { container } = render(
-      <SideToolPanel toolsPanelIsExpanded toggleExpandToolsPanel={jest.fn()} />,
-    );
+    const { container } = renderPanel();
 
     const tabBar = container.querySelector('[style*="min-height"]');
     expect(tabBar).not.toBeNull();
@@ -186,9 +138,7 @@ describe('SideToolPanel', () => {
   });
 
   it('switches to the Time tab, next to Baselayers', () => {
-    render(
-      <SideToolPanel toolsPanelIsExpanded toggleExpandToolsPanel={jest.fn()} />,
-    );
+    renderPanel();
 
     act(() => {
       fireEvent.click(screen.getByText('Time'));

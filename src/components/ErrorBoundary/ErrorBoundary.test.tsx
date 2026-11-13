@@ -1,3 +1,4 @@
+import type { MockInstance } from 'vitest';
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -8,9 +9,9 @@ const Bomb = (): React.ReactElement => {
 
 describe('ErrorBoundary', () => {
   // React logs caught errors to console.error; keep test output clean.
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleErrorSpy: MockInstance;
   beforeEach(() => {
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
   afterEach(() => {
     consoleErrorSpy.mockRestore();
@@ -40,7 +41,7 @@ describe('ErrorBoundary', () => {
     // that the broken item's own UI - including its normal remove button
     // - never rendered at all. Without this, there was no way left to get
     // rid of it (e.g. a layer whose own selector throws on every render).
-    const onRemove = jest.fn();
+    const onRemove = vi.fn();
     render(
       <ErrorBoundary fallbackMessage="Layer unavailable" onRemove={onRemove}>
         <Bomb />
@@ -65,7 +66,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('calls onError with the thrown error', () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
     render(
       <ErrorBoundary fallbackMessage="Layer unavailable" onError={onError}>
         <Bomb />

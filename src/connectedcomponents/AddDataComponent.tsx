@@ -1,6 +1,4 @@
 import * as React from 'react';
-import { ThemeWrapper } from '@opengeoweb/theme';
-import { appTheme } from '../application/appTheme';
 import 'react-mosaic-component/react-mosaic-component.css';
 import '../assets/styles.css';
 
@@ -263,35 +261,29 @@ const AddDataComponent = ({
   ];
 
   return (
-    <ThemeWrapper theme={appTheme}>
-      <Grid container style={{ display: 'flex' }}>
-        <Grid
-          style={{
-            display: 'block',
-            width: 'inherit',
-            height: '100px',
-          }}
-        >
-          <WMSServiceInput
-            placeholder="Add custom WMS or AutoWMS service"
-            sx={{ width: 'inherit' }}
-            onHandled={onServiceHandled}
-          />
-        </Grid>
-        <Grid style={{ display: 'block' }}>
-          {elements.map((element: DataElementType) => {
-            const key = `${element.service}_${element.layer}`;
-            return (
-              <DataElement
-                key={key}
-                {...element}
-                handleAddData={handleAddData}
-              />
-            );
-          })}
-        </Grid>
+    <Grid container style={{ display: 'flex' }}>
+      <Grid
+        style={{
+          display: 'block',
+          width: 'inherit',
+          height: '100px',
+        }}
+      >
+        <WMSServiceInput
+          placeholder="Add custom WMS or AutoWMS service"
+          sx={{ width: 'inherit' }}
+          onHandled={onServiceHandled}
+        />
       </Grid>
-    </ThemeWrapper>
+      <Grid style={{ display: 'block' }}>
+        {elements.map((element: DataElementType) => {
+          const key = `${element.service}_${element.layer}`;
+          return (
+            <DataElement key={key} {...element} handleAddData={handleAddData} />
+          );
+        })}
+      </Grid>
+    </Grid>
   );
 };
 

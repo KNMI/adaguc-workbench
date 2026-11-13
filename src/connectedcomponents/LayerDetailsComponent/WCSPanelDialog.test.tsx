@@ -3,8 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { WMLayer } from '@opengeoweb/webmap';
 import WCSPanelDialog from './WCSPanelDialog';
 
-jest.mock('./WCSPanel', () => ({
-  __esModule: true,
+vi.mock('./WCSPanel', () => ({
   default: () => <div data-testid="wcs-panel" />,
 }));
 
@@ -23,7 +22,7 @@ describe('WCSPanelDialog', () => {
         mapId="map1"
         wmLayer={fakeWMLayer}
         isOpen
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     );
 
@@ -39,7 +38,7 @@ describe('WCSPanelDialog', () => {
         mapId="map1"
         wmLayer={fakeWMLayer}
         isOpen={false}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     );
 
@@ -48,14 +47,14 @@ describe('WCSPanelDialog', () => {
 
   it('does not render the panel content when there is no layer yet', () => {
     render(
-      <WCSPanelDialog mapId="map1" wmLayer={null} isOpen onClose={jest.fn()} />,
+      <WCSPanelDialog mapId="map1" wmLayer={null} isOpen onClose={vi.fn()} />,
     );
 
     expect(screen.queryByTestId('wcs-panel')).not.toBeInTheDocument();
   });
 
   it('calls onClose when the close button is clicked', () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     render(
       <WCSPanelDialog
         mapId="map1"

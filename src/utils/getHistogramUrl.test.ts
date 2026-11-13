@@ -1,10 +1,11 @@
+import type { MockedFunction } from 'vitest';
 import { getWMLayerById } from '@opengeoweb/webmap';
 import type { WMLayer } from '@opengeoweb/webmap';
 import { getHistogramUrl } from './getHistogramUrl';
 import { AdagucLayer } from '../store/types';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
+vi.mock('@opengeoweb/webmap', () => ({
+  getWMLayerById: vi.fn(),
   getCorrectWMSDimName: (name: string) =>
     name === 'time' || name === 'elevation'
       ? name.toUpperCase()
@@ -13,7 +14,7 @@ jest.mock('@opengeoweb/webmap', () => ({
 
 // opengeoweb types this as always returning a WMLayer, but it returns
 // undefined for an unknown id - which these tests stub too.
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
 
@@ -38,7 +39,7 @@ const bbox = { left: -600000, bottom: 2100000, right: 7600000, top: 8700000 };
 
 describe('getHistogramUrl', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('returns undefined when the layer has no matching WMLayer instance', () => {

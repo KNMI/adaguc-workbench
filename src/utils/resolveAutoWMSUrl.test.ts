@@ -2,16 +2,16 @@ import { resolveAutoWMSUrl } from './resolveAutoWMSUrl';
 
 describe('resolveAutoWMSUrl', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (global as any).fetch;
+    delete (globalThis as any).fetch;
   });
 
   it('uses the given url unchanged when it already looks like a real listing', async () => {
-    const mockFetch = jest.fn().mockResolvedValue({
+    const mockFetch = vi.fn().mockResolvedValue({
       json: () => Promise.resolve({ result: [] }),
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     await expect(resolveAutoWMSUrl('http://host/autowms')).resolves.toBe(
       'http://host/autowms',
@@ -20,7 +20,7 @@ describe('resolveAutoWMSUrl', () => {
   });
 
   it('falls through to the "autowms" suffix when the bare url does not look like a listing', async () => {
-    const mockFetch = jest.fn((url: string) =>
+    const mockFetch = vi.fn((url: string) =>
       Promise.resolve({
         json: () =>
           Promise.resolve(
@@ -30,7 +30,7 @@ describe('resolveAutoWMSUrl', () => {
           ),
       }),
     );
-    global.fetch = mockFetch as unknown as typeof fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     await expect(resolveAutoWMSUrl('http://host')).resolves.toBe(
       'http://host/autowms',
@@ -38,7 +38,7 @@ describe('resolveAutoWMSUrl', () => {
   });
 
   it('falls through to the "adaguc-server/autowms" suffix when neither the bare url nor "autowms" work', async () => {
-    const mockFetch = jest.fn((url: string) =>
+    const mockFetch = vi.fn((url: string) =>
       Promise.resolve({
         json: () =>
           Promise.resolve(
@@ -48,7 +48,7 @@ describe('resolveAutoWMSUrl', () => {
           ),
       }),
     );
-    global.fetch = mockFetch as unknown as typeof fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     await expect(resolveAutoWMSUrl('http://host')).resolves.toBe(
       'http://host/adaguc-server/autowms',
@@ -56,17 +56,17 @@ describe('resolveAutoWMSUrl', () => {
   });
 
   it('returns undefined when none of the candidates look like a real listing', async () => {
-    const mockFetch = jest.fn().mockResolvedValue({
+    const mockFetch = vi.fn().mockResolvedValue({
       json: () => Promise.resolve({ notAListing: true }),
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     await expect(resolveAutoWMSUrl('http://host')).resolves.toBeUndefined();
     expect(mockFetch).toHaveBeenCalledTimes(3);
   });
 
   it('keeps trying the remaining candidates when a request fails outright', async () => {
-    const mockFetch = jest
+    const mockFetch = vi
       .fn()
       .mockRejectedValueOnce(new Error('network error'))
       .mockResolvedValueOnce({
@@ -75,7 +75,7 @@ describe('resolveAutoWMSUrl', () => {
       .mockResolvedValueOnce({
         json: () => Promise.resolve({ result: [] }),
       });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     await expect(resolveAutoWMSUrl('http://host')).resolves.toBe(
       'http://host/adaguc-server/autowms',
@@ -83,7 +83,7 @@ describe('resolveAutoWMSUrl', () => {
   });
 
   it('strips a trailing slash before appending a suffix', async () => {
-    const mockFetch = jest.fn((url: string) =>
+    const mockFetch = vi.fn((url: string) =>
       Promise.resolve({
         json: () =>
           Promise.resolve(
@@ -93,7 +93,7 @@ describe('resolveAutoWMSUrl', () => {
           ),
       }),
     );
-    global.fetch = mockFetch as unknown as typeof fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     await expect(resolveAutoWMSUrl('http://host/')).resolves.toBe(
       'http://host/autowms',

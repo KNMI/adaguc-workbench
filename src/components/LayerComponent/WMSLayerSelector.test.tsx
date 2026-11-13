@@ -6,17 +6,17 @@ import {
 } from '@opengeoweb/webmap-react';
 import WMSLayerSelector from './WMSLayerSelector';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  generateLayerId: jest.fn(() => 'generated-id'),
+vi.mock('@opengeoweb/webmap', () => ({
+  generateLayerId: vi.fn(() => 'generated-id'),
 }));
 
-jest.mock('@opengeoweb/webmap-react', () => ({
-  useQueryGetWMSLayers: jest.fn(),
-  useQueryGetWMSLayersTree: jest.fn(),
+vi.mock('@opengeoweb/webmap-react', () => ({
+  useQueryGetWMSLayers: vi.fn(),
+  useQueryGetWMSLayersTree: vi.fn(),
 }));
 
-const mockUseQueryGetWMSLayers = jest.mocked(useQueryGetWMSLayers);
-const mockUseQueryGetWMSLayersTree = jest.mocked(useQueryGetWMSLayersTree);
+const mockUseQueryGetWMSLayers = vi.mocked(useQueryGetWMSLayers);
+const mockUseQueryGetWMSLayersTree = vi.mocked(useQueryGetWMSLayersTree);
 
 const serviceUrl = 'http://example.com/wms?';
 
@@ -33,7 +33,7 @@ describe('WMSLayerSelector', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('shows the current position and total in the closed dropdown', () => {
@@ -43,7 +43,7 @@ describe('WMSLayerSelector', () => {
       <WMSLayerSelector
         layerName="layer-b"
         serviceUrl={serviceUrl}
-        onSelectLayer={jest.fn()}
+        onSelectLayer={vi.fn()}
       />,
     );
 
@@ -52,7 +52,7 @@ describe('WMSLayerSelector', () => {
 
   it('cycles to the next layer, wrapping around at the end', () => {
     mockUseQueryGetWMSLayers.mockReturnValue(threeLayers);
-    const onSelectLayer = jest.fn();
+    const onSelectLayer = vi.fn();
 
     render(
       <WMSLayerSelector
@@ -69,7 +69,7 @@ describe('WMSLayerSelector', () => {
 
   it('cycles to the previous layer, wrapping around at the start', () => {
     mockUseQueryGetWMSLayers.mockReturnValue(threeLayers);
-    const onSelectLayer = jest.fn();
+    const onSelectLayer = vi.fn();
 
     render(
       <WMSLayerSelector
@@ -94,7 +94,7 @@ describe('WMSLayerSelector', () => {
       <WMSLayerSelector
         layerName="layer-a"
         serviceUrl={serviceUrl}
-        onSelectLayer={jest.fn()}
+        onSelectLayer={vi.fn()}
       />,
     );
 

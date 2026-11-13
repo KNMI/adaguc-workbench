@@ -8,18 +8,18 @@ import {
 import { thunks } from './thunks';
 import { ViewerState } from './types';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  queryWMSLayers: jest.fn(),
-  getWMSServiceId: jest.fn(() => 'service-1'),
-  generateLayerId: jest.fn(() => 'fake-layer-id'),
+vi.mock('@opengeoweb/webmap', () => ({
+  queryWMSLayers: vi.fn(),
+  getWMSServiceId: vi.fn(() => 'service-1'),
+  generateLayerId: vi.fn(() => 'fake-layer-id'),
   LayerType: { mapLayer: 'mapLayer' },
-  WMLayer: jest.fn(),
+  WMLayer: vi.fn(),
 }));
 
-const mockQueryWMSLayers = jest.mocked(queryWMSLayers);
-const mockGetWMSServiceId = jest.mocked(getWMSServiceId);
-const mockGenerateLayerId = jest.mocked(generateLayerId);
-const mockWMLayer = jest.mocked(WMLayer);
+const mockQueryWMSLayers = vi.mocked(queryWMSLayers);
+const mockGetWMSServiceId = vi.mocked(getWMSServiceId);
+const mockGenerateLayerId = vi.mocked(generateLayerId);
+const mockWMLayer = vi.mocked(WMLayer);
 
 const mapId = 'map1';
 const serviceUrl = 'http://localhost:8080/adagucserver?dataset=test&';
@@ -56,7 +56,7 @@ const emptyState: ViewerState = {
 
 describe('thunks.addLayer', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetWMSServiceId.mockReturnValue('service-1');
     mockGenerateLayerId.mockReturnValue('fake-layer-id');
     mockQueryWMSLayers.mockResolvedValue([]);
@@ -71,10 +71,9 @@ describe('thunks.addLayer', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockWMLayer.mockImplementation(function MockWMLayer(this: any) {
       this.dimensions = [];
-      this.parseLayer = jest.fn().mockResolvedValue(undefined);
-      this.setStyle = jest.fn();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+      this.parseLayer = vi.fn().mockResolvedValue(undefined);
+      this.setStyle = vi.fn();
+    });
 
     const result = await runThunk(
       thunks.addLayer({
@@ -103,10 +102,9 @@ describe('thunks.addLayer', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockWMLayer.mockImplementation(function MockWMLayer(this: any) {
       this.dimensions = [];
-      this.parseLayer = jest.fn().mockResolvedValue(undefined);
-      this.setStyle = jest.fn();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+      this.parseLayer = vi.fn().mockResolvedValue(undefined);
+      this.setStyle = vi.fn();
+    });
 
     const disabled = await runThunk(
       thunks.addLayer({ mapId, serviceUrl, name: 'a', enabled: false }),
@@ -147,12 +145,9 @@ describe('thunks.addLayer', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockWMLayer.mockImplementation(function MockWMLayer(this: any) {
       this.dimensions = [];
-      this.parseLayer = jest
-        .fn()
-        .mockRejectedValue(new Error('Layer not found'));
-      this.setStyle = jest.fn();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+      this.parseLayer = vi.fn().mockRejectedValue(new Error('Layer not found'));
+      this.setStyle = vi.fn();
+    });
 
     const result = await runThunk(
       thunks.addLayer({
@@ -180,10 +175,9 @@ describe('thunks.addLayer', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockWMLayer.mockImplementation(function MockWMLayer(this: any) {
       this.dimensions = [];
-      this.parseLayer = jest.fn().mockResolvedValue(undefined);
-      this.setStyle = jest.fn();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+      this.parseLayer = vi.fn().mockResolvedValue(undefined);
+      this.setStyle = vi.fn();
+    });
 
     await runThunk(
       thunks.addLayer({
@@ -208,11 +202,11 @@ describe('thunks.addLayer', () => {
 
   describe('when the service is unreachable', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('still adds the layer, within the timeout, instead of hanging on GetCapabilities', async () => {
@@ -226,10 +220,9 @@ describe('thunks.addLayer', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockWMLayer.mockImplementation(function MockWMLayer(this: any) {
         this.dimensions = [];
-        this.parseLayer = jest.fn().mockResolvedValue(undefined);
-        this.setStyle = jest.fn();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+        this.parseLayer = vi.fn().mockResolvedValue(undefined);
+        this.setStyle = vi.fn();
+      });
 
       const resultPromise = runThunk(
         thunks.addLayer({
@@ -242,7 +235,7 @@ describe('thunks.addLayer', () => {
         emptyState,
       );
 
-      await jest.advanceTimersByTimeAsync(10000);
+      await vi.advanceTimersByTimeAsync(10000);
       const result = await resultPromise;
 
       expect(result.meta.requestStatus).toBe('fulfilled');
@@ -260,10 +253,9 @@ describe('thunks.addLayer', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockWMLayer.mockImplementation(function MockWMLayer(this: any) {
         this.dimensions = [];
-        this.parseLayer = jest.fn(() => new Promise(() => {}));
-        this.setStyle = jest.fn();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
+        this.parseLayer = vi.fn(() => new Promise(() => {}));
+        this.setStyle = vi.fn();
+      });
 
       const resultPromise = runThunk(
         thunks.addLayer({
@@ -276,7 +268,7 @@ describe('thunks.addLayer', () => {
         emptyState,
       );
 
-      await jest.advanceTimersByTimeAsync(10000);
+      await vi.advanceTimersByTimeAsync(10000);
       const result = await resultPromise;
 
       expect(result.meta.requestStatus).toBe('fulfilled');

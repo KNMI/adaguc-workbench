@@ -7,8 +7,8 @@ import {
   makePermaLink,
 } from './handleWindowLocationQueryString';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
+vi.mock('@opengeoweb/webmap', () => ({
+  getWMLayerById: vi.fn(),
   LayerType: { baseLayer: 'baseLayer', overLayer: 'overLayer' },
 }));
 
@@ -24,12 +24,12 @@ const setUrl = (search: string): void => {
 const dispatchedActionsFor = async (): Promise<
   Array<{ type: string; payload: unknown }>
 > => {
-  const addLayer = jest
+  const addLayer = vi
     .spyOn(thunks, 'addLayer')
     .mockImplementation(
       (args) => args as unknown as ReturnType<typeof thunks.addLayer>,
     );
-  const dispatch = jest.fn((action: unknown) =>
+  const dispatch = vi.fn((action: unknown) =>
     typeof action === 'object' && action && 'type' in action
       ? action
       : { unwrap: () => Promise.resolve() },
@@ -57,7 +57,7 @@ describe('handleWindowLocationQueryString', () => {
 
   it('dispatches a plain, serializable bbox object rather than a WMBBOX instance', () => {
     setUrl('?srs=EPSG%3A3857&bbox=-1,-2,3,4');
-    const dispatch = jest.fn();
+    const dispatch = vi.fn();
 
     handleWindowLocationQueryString(mapId, dispatch);
 
@@ -72,9 +72,9 @@ describe('handleWindowLocationQueryString', () => {
     // the Redux DevTools extension can't structured-clone to relay the
     // action - that clone failure stops the dispatch dead, so nothing
     // after it (e.g. adding layers from the same permalink) ever runs.
-    const [dispatchedAction] = dispatch.mock.calls.find(
+    const dispatchedAction = dispatch.mock.calls.find(
       ([action]) => action.type === expectedAction.type,
-    );
+    )?.[0];
     expect(Object.getPrototypeOf(dispatchedAction.payload.bbox)).toBe(
       Object.prototype,
     );
@@ -82,7 +82,7 @@ describe('handleWindowLocationQueryString', () => {
 
   it('does not dispatch requestSetProjection for a malformed bbox', () => {
     setUrl('?srs=EPSG%3A3857&bbox=not,a,valid,bbox');
-    const dispatch = jest.fn();
+    const dispatch = vi.fn();
 
     handleWindowLocationQueryString(mapId, dispatch);
 
@@ -101,12 +101,12 @@ describe('handleWindowLocationQueryString', () => {
         '&layer=broken$entry,Reflectivity$image%2Fpng$true$$1$0' +
         '&dims=time$2025-01-01T00:00:00Z',
     );
-    const addLayer = jest
+    const addLayer = vi
       .spyOn(thunks, 'addLayer')
       .mockImplementation(
         (args) => args as unknown as ReturnType<typeof thunks.addLayer>,
       );
-    const dispatch = jest.fn(() => ({ unwrap: () => Promise.resolve() }));
+    const dispatch = vi.fn(() => ({ unwrap: () => Promise.resolve() }));
 
     handleWindowLocationQueryString(mapId, dispatch as never);
     // Let addLayers' awaits and the dims follow-up run.
@@ -251,7 +251,7 @@ describe('handleWindowLocationQueryString', () => {
 
   it('does not dispatch requestSetProjection when srs or bbox is missing', () => {
     setUrl('?bbox=-1,-2,3,4');
-    const dispatch = jest.fn();
+    const dispatch = vi.fn();
 
     handleWindowLocationQueryString(mapId, dispatch);
 

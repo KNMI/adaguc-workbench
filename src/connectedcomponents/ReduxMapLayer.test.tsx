@@ -1,22 +1,22 @@
+import type { MockedFunction, MockInstance } from 'vitest';
 import * as React from 'react';
 import { render } from '@testing-library/react';
+import { Provider } from 'react-redux';
 import { getWMLayerById } from '@opengeoweb/webmap';
 import type { WMLayer } from '@opengeoweb/webmap';
-import { useAppDispatch } from '../store/store';
+import { createAppStore } from '../store/store';
 import { AdagucLayer } from '../store/types';
+import { emptyMap } from '../testUtils/renderWithStore';
 import { AnimationTick } from './AnimationClock';
 import { ReduxMapLayer } from './ReduxMapLayer';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  LayerType: { mapLayer: 'mapLayer' },
-  getWMLayerById: jest.fn(),
+vi.mock('@opengeoweb/webmap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@opengeoweb/webmap')>()),
+  getWMLayerById: vi.fn(),
 }));
 
-jest.mock('@opengeoweb/webmap-react', () => {
-  /* eslint-disable
-     @typescript-eslint/no-unsafe-call,
-     @typescript-eslint/no-unsafe-return */
-  const ReactLib = require('react');
+vi.mock('@opengeoweb/webmap-react', async () => {
+  const ReactLib = await import('react');
   const MockTimeContext = ReactLib.createContext({});
   return {
     // Reads the context value back out and exposes it, so a test can
@@ -36,25 +36,11 @@ jest.mock('@opengeoweb/webmap-react', () => {
     },
     TimeContext: MockTimeContext,
   };
-  /* eslint-enable
-     @typescript-eslint/no-unsafe-call,
-     @typescript-eslint/no-unsafe-return */
 });
 
-jest.mock('../store/store', () => ({
-  actions: {
-    syncAnimatedLayerDimension: (payload: unknown) => ({
-      type: 'wmsservices/syncAnimatedLayerDimension',
-      payload,
-    }),
-  },
-  useAppDispatch: jest.fn(),
-}));
-
-const mockUseAppDispatch = jest.mocked(useAppDispatch);
 // opengeoweb types this as always returning a WMLayer, but it returns
 // undefined for an unknown id - which these tests stub too.
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
 
@@ -73,35 +59,59 @@ const tickAt = (time: string): AnimationTick => ({
   timeContext: { isAnimating: true, prefetchList: [1, 2, 3] },
 });
 
+const layerElement = (
+  isAnimating: boolean,
+  animationTick: AnimationTick | null,
+): React.ReactElement => (
+  <ReduxMapLayer
+    layer={layer}
+    mapId="map1"
+    layerIndex={0}
+    zIndex={1}
+    isAnimating={isAnimating}
+    animationTick={animationTick}
+    onLayerReady={vi.fn()}
+    onLayerError={vi.fn()}
+    onInitializeLayer={vi.fn()}
+  />
+);
+
+// The store the layer under test was last rendered into, and every action
+// dispatched to it. The store's map holds the same layer the component is
+// given as a prop, as it would in the app.
+let store: ReturnType<typeof createAppStore>;
+let mockDispatch: MockInstance;
+
 const renderLayer = (
   isAnimating: boolean,
   animationTick: AnimationTick | null = null,
-): ReturnType<typeof render> =>
-  render(
-    <ReduxMapLayer
-      layer={layer}
-      mapId="map1"
-      layerIndex={0}
-      zIndex={1}
-      isAnimating={isAnimating}
-      animationTick={animationTick}
-      onLayerReady={jest.fn()}
-      onLayerError={jest.fn()}
-      onInitializeLayer={jest.fn()}
-    />,
-  );
+): ReturnType<typeof render> => {
+  store = createAppStore({
+    viewer: {
+      maps: { map1: emptyMap({ isAnimating, layers: [layer] }) },
+      services: {},
+      baseLayers: [],
+    },
+  });
+  mockDispatch = vi.spyOn(store, 'dispatch');
+  return render(layerElement(isAnimating, animationTick), {
+    wrapper: ({ children }) => <Provider store={store}>{children}</Provider>,
+  });
+};
+
+const timeInStore = (): string | undefined =>
+  store
+    .getState()
+    .viewer.maps.map1.layers[0].dimensions.find((dim) => dim.name === 'time')
+    ?.currentValue;
 
 describe('ReduxMapLayer animation sync', () => {
-  let mockDispatch: jest.Mock;
-
   beforeEach(() => {
-    mockDispatch = jest.fn();
-    mockUseAppDispatch.mockReturnValue(mockDispatch);
     mockGetWMLayerById.mockReturnValue(undefined);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('dispatches each shared animation tick into redux, so the time slider follows it', () => {
@@ -120,22 +130,11 @@ describe('ReduxMapLayer animation sync', () => {
         dimensionValue: '2025-01-01T00:00:00Z',
       },
     });
+    expect(timeInStore()).toBe('2025-01-01T00:00:00Z');
 
     mockDispatch.mockClear();
 
-    rerender(
-      <ReduxMapLayer
-        layer={layer}
-        mapId="map1"
-        layerIndex={0}
-        zIndex={1}
-        isAnimating
-        animationTick={tickAt('2025-01-01T01:00:00Z')}
-        onLayerReady={jest.fn()}
-        onLayerError={jest.fn()}
-        onInitializeLayer={jest.fn()}
-      />,
-    );
+    rerender(layerElement(true, tickAt('2025-01-01T01:00:00Z')));
 
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'wmsservices/syncAnimatedLayerDimension',
@@ -146,6 +145,9 @@ describe('ReduxMapLayer animation sync', () => {
         dimensionValue: '2025-01-01T01:00:00Z',
       },
     });
+    expect(timeInStore()).toBe('2025-01-01T01:00:00Z');
+    // Syncing the animated time must not stop the animation itself.
+    expect(store.getState().viewer.maps.map1.isAnimating).toBe(true);
   });
 
   it("snaps the shared tick's time to this layer's own closest matching dimension value", () => {
@@ -154,7 +156,7 @@ describe('ReduxMapLayer animation sync', () => {
     // this layer - it must be snapped to this layer's own dimension values
     // instead of applied as-is.
     const fakeTimeDimension = {
-      getClosestValue: jest.fn(() => '2025-01-01T00:30:00Z'),
+      getClosestValue: vi.fn(() => '2025-01-01T00:30:00Z'),
     };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
@@ -177,18 +179,21 @@ describe('ReduxMapLayer animation sync', () => {
         dimensionValue: '2025-01-01T00:30:00Z',
       },
     });
+    expect(timeInStore()).toBe('2025-01-01T00:30:00Z');
   });
 
   it('does nothing while not animating', () => {
     renderLayer(false, null);
 
     expect(mockDispatch).not.toHaveBeenCalled();
+    expect(timeInStore()).toBeUndefined();
   });
 
   it('does nothing while animating but no tick has arrived yet', () => {
     renderLayer(true, null);
 
     expect(mockDispatch).not.toHaveBeenCalled();
+    expect(timeInStore()).toBeUndefined();
   });
 
   it("provides the shared tick's prefetch info via TimeContext, so upcoming frames get prefetched instead of fetched cold", () => {

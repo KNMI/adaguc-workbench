@@ -1,17 +1,18 @@
 <!doctype html>
 <html lang="en">
-  <script>
-    var config = {
-      wmsServiceUrl:
-        'https://adaguc-server-ecad-adaguc.pmc.knmi.cloud/adaguc-server?DATASET=eobs_v27.0e&SERVICE=WMS',
-    };
-  </script>
   <head>
     <meta charset="utf-8" />
     <meta
       name="viewport"
       content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no"
     />
+    <!-- Default runtime configuration; read through the global `config`. -->
+    <script>
+      var config = {
+        wmsServiceUrl:
+          'https://adaguc-server-ecad-adaguc.pmc.knmi.cloud/adaguc-server?DATASET=eobs_v27.0e&SERVICE=WMS',
+      };
+    </script>
     <title>Adaguc Workbench</title>
     <link
       rel="icon"
@@ -21,5 +22,6 @@
   </head>
   <body>
     <div id="app"></div>
+    <script type="module" src="/src/application/index.tsx"></script>
   </body>
 </html>

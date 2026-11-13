@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { awbColors } from '../../application/appTheme';
 import { Popper, DialogContent, DialogTitle, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { LayerProps } from '@opengeoweb/webmap';
@@ -30,8 +31,8 @@ const AutoWMSLayerDetailsDialog = ({
         top: '50%',
         transform: 'translate(-50%, -50%)',
         zIndex: 2000,
-        background: 'white',
-        border: '1px solid rgba(0, 0, 0, 0.3)',
+        background: awbColors.surface,
+        border: `1px solid ${awbColors.waterDark}`,
         height: '80vh',
         width: '80vw',
         overflow: 'auto',
@@ -119,7 +120,7 @@ const AutoWMSLayerDetailsDialog = ({
                 padding: '5px',
                 fontSize: '10px',
                 fontFamily: 'var(--awb-font-mono)',
-                background: 'white',
+                background: awbColors.surface,
               }}
             >
               <CopyToClipBoard

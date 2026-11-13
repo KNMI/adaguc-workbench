@@ -29,14 +29,16 @@ const renderSelector = (layer: WMLayer = wmLayer) =>
 
 describe('ProjectionSelector', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('renders the header cells inside a table row, without a DOM nesting error', () => {
     // Regression guard: the <th> cells used to sit directly inside <thead>
     // with no <tr> around them - invalid table markup, which React reports
     // as a console error every time the Layer settings dialog opens.
-    const consoleError = jest.spyOn(console, 'error').mockImplementation();
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     renderSelector();
 

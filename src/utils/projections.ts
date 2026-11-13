@@ -16,6 +16,12 @@
 interface ProjectionInfo {
   name: string;
   proj4?: string;
+  // The projection's valid area [minX, minY, maxX, maxY], for one that
+  // doesn't cover the square OpenLayers otherwise assumes (about +/-20,000
+  // km). Outside it the projection's inverse returns nonsense, and
+  // OpenLayers reprojecting base map tiles there can ask for millions of
+  // source tiles - freezing the page.
+  extent?: [number, number, number, number];
 }
 
 export const projections: Record<string, ProjectionInfo> = {
@@ -67,6 +73,11 @@ export const projections: Record<string, ProjectionInfo> = {
     // used as ESRI:54030 / "World Robinson" by epsg.io and others) - needed
     // by the Robinson preset in utils/predefinedAreas.ts.
     proj4: '+proj=robin +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs',
+    // Longitude +/-180 and latitude +/-90, projected.
+    extent: [
+      -17005833.33052523, -8625154.880728867, 17005833.33052523,
+      8625154.880728867,
+    ],
   },
   'EPSG:7399': { name: 'WISCRS Vilas County (ftUS)' },
   'EPSG:900913': {

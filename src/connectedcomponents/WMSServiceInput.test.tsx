@@ -1,25 +1,59 @@
+import type { MockInstance } from 'vitest';
 import * as React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useAppDispatch } from '../store/store';
+import {
+  fireEvent,
+  render as renderWithoutStore,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { createAsyncThunk } from '@reduxjs/toolkit';
+import { createAppStore } from '../store/store';
 import { thunks } from '../store/thunks';
 import WMSServiceInput from './WMSServiceInput';
 
-jest.mock('../store/thunks', () => ({
-  thunks: { addLayer: jest.fn() },
-}));
+// Only thunks.addLayer is stubbed, so adding a layer makes no
+// GetCapabilities request - the store itself still needs the real module
+// (its slice handles fetchWMSService/addLayer's fulfilled actions).
+vi.mock('../store/thunks', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../store/thunks')>();
+  return {
+    ...original,
+    thunks: { ...original.thunks, addLayer: vi.fn() },
+  };
+});
 
-jest.mock('../store/store', () => ({
-  actions: {
-    requestAutoWMSService: (payload: unknown) => ({
-      type: 'wmsservices/requestAutoWMSService',
-      payload,
-    }),
-  },
-  useAppDispatch: jest.fn(),
-}));
+const mockAddLayer = vi.mocked(thunks.addLayer);
 
-const mockUseAppDispatch = jest.mocked(useAppDispatch);
-const mockAddLayer = jest.mocked(thunks.addLayer);
+// What the stubbed thunks.addLayer hands to dispatch: a real async thunk
+// (so dispatching it and .unwrap()-ing the result behave as in the app,
+// including how a failure arrives serialized) that settles the way
+// `outcome` does, without a request or a new layer in the store.
+const fakeAddLayerThunk = (outcome: () => Promise<void>) =>
+  createAsyncThunk('test/addLayer', outcome)() as unknown as ReturnType<
+    typeof thunks.addLayer
+  >;
+
+// The store the input was last rendered into, and every action dispatched
+// to it.
+let store: ReturnType<typeof createAppStore>;
+let mockDispatch: MockInstance;
+
+const render = (
+  ui: React.ReactElement,
+): ReturnType<typeof renderWithoutStore> => {
+  store = createAppStore({
+    viewer: { maps: {}, services: {}, baseLayers: [] },
+  });
+  mockDispatch = vi.spyOn(store, 'dispatch');
+  return renderWithoutStore(ui, {
+    wrapper: ({ children }) => <Provider store={store}>{children}</Provider>,
+  });
+};
+
+// The service the AutoWMS panel was last asked to open, if any.
+const requestedAutoWMSService = (): string | undefined =>
+  store.getState().viewer.autoWMSServiceCommand?.service;
 
 const RECENT_SERVICES_KEY = 'adaguc_recent_wms_services';
 const PLACEHOLDER = 'Add a custom WMS or AutoWMS service';
@@ -31,28 +65,17 @@ const typeAndSubmit = (value: string): void => {
 };
 
 describe('WMSServiceInput', () => {
-  let mockDispatch: jest.Mock;
-
   beforeEach(() => {
     window.localStorage.clear();
-    mockDispatch = jest.fn();
-    // thunks.addLayer is dispatched as a plain thunk here (not unwrapped
-    // via the real middleware), so the dispatch result needs its own
-    // .unwrap() to chain off, like the real AppThunkDispatch would give.
-    mockDispatch.mockReturnValue({ unwrap: () => Promise.resolve() });
-    mockUseAppDispatch.mockReturnValue(mockDispatch);
-    mockAddLayer.mockImplementation(
-      (payload: unknown) =>
-        ({ type: 'maps/addLayer', payload }) as unknown as ReturnType<
-          typeof thunks.addLayer
-        >,
+    mockAddLayer.mockImplementation(() =>
+      fakeAddLayerThunk(() => Promise.resolve()),
     );
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (global as any).fetch;
+    delete (globalThis as any).fetch;
   });
 
   it('adds a service=wms url as a layer, without probing', async () => {
@@ -71,16 +94,16 @@ describe('WMSServiceInput', () => {
   });
 
   it('shows why a service could not be added as a layer', async () => {
-    mockDispatch.mockReturnValue({
-      unwrap: () =>
+    mockAddLayer.mockImplementation(() =>
+      fakeAddLayerThunk(() =>
         Promise.reject(
-          // The serialized form a rejected thunk's error arrives in.
           new Error(
             "http://example.com/wms?SERVICE=WMS& doesn't list any layers to add.",
           ),
         ),
-    });
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+      ),
+    );
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     render(<WMSServiceInput />);
 
     typeAndSubmit('http://example.com/wms?SERVICE=WMS&');
@@ -100,10 +123,9 @@ describe('WMSServiceInput', () => {
 
     typeAndSubmit('https://plieger-Precision-5680//autowms?');
 
-    expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'wmsservices/requestAutoWMSService',
-      payload: { service: 'https://plieger-Precision-5680//autowms?' },
-    });
+    expect(requestedAutoWMSService()).toBe(
+      'https://plieger-Precision-5680//autowms?',
+    );
     expect(mockAddLayer).not.toHaveBeenCalled();
   });
 
@@ -113,6 +135,7 @@ describe('WMSServiceInput', () => {
     typeAndSubmit('');
 
     expect(mockDispatch).not.toHaveBeenCalled();
+    expect(requestedAutoWMSService()).toBeUndefined();
     expect(mockAddLayer).not.toHaveBeenCalled();
   });
 
@@ -124,7 +147,7 @@ describe('WMSServiceInput', () => {
     // The bare url itself doesn't look like a real listing (no `result`),
     // so resolution moves on to the next candidate instead of stopping
     // there.
-    const mockFetch = jest.fn((url: string) =>
+    const mockFetch = vi.fn((url: string) =>
       Promise.resolve({
         json: () =>
           Promise.resolve(
@@ -132,7 +155,7 @@ describe('WMSServiceInput', () => {
           ),
       }),
     );
-    global.fetch = mockFetch as unknown as typeof fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     render(<WMSServiceInput />);
     typeAndSubmit('https://plieger-Precision-5680/');
@@ -143,16 +166,15 @@ describe('WMSServiceInput', () => {
       );
     });
     await waitFor(() => {
-      expect(mockDispatch).toHaveBeenCalledWith({
-        type: 'wmsservices/requestAutoWMSService',
-        payload: { service: 'https://plieger-Precision-5680/autowms' },
-      });
+      expect(requestedAutoWMSService()).toBe(
+        'https://plieger-Precision-5680/autowms',
+      );
     });
     expect(mockAddLayer).not.toHaveBeenCalled();
   });
 
   it('inserts a slash before the guessed "autowms" suffix when the url has none', async () => {
-    const mockFetch = jest.fn((url: string) =>
+    const mockFetch = vi.fn((url: string) =>
       Promise.resolve({
         json: () =>
           Promise.resolve(
@@ -160,7 +182,7 @@ describe('WMSServiceInput', () => {
           ),
       }),
     );
-    global.fetch = mockFetch as unknown as typeof fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     render(<WMSServiceInput />);
     typeAndSubmit('https://plieger-Precision-5680');
@@ -173,8 +195,8 @@ describe('WMSServiceInput', () => {
   });
 
   it('falls back to adding the layer when the ambiguous url does not look like AutoWMS', async () => {
-    const mockFetch = jest.fn().mockRejectedValue(new Error('not json'));
-    global.fetch = mockFetch;
+    const mockFetch = vi.fn().mockRejectedValue(new Error('not json'));
+    globalThis.fetch = mockFetch;
 
     render(<WMSServiceInput />);
     typeAndSubmit('http://example.com/some/service?');
@@ -290,7 +312,7 @@ describe('WMSServiceInput', () => {
   });
 
   it('calls onHandled once a service has been successfully routed', () => {
-    const onHandled = jest.fn();
+    const onHandled = vi.fn();
     render(<WMSServiceInput onHandled={onHandled} />);
 
     typeAndSubmit('https://plieger-Precision-5680//autowms?');
@@ -303,7 +325,7 @@ describe('WMSServiceInput', () => {
       RECENT_SERVICES_KEY,
       JSON.stringify(['https://a/autowms?']),
     );
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       json: () =>
         Promise.resolve({ autowmsurl: 'https://geoservices.knmi.nl/autowms?' }),
     });
@@ -340,7 +362,7 @@ describe('WMSServiceInput', () => {
       RECENT_SERVICES_KEY,
       JSON.stringify(['https://geoservices.knmi.nl/autowms?']),
     );
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       json: () =>
         Promise.resolve({ autowmsurl: 'https://geoservices.knmi.nl/autowms?' }),
     });

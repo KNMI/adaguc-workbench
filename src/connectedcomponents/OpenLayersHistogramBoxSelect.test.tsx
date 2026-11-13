@@ -1,64 +1,61 @@
+import type { Mock } from 'vitest';
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import DragPan from 'ol/interaction/DragPan';
 import { MapContext } from '@opengeoweb/webmap-react';
 import OpenLayersHistogramBoxSelect from './OpenLayersHistogramBoxSelect';
 
-jest.mock('@opengeoweb/webmap-react', () => {
-  /* eslint-disable
-     @typescript-eslint/no-unsafe-call */
-  const ReactLib = require('react');
+vi.mock('@opengeoweb/webmap-react', async () => {
+  const ReactLib = await import('react');
   return {
     MapContext: ReactLib.createContext({ map: null }),
   };
-  /* eslint-enable
-     @typescript-eslint/no-unsafe-call */
 });
 
-jest.mock('ol/interaction/DragPan', () => ({
-  __esModule: true,
+vi.mock('ol/interaction/DragPan', () => ({
   default: class DragPanMock {
-    setActive = jest.fn();
+    setActive = vi.fn();
   },
 }));
 
-jest.mock('ol/events/condition', () => ({
-  always: jest.fn(),
+vi.mock('ol/events/condition', () => ({
+  always: vi.fn(),
 }));
 
-jest.mock('ol/Observable', () => ({
-  unByKey: jest.fn(),
+vi.mock('ol/Observable', () => ({
+  unByKey: vi.fn(),
 }));
 
 let capturedBoxEndHandler: (() => void) | undefined;
-const mockDragBoxOn = jest.fn((event: string, handler: () => void) => {
+const mockDragBoxOn = vi.fn((event: string, handler: () => void) => {
   if (event === 'boxend') {
     capturedBoxEndHandler = handler;
   }
   return {};
 });
-const mockDragBoxGetExtent = jest.fn(() => [10, 20, 30, 40]);
-jest.mock('ol/interaction/DragBox', () => ({
-  __esModule: true,
-  default: jest.fn().mockImplementation(() => ({
-    on: mockDragBoxOn,
-    getGeometry: () => ({ getExtent: mockDragBoxGetExtent }),
-  })),
+const mockDragBoxGetExtent = vi.fn(() => [10, 20, 30, 40]);
+vi.mock('ol/interaction/DragBox', () => ({
+  default: vi.fn(function DragBoxMock() {
+    return {
+      on: mockDragBoxOn,
+      getGeometry: () => ({ getExtent: mockDragBoxGetExtent }),
+    };
+  }),
 }));
 
 // Pixel coordinates for the extent's bottom-left/top-right corners - chosen
 // so the resulting box is a non-square 190x959, to confirm width and height
 // aren't mixed up with each other.
-const mockGetPixelFromCoordinate = jest.fn((coordinate: number[]) =>
+const mockGetPixelFromCoordinate = vi.fn((coordinate: number[]) =>
   coordinate[0] === 10 ? [100, 1000] : [290, 41],
 );
 
 const makeFakeMap = () => {
   const dragPanInteraction = new DragPan() as unknown as {
-    setActive: jest.Mock;
+    setActive: Mock;
   };
-  const addInteraction = jest.fn();
-  const removeInteraction = jest.fn();
+  const addInteraction = vi.fn();
+  const removeInteraction = vi.fn();
   return {
     dragPanInteraction,
     addInteraction,
@@ -80,7 +77,7 @@ const makeFakeMap = () => {
 
 describe('OpenLayersHistogramBoxSelect', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     capturedBoxEndHandler = undefined;
   });
 
@@ -89,10 +86,7 @@ describe('OpenLayersHistogramBoxSelect', () => {
 
     render(
       <MapContext.Provider value={{ map }}>
-        <OpenLayersHistogramBoxSelect
-          active={false}
-          onBoxSelected={jest.fn()}
-        />
+        <OpenLayersHistogramBoxSelect active={false} onBoxSelected={vi.fn()} />
       </MapContext.Provider>,
     );
 
@@ -105,7 +99,7 @@ describe('OpenLayersHistogramBoxSelect', () => {
 
     render(
       <MapContext.Provider value={{ map }}>
-        <OpenLayersHistogramBoxSelect active onBoxSelected={jest.fn()} />
+        <OpenLayersHistogramBoxSelect active onBoxSelected={vi.fn()} />
       </MapContext.Provider>,
     );
 
@@ -115,7 +109,7 @@ describe('OpenLayersHistogramBoxSelect', () => {
 
   it('reports the drawn box extent, current srs, and the box own pixel size on boxend', () => {
     const { map } = makeFakeMap();
-    const onBoxSelected = jest.fn();
+    const onBoxSelected = vi.fn();
 
     render(
       <MapContext.Provider value={{ map }}>
@@ -138,17 +132,14 @@ describe('OpenLayersHistogramBoxSelect', () => {
 
     const { rerender } = render(
       <MapContext.Provider value={{ map }}>
-        <OpenLayersHistogramBoxSelect active onBoxSelected={jest.fn()} />
+        <OpenLayersHistogramBoxSelect active onBoxSelected={vi.fn()} />
       </MapContext.Provider>,
     );
     dragPanInteraction.setActive.mockClear();
 
     rerender(
       <MapContext.Provider value={{ map }}>
-        <OpenLayersHistogramBoxSelect
-          active={false}
-          onBoxSelected={jest.fn()}
-        />
+        <OpenLayersHistogramBoxSelect active={false} onBoxSelected={vi.fn()} />
       </MapContext.Provider>,
     );
 

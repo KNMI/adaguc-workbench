@@ -16,20 +16,21 @@ A URL-encoded WMS `GetCapabilities` link works too:
 ## Quick start
 
 ```bash
-nvm use 22
+nvm use   # Node 26, from .nvmrc
 npm ci
 npm start   # http://localhost:4000
 ```
 
 ## Scripts
 
-| Command                | Purpose                                             |
-| ----------------------- | ---------------------------------------------------- |
-| `npm start`             | Dev server with hot reload                            |
-| `npm run build`         | Production build → `dist/` (serve with `npx serve dist`) |
-| `npm test`              | Run the test suite                                    |
-| `npm run lint`          | Prettier + ESLint                                     |
-| `npm run storybook`     | Component storybook (uses `stories/`)                 |
+| Command                 | Purpose                                                   |
+| ----------------------- | --------------------------------------------------------- |
+| `npm start`             | Vite dev server with hot reload                           |
+| `npm run build`         | Type check, then production build → `dist/`               |
+| `npm run preview`       | Serve the production build from `dist/`                   |
+| `npm test`              | Run the test suite (Vitest); `npm run test:watch` to watch |
+| `npm run lint`          | Prettier + ESLint                                         |
+| `npm run storybook`     | Component storybook (uses `stories/`)                     |
 
 ## Built with
 

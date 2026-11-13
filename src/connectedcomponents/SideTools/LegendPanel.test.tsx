@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
-import { useAppSelector } from '../../store/store';
+import { act, render, screen } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { actions, createAppStore } from '../../store/store';
 import { ViewerState, AdagucLayer } from '../../store/types';
 import LegendPanel from './LegendPanel';
 
@@ -19,27 +20,22 @@ interface MockWMLayer {
   setStyle: (styleName: string) => void;
 }
 
-const mockGetWMLayerById = jest.fn<MockWMLayer | undefined, [string]>();
+const mockGetWMLayerById = vi.fn<(id: string) => MockWMLayer | undefined>();
 
-jest.mock('@opengeoweb/webmap', () => ({
+vi.mock('@opengeoweb/webmap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@opengeoweb/webmap')>()),
   getWMLayerById: (id: string) => mockGetWMLayerById(id),
   // A simplified stand-in for the real getLegendGraphicURLForLayer, which
   // this test only needs to read layer.legendGraphic from (the dims/SLD/
   // width/height extras it also appends aren't relevant to this bug).
   getLegendGraphicURLForLayer: (layer: MockWMLayer | undefined) =>
     layer?.legendGraphic || undefined,
-  legendImageStore: { clear: jest.fn() },
+  legendImageStore: { clear: vi.fn() },
 }));
 
-jest.mock('@opengeoweb/webmap-react', () => ({
-  clearImageCacheForAllMaps: jest.fn(),
+vi.mock('@opengeoweb/webmap-react', () => ({
+  clearImageCacheForAllMaps: vi.fn(),
 }));
-
-jest.mock('../../store/store', () => ({
-  useAppSelector: jest.fn(),
-}));
-
-const mockUseAppSelector = jest.mocked(useAppSelector);
 
 const STYLES: MockStyle[] = [
   {
@@ -76,11 +72,12 @@ const makeMockWMLayer = (initialStyle: string): MockWMLayer => {
 };
 
 const mapId = 'map1';
+const serviceUrl = 'https://example.com/wms?';
 
 const makeLayer = (overrides: Partial<AdagucLayer> = {}): AdagucLayer => ({
   id: 'layer-1',
   name: 'layer-1',
-  serviceUrl: 'https://example.com/wms?',
+  serviceUrl,
   style: 'style-a',
   dimensions: [],
   enabled: true,
@@ -88,9 +85,17 @@ const makeLayer = (overrides: Partial<AdagucLayer> = {}): AdagucLayer => ({
   ...overrides,
 });
 
+// The layer's service is in the store too, advertising both styles - the
+// changeLayerStyle reducer only accepts a style name the service lists.
 const buildState = (layers: AdagucLayer[]): ViewerState => ({
   viewer: {
-    services: {},
+    services: {
+      [serviceUrl]: {
+        id: serviceUrl,
+        serviceUrl,
+        layers: [{ name: 'layer-1', leaf: true, path: [], styles: STYLES }],
+      },
+    },
     baseLayers: [],
     maps: {
       [mapId]: {
@@ -107,18 +112,27 @@ const buildState = (layers: AdagucLayer[]): ViewerState => ({
   },
 });
 
+// Renders the panel inside a real store starting from `state`.
+const renderPanel = (state: ViewerState) => {
+  const store = createAppStore(state);
+  render(
+    <Provider store={store}>
+      <LegendPanel mapId={mapId} />
+    </Provider>,
+  );
+  return store;
+};
+
 describe('LegendPanel', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("shows the legend image for the layer's current style", async () => {
     const wmLayer = makeMockWMLayer('style-a');
     mockGetWMLayerById.mockReturnValue(wmLayer);
-    const state = buildState([makeLayer({ style: 'style-a' })]);
-    mockUseAppSelector.mockImplementation((selector) => selector(state));
 
-    render(<LegendPanel mapId={mapId} />);
+    renderPanel(buildState([makeLayer({ style: 'style-a' })]));
 
     expect(await screen.findByAltText('Legend for layer-1')).toHaveAttribute(
       'src',
@@ -129,22 +143,27 @@ describe('LegendPanel', () => {
   it('updates the legend image when the layer style changes, even if nothing else has synced the WMLayer yet', async () => {
     const wmLayer = makeMockWMLayer('style-a');
     mockGetWMLayerById.mockReturnValue(wmLayer);
-    let state = buildState([makeLayer({ style: 'style-a' })]);
-    mockUseAppSelector.mockImplementation((selector) => selector(state));
 
-    const { rerender } = render(<LegendPanel mapId={mapId} />);
+    const store = renderPanel(buildState([makeLayer({ style: 'style-a' })]));
     expect(await screen.findByAltText('Legend for layer-1')).toHaveAttribute(
       'src',
       expect.stringContaining('legend-a.png'),
     );
 
-    // Simulate the style dropdown's redux update - note nothing here calls
+    // The style dropdown's redux update - note nothing here calls
     // wmLayer.setStyle('style-b') the way the real map layer's own effect
-    // normally would, which is exactly the race this fix removes the
-    // panel's dependency on.
-    state = buildState([makeLayer({ style: 'style-b' })]);
-    mockUseAppSelector.mockImplementation((selector) => selector(state));
-    rerender(<LegendPanel mapId={mapId} />);
+    // normally would, which is exactly the race the panel must not depend
+    // on.
+    act(() => {
+      store.dispatch(
+        actions.changeLayerStyle({
+          mapId,
+          layerIndex: 0,
+          styleName: 'style-b',
+        }),
+      );
+    });
+    expect(store.getState().viewer.maps[mapId].layers[0].style).toBe('style-b');
 
     expect(await screen.findByAltText('Legend for layer-1')).toHaveAttribute(
       'src',

@@ -6,6 +6,7 @@ import PublicIcon from '@mui/icons-material/Public';
 import AdagucAboutDialog from './AdagucAboutDialog';
 import AdagucAddDataDialog from './AdagucAddDataDialog';
 import AdagucCreatePermalinkDialog from './AdagucCreatePermalinkDialog';
+import ColorSchemeButton from './ColorSchemeButton';
 import PredefinedAreasDialog from './PredefinedAreasDialog';
 import WMSServiceInput from './WMSServiceInput';
 
@@ -90,6 +91,7 @@ const AdagucAppBar = (): React.ReactElement => {
               <SharePermalinkIcon sx={{ fontSize: 28 }} />
             </IconButton>
           </Tooltip>
+          <ColorSchemeButton />
           <Tooltip title="About Adaguc Workbench (AWB)">
             <IconButton
               size="large"

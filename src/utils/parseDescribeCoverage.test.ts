@@ -1,7 +1,7 @@
 import { xmlToJson } from './xmlToJson';
 import { parseDescribeCoverage } from './parseDescribeCoverage';
 
-jest.mock('@opengeoweb/webmap', () => ({
+vi.mock('@opengeoweb/webmap', () => ({
   toArray: (value: unknown): unknown[] => {
     if (value === null || value === undefined) {
       return [];

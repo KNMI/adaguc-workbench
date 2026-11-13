@@ -22,7 +22,7 @@ describe('WMSStyleSelector', () => {
       <WMSStyleSelector
         styleName="b"
         styles={twoStyles}
-        onSelectStyle={jest.fn()}
+        onSelectStyle={vi.fn()}
       />,
     );
 
@@ -30,7 +30,7 @@ describe('WMSStyleSelector', () => {
   });
 
   it('cycles to the next style, wrapping around at the end', () => {
-    const onSelectStyle = jest.fn();
+    const onSelectStyle = vi.fn();
     // styleList is [a, b, default] - starting at the last entry.
     render(
       <WMSStyleSelector
@@ -46,7 +46,7 @@ describe('WMSStyleSelector', () => {
   });
 
   it('cycles to the previous style, wrapping around at the start', () => {
-    const onSelectStyle = jest.fn();
+    const onSelectStyle = vi.fn();
     render(
       <WMSStyleSelector
         styleName="a"
@@ -65,7 +65,7 @@ describe('WMSStyleSelector', () => {
       <WMSStyleSelector
         styleName="default"
         styles={[]}
-        onSelectStyle={jest.fn()}
+        onSelectStyle={vi.fn()}
       />,
     );
 

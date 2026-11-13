@@ -1,6 +1,6 @@
 /* Colours come from the CSS variables set in src/application/appTheme.tsx
    (--awb-surface, --awb-panel, --awb-water, --awb-water-dark, --awb-line,
-   --awb-accent) - the palette of the default base map. */
+   --awb-accent, ...) - for the current light or dark colour scheme. */
 
 :focus {
   outline: none;
@@ -184,7 +184,7 @@ tr:hover {
 }
 
 tr.unavailable td {
-  color: rgba(0, 0, 0, 0.38);
+  color: color-mix(in srgb, var(--awb-line) 40%, transparent);
 }
 
 tr.unavailable:hover {

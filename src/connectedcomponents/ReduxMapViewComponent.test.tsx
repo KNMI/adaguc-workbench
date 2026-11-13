@@ -1,46 +1,45 @@
+import type { Mock, MockedFunction, MockInstance } from 'vitest';
 import * as React from 'react';
-import { act, render } from '@testing-library/react';
+import { act, render as renderWithoutStore } from '@testing-library/react';
+import { Provider } from 'react-redux';
 import {
   getLayerExtentForProjection,
   makeView,
   useAnimationForLayer,
 } from '@opengeoweb/webmap-react';
-import { getWMLayerById } from '@opengeoweb/webmap';
+import { LayerType, getWMLayerById } from '@opengeoweb/webmap';
 import type { WMLayer } from '@opengeoweb/webmap';
 import { get as getOlProjection } from 'ol/proj';
-import { useAppDispatch, useAppSelector } from '../store/store';
+import { actions, createAppStore } from '../store/store';
 import { AdagucLayer, ViewerState } from '../store/types';
+import { emptyMap } from '../testUtils/renderWithStore';
 import { ReduxMapViewComponent } from './ReduxMapViewComponent';
 import { fitViewToBbox } from '../utils/fitViewToBbox';
 
 // Needs a real OpenLayers map - its own behaviour is covered by
 // OpenLayersHistogramBoxSelect's own test file instead.
-jest.mock('./OpenLayersHistogramBoxSelect', () => ({
-  __esModule: true,
+vi.mock('./OpenLayersHistogramBoxSelect', () => ({
   default: () => null,
 }));
 
 // Lets each test decide which srs's OpenLayers knows - by default, all.
-jest.mock('ol/proj', () => ({
-  get: jest.fn(() => ({})),
+vi.mock('ol/proj', () => ({
+  get: vi.fn(() => ({})),
 }));
 
-jest.mock('../utils/fitViewToBbox', () => ({
-  fitViewToBbox: jest.fn(),
+vi.mock('../utils/fitViewToBbox', () => ({
+  fitViewToBbox: vi.fn(),
 }));
 
-jest.mock('../utils/registerExtraProjections', () => ({
-  registerExtraProjections: jest.fn(),
+vi.mock('../utils/registerExtraProjections', () => ({
+  registerExtraProjections: vi.fn(),
 }));
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
-  generateLayerId: jest.fn(() => 'fake-layer-id'),
-  LayerType: {
-    baseLayer: 'baseLayer',
-    overLayer: 'overLayer',
-    mapLayer: 'mapLayer',
-  },
+// The layers' capabilities come from opengeoweb's WMLayer registry, which
+// only gets filled in by a real map - tests stub it instead.
+vi.mock('@opengeoweb/webmap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@opengeoweb/webmap')>()),
+  getWMLayerById: vi.fn(),
 }));
 
 // A newly created view isn't attached to the map yet, so OpenLayersMapView
@@ -48,7 +47,7 @@ jest.mock('@opengeoweb/webmap', () => ({
 // calling map.setView() in its own effect when the `view` prop changes.
 // This stand-in simulates exactly that one behaviour - everything else
 // about the real map is irrelevant to the regression being guarded here.
-let mockAttachViewToMap: jest.Mock;
+let mockAttachViewToMap: Mock;
 // Records every <OpenLayersLayer> render's props, so tests can inspect the
 // zIndex each data layer is actually given (see layer-ordering tests below)
 // without needing a real OL map to observe real draw order from.
@@ -57,12 +56,11 @@ let mockOpenLayersLayerCalls: Array<{
   zIndex?: number;
   dimensions?: unknown;
 }>;
-jest.mock('@opengeoweb/webmap-react', () => {
+vi.mock('@opengeoweb/webmap-react', async () => {
   /* eslint-disable
-     @typescript-eslint/no-unsafe-call,
      @typescript-eslint/no-unsafe-return,
      @typescript-eslint/no-explicit-any */
-  const ReactLib = require('react');
+  const ReactLib = await import('react');
   return {
     OpenLayersMapView: ({ view, children }: any) => {
       ReactLib.useEffect(() => {
@@ -75,70 +73,67 @@ jest.mock('@opengeoweb/webmap-react', () => {
       return null;
     },
     OpenLayersGetFeatureInfo: () => null,
-    getLayerExtentForProjection: jest.fn(),
-    makeView: jest.fn(),
-    useAnimationForLayer: jest.fn(() => ({ dimensions: [] })),
+    getLayerExtentForProjection: vi.fn(),
+    makeView: vi.fn(),
+    useAnimationForLayer: vi.fn(() => ({ dimensions: [] })),
     TimeContext: ReactLib.createContext({}),
   };
   /* eslint-enable
-     @typescript-eslint/no-unsafe-call,
      @typescript-eslint/no-unsafe-return,
      @typescript-eslint/no-explicit-any */
 });
 
-jest.mock('../store/store', () => ({
-  actions: {
-    updateMapView: (payload: unknown) => ({
-      type: 'wmsservices/updateMapView',
-      payload,
-    }),
-    initializeLayer: (payload: unknown) => ({
-      type: 'wmsservices/initializeLayer',
-      payload,
-    }),
-    setMapPinLocation: (payload: unknown) => ({
-      type: 'wmsservices/setMapPinLocation',
-      payload,
-    }),
-    syncAnimatedLayerDimension: (payload: unknown) => ({
-      type: 'wmsservices/syncAnimatedLayerDimension',
-      payload,
-    }),
-  },
-  useAppDispatch: jest.fn(),
-  useAppSelector: jest.fn(),
-}));
-
-const mockMakeView = jest.mocked(makeView);
-const mockFitViewToBbox = jest.mocked(fitViewToBbox);
-const mockGetLayerExtentForProjection = jest.mocked(
-  getLayerExtentForProjection,
-);
-const mockUseAnimationForLayer = jest.mocked(useAnimationForLayer);
+const mockMakeView = vi.mocked(makeView);
+const mockFitViewToBbox = vi.mocked(fitViewToBbox);
+const mockGetLayerExtentForProjection = vi.mocked(getLayerExtentForProjection);
+const mockUseAnimationForLayer = vi.mocked(useAnimationForLayer);
 // opengeoweb types this as always returning a WMLayer, but it returns
 // undefined for an unknown id - which these tests stub too.
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
-const mockGetOlProjection = jest.mocked(getOlProjection);
-const mockUseAppDispatch = jest.mocked(useAppDispatch);
-const mockUseAppSelector = jest.mocked(useAppSelector);
+const mockGetOlProjection = vi.mocked(getOlProjection);
 
 const mapId = 'map1';
 
 // A minimal stand-in for an OL View: just enough for ReduxMapViewComponent's
 // other effects (the view-change listener) to attach/detach without
 // throwing; nothing in this test exercises real OL view behaviour.
-const makeFakeView = (): unknown => ({ on: jest.fn(), un: jest.fn() });
+const makeFakeView = (): unknown => ({ on: vi.fn(), un: vi.fn() });
 
 describe('ReduxMapViewComponent', () => {
-  let mockState: ViewerState;
+  // The state a test starts from - render() creates a real store with it.
+  let initialState: ViewerState;
+  let store: ReturnType<typeof createAppStore>;
+  // Every action dispatched, from the component or the test itself - the
+  // real reducer still runs for each one.
+  let mockDispatch: MockInstance;
   let callOrder: string[];
+
+  const render = (ui: React.ReactElement) => {
+    store = createAppStore(initialState);
+    mockDispatch = vi.spyOn(store, 'dispatch');
+    return renderWithoutStore(ui, {
+      wrapper: ({ children }) => <Provider store={store}>{children}</Provider>,
+    });
+  };
+
+  // A projection switch, as the projection selector requests it.
+  const requestSetProjection = (
+    srs: string,
+    bbox = { left: 0, bottom: 0, right: 1, top: 1 },
+  ): void => {
+    act(() => {
+      store.dispatch(actions.requestSetProjection({ mapId, srs, bbox }));
+    });
+  };
+
+  // The map's view as it currently is in redux (and so the permalink).
+  const reduxView = () => store.getState().viewer.maps[mapId].view;
 
   beforeEach(() => {
     callOrder = [];
     mockOpenLayersLayerCalls = [];
-    mockUseAppDispatch.mockReturnValue(jest.fn());
     mockGetWMLayerById.mockReturnValue(undefined);
     mockGetOlProjection.mockImplementation(
       () => ({}) as ReturnType<typeof getOlProjection>,
@@ -152,7 +147,7 @@ describe('ReduxMapViewComponent', () => {
       callOrder.push('makeView');
       return view as ReturnType<typeof makeView>;
     });
-    mockAttachViewToMap = jest.fn((view: unknown) => {
+    mockAttachViewToMap = vi.fn((view: unknown) => {
       callOrder.push('attachViewToMap');
       return view;
     });
@@ -160,54 +155,27 @@ describe('ReduxMapViewComponent', () => {
       callOrder.push('fitViewToBbox');
     });
 
-    mockState = {
+    initialState = {
       viewer: {
         services: {},
         baseLayers: [],
-        maps: {
-          [mapId]: {
-            isAnimating: false,
-            isGetFeatureInfoActive: false,
-            isHistogramBoxSelectActive: false,
-            layers: [],
-            view: {
-              srs: 'EPSG:3857',
-              bbox: { left: -1, bottom: -1, right: 1, top: 1 },
-            },
-          },
-        },
+        maps: { [mapId]: emptyMap() },
       },
     };
-    mockUseAppSelector.mockImplementation((selector) => selector(mockState));
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('attaches a new view to the map before fitting it to a viewCommand bbox', () => {
-    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
+    render(<ReduxMapViewComponent mapId={mapId} />);
     // The initial mount already creates and attaches a default view; only
     // the calls triggered by the viewCommand below are under test.
     callOrder.length = 0;
 
     const bbox = { left: 10, bottom: 20, right: 30, top: 40 };
-    act(() => {
-      mockState = {
-        ...mockState,
-        viewer: {
-          ...mockState.viewer,
-          maps: {
-            ...mockState.viewer.maps,
-            [mapId]: {
-              ...mockState.viewer.maps[mapId],
-              viewCommand: { srs: 'EPSG:28992', bbox, requestId: 1 },
-            },
-          },
-        },
-      };
-      rerender(<ReduxMapViewComponent mapId={mapId} />);
-    });
+    requestSetProjection('EPSG:28992', bbox);
 
     expect(callOrder).toEqual(['makeView', 'attachViewToMap', 'fitViewToBbox']);
 
@@ -229,56 +197,27 @@ describe('ReduxMapViewComponent', () => {
     // fit triggered by the switch itself can fire before anything has
     // subscribed to this new view, and which otherwise never fires again
     // without the user panning/zooming afterwards.
-    const dispatchMock = jest.fn();
-    mockUseAppDispatch.mockReturnValue(dispatchMock);
     mockMakeView.mockImplementationOnce(
       () => makeFakeView() as ReturnType<typeof makeView>,
     );
     const fittedView = {
-      on: jest.fn(),
-      un: jest.fn(),
-      calculateExtent: jest.fn(() => [10, 20, 30, 40]),
-      getProjection: jest.fn(() => ({ getCode: () => 'EPSG:28992' })),
+      on: vi.fn(),
+      un: vi.fn(),
+      calculateExtent: vi.fn(() => [10, 20, 30, 40]),
+      getProjection: vi.fn(() => ({ getCode: () => 'EPSG:28992' })),
     };
     mockMakeView.mockImplementationOnce(
       () => fittedView as unknown as ReturnType<typeof makeView>,
     );
 
-    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
-    dispatchMock.mockClear();
+    render(<ReduxMapViewComponent mapId={mapId} />);
 
-    act(() => {
-      mockState = {
-        ...mockState,
-        viewer: {
-          ...mockState.viewer,
-          maps: {
-            ...mockState.viewer.maps,
-            [mapId]: {
-              ...mockState.viewer.maps[mapId],
-              viewCommand: {
-                srs: 'EPSG:28992',
-                bbox: { left: 0, bottom: 0, right: 1, top: 1 },
-                requestId: 1,
-              },
-            },
-          },
-        },
-      };
-      rerender(<ReduxMapViewComponent mapId={mapId} />);
+    requestSetProjection('EPSG:28992');
+
+    expect(reduxView()).toEqual({
+      srs: 'EPSG:28992',
+      bbox: { left: 10, bottom: 20, right: 30, top: 40 },
     });
-
-    expect(dispatchMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          mapId,
-          view: {
-            srs: 'EPSG:28992',
-            bbox: { left: 10, bottom: 20, right: 30, top: 40 },
-          },
-        }),
-      }),
-    );
   });
 
   it('syncs the fitted extent to redux right after a zoom-to-layer command, without needing a later pan', () => {
@@ -288,14 +227,12 @@ describe('ReduxMapViewComponent', () => {
     // view directly), but without an explicit sync here, redux (and so the
     // permalink) kept advertising the view from before the zoom, since
     // nothing else ever told it about this fit.
-    const dispatchMock = jest.fn();
-    mockUseAppDispatch.mockReturnValue(dispatchMock);
     const fittedView = {
-      on: jest.fn(),
-      un: jest.fn(),
-      fit: jest.fn(),
-      calculateExtent: jest.fn(() => [10, 20, 30, 40]),
-      getProjection: jest.fn(() => ({ getCode: () => 'EPSG:3857' })),
+      on: vi.fn(),
+      un: vi.fn(),
+      fit: vi.fn(),
+      calculateExtent: vi.fn(() => [10, 20, 30, 40]),
+      getProjection: vi.fn(() => ({ getCode: () => 'EPSG:3857' })),
     };
     mockMakeView.mockImplementation(
       () => fittedView as unknown as ReturnType<typeof makeView>,
@@ -306,59 +243,36 @@ describe('ReduxMapViewComponent', () => {
     );
     mockGetLayerExtentForProjection.mockReturnValue([1, 2, 3, 4]);
 
-    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
-    dispatchMock.mockClear();
+    render(<ReduxMapViewComponent mapId={mapId} />);
 
     act(() => {
-      mockState = {
-        ...mockState,
-        viewer: {
-          ...mockState.viewer,
-          maps: {
-            ...mockState.viewer.maps,
-            [mapId]: {
-              ...mockState.viewer.maps[mapId],
-              zoomToLayerCommand: { layerId: 'layer-1', requestId: 1 },
-            },
-          },
-        },
-      };
-      rerender(<ReduxMapViewComponent mapId={mapId} />);
+      store.dispatch(actions.requestZoomToLayer({ mapId, layerId: 'layer-1' }));
     });
 
     expect(fittedView.fit).toHaveBeenCalledWith([1, 2, 3, 4]);
-    expect(dispatchMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          mapId,
-          view: {
-            srs: 'EPSG:3857',
-            bbox: { left: 10, bottom: 20, right: 30, top: 40 },
-          },
-        }),
-      }),
-    );
+    expect(reduxView()).toEqual({
+      srs: 'EPSG:3857',
+      bbox: { left: 10, bottom: 20, right: 30, top: 40 },
+    });
   });
 
   it('does not dispatch a stale srs/bbox left over from the previous view after switching projections', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
-    const onMock = jest.fn<void, [string, () => void]>();
+    const onMock = vi.fn<(event: string, handler: () => void) => void>();
     const makeFakeViewWithSrs = (srs: string, extent: number[]): unknown => ({
       on: onMock,
-      un: jest.fn(),
-      calculateExtent: jest.fn(() => extent),
-      getProjection: jest.fn(() => ({ getCode: () => srs })),
+      un: vi.fn(),
+      calculateExtent: vi.fn(() => extent),
+      getProjection: vi.fn(() => ({ getCode: () => srs })),
     });
     const viewV1 = makeFakeViewWithSrs('EPSG:3857', [1, 2, 3, 4]);
     const viewV2 = makeFakeViewWithSrs('EPSG:28992', [5, 6, 7, 8]);
     mockMakeView
       .mockImplementationOnce(() => viewV1 as ReturnType<typeof makeView>)
       .mockImplementationOnce(() => viewV2 as ReturnType<typeof makeView>);
-    const dispatchMock = jest.fn();
-    mockUseAppDispatch.mockReturnValue(dispatchMock);
 
-    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
+    render(<ReduxMapViewComponent mapId={mapId} />);
 
     // Simulate the user having just panned/zoomed on the old view right
     // before switching projections - this arms its 200ms debounce timer.
@@ -372,40 +286,25 @@ describe('ReduxMapViewComponent', () => {
 
     // Switching projections swaps in viewV2 - the old view's still-pending
     // debounce from above must not survive this.
-    act(() => {
-      mockState = {
-        ...mockState,
-        viewer: {
-          ...mockState.viewer,
-          maps: {
-            ...mockState.viewer.maps,
-            [mapId]: {
-              ...mockState.viewer.maps[mapId],
-              viewCommand: {
-                srs: 'EPSG:28992',
-                bbox: { left: 0, bottom: 0, right: 1, top: 1 },
-                requestId: 1,
-              },
-            },
-          },
-        },
-      };
-      rerender(<ReduxMapViewComponent mapId={mapId} />);
-    });
+    requestSetProjection('EPSG:28992');
 
     act(() => {
-      jest.advanceTimersByTime(250);
+      vi.advanceTimersByTime(250);
     });
 
-    expect(dispatchMock).not.toHaveBeenCalledWith(
+    expect(mockDispatch).not.toHaveBeenCalledWith(
       expect.objectContaining({
         payload: expect.objectContaining({
           view: expect.objectContaining({ srs: 'EPSG:3857' }),
         }),
       }),
     );
+    expect(reduxView()).toEqual({
+      srs: 'EPSG:28992',
+      bbox: { left: 5, bottom: 6, right: 7, top: 8 },
+    });
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('keeps the current view, without crashing, when asked to switch to an srs OpenLayers does not know', () => {
@@ -413,35 +312,17 @@ describe('ReduxMapViewComponent', () => {
     // (reading 'getExtent')") for an srs with no proj4 definition, e.g.
     // one picked from a layer's projection table or carried in a
     // permalink - which used to take the whole app down.
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     mockGetOlProjection.mockImplementation((srs) =>
       srs === 'EPSG:9999' ? null : ({} as ReturnType<typeof getOlProjection>),
     );
-    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
+    render(<ReduxMapViewComponent mapId={mapId} />);
     callOrder.length = 0;
 
-    act(() => {
-      mockState = {
-        ...mockState,
-        viewer: {
-          ...mockState.viewer,
-          maps: {
-            ...mockState.viewer.maps,
-            [mapId]: {
-              ...mockState.viewer.maps[mapId],
-              viewCommand: {
-                srs: 'EPSG:9999',
-                bbox: { left: 0, bottom: 0, right: 1, top: 1 },
-                requestId: 1,
-              },
-            },
-          },
-        },
-      };
-      rerender(<ReduxMapViewComponent mapId={mapId} />);
-    });
+    requestSetProjection('EPSG:9999');
 
     expect(callOrder).toEqual([]);
+    expect(reduxView().srs).toBe('EPSG:3857');
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('EPSG:9999'));
     warn.mockRestore();
   });
@@ -454,32 +335,49 @@ describe('ReduxMapViewComponent', () => {
     });
 
     expect(mockFitViewToBbox).not.toHaveBeenCalled();
+
+    // A handled viewCommand stays in the store - later state changes (here
+    // the user panning, which updates the view in redux) re-render with
+    // that same command, which must not fit the view to it again.
+    requestSetProjection('EPSG:28992');
+    expect(mockFitViewToBbox).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      store.dispatch(
+        actions.updateMapView({
+          mapId,
+          view: {
+            srs: 'EPSG:28992',
+            bbox: { left: 100, bottom: 200, right: 300, top: 400 },
+          },
+        }),
+      );
+    });
+
+    expect(mockFitViewToBbox).toHaveBeenCalledTimes(1);
   });
 
   it('draws enabled base layers below the data layers and enabled overlays above them', () => {
-    mockState.viewer.baseLayers = [
+    initialState.viewer.baseLayers = [
       {
         id: 'baselayer-worldmap',
         name: 'WorldMap',
         title: 'KNMI Basemap',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        layerType: 'baseLayer' as any,
+        layerType: LayerType.baseLayer,
         enabled: true,
       },
       {
         id: 'baselayer-arcgis-sat',
         name: 'arcGisSat',
         title: 'ESRI ArcGIS Satellite',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        layerType: 'baseLayer' as any,
+        layerType: LayerType.baseLayer,
         enabled: false,
       },
       {
         id: 'overlay-countryborders',
         name: 'countryborders',
         title: 'World country borders',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        layerType: 'overLayer' as any,
+        layerType: LayerType.overLayer,
         enabled: true,
       },
     ];
@@ -492,7 +390,7 @@ describe('ReduxMapViewComponent', () => {
       enabled: true,
       opacity: 1,
     };
-    mockState.viewer.maps[mapId].layers = [dataLayer];
+    initialState.viewer.maps[mapId].layers = [dataLayer];
 
     render(<ReduxMapViewComponent mapId={mapId} />);
 
@@ -539,7 +437,7 @@ describe('ReduxMapViewComponent', () => {
     };
     // Index 0 is the top of the sidebar layer list (see SortableLayerList),
     // so it must end up with the highest zIndex on the map.
-    mockState.viewer.maps[mapId].layers = [topLayer, bottomLayer];
+    initialState.viewer.maps[mapId].layers = [topLayer, bottomLayer];
 
     render(<ReduxMapViewComponent mapId={mapId} />);
 
@@ -571,8 +469,8 @@ describe('ReduxMapViewComponent', () => {
       enabled: true,
       opacity: 1,
     };
-    mockState.viewer.maps[mapId].layers = [layerA, layerB];
-    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
+    initialState.viewer.maps[mapId].layers = [layerA, layerB];
+    render(<ReduxMapViewComponent mapId={mapId} />);
 
     const initialZIndexById = new Map(
       mockOpenLayersLayerCalls.map((call) => [call.id, call.zIndex]),
@@ -583,21 +481,13 @@ describe('ReduxMapViewComponent', () => {
 
     // Drag layer-b to the top of the list.
     mockOpenLayersLayerCalls = [];
-    mockState = {
-      ...mockState,
-      viewer: {
-        ...mockState.viewer,
-        maps: {
-          ...mockState.viewer.maps,
-          [mapId]: {
-            ...mockState.viewer.maps[mapId],
-            layers: [layerB, layerA],
-          },
-        },
-      },
-    };
     act(() => {
-      rerender(<ReduxMapViewComponent mapId={mapId} />);
+      store.dispatch(
+        actions.setLayerOrderByIds({
+          mapId,
+          layerListIds: ['layer-b', 'layer-a'],
+        }),
+      );
     });
 
     const reorderedZIndexById = new Map(
@@ -633,11 +523,11 @@ describe('ReduxMapViewComponent', () => {
       enabled: true,
       opacity: 1,
     };
-    mockState.viewer.maps[mapId].layers = [layerA, layerB];
-    mockState.viewer.maps[mapId].isAnimating = true;
+    initialState.viewer.maps[mapId].layers = [layerA, layerB];
+    initialState.viewer.maps[mapId].isAnimating = true;
 
     const fakeTimeDimension = {
-      getClosestValue: jest.fn((value: string) => value),
+      getClosestValue: vi.fn((value: string) => value),
     };
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) =>
@@ -687,12 +577,12 @@ describe('ReduxMapViewComponent', () => {
       enabled: true,
       opacity: 1,
     });
-    mockState.viewer.maps[mapId].layers = [
+    initialState.viewer.maps[mapId].layers = [
       timeLayer('layer-a'),
       timeLayer('layer-b'),
     ];
-    mockState.viewer.maps[mapId].isAnimating = true;
-    mockState.viewer.maps[mapId].animation = {
+    initialState.viewer.maps[mapId].isAnimating = true;
+    initialState.viewer.maps[mapId].animation = {
       layerId: 'layer-b',
       scope: 'group',
     };
@@ -700,9 +590,9 @@ describe('ReduxMapViewComponent', () => {
       getDimension: (name: string) =>
         name === 'time'
           ? {
-              getClosestValue: jest.fn((value: string) => value),
+              getClosestValue: vi.fn((value: string) => value),
               // The clock's own starting point - "unknown" is fine here.
-              getIndexForValue: jest.fn(() => -1),
+              getIndexForValue: vi.fn(() => -1),
             }
           : undefined,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -732,5 +622,16 @@ describe('ReduxMapViewComponent', () => {
     expect(dimensionsById.get('layer-a')).toEqual([
       { name: 'time', currentValue: '2024-06-01T00:00:00Z' },
     ]);
+    // The animated time is mirrored back into redux (for the sidebar's
+    // time slider) for the animated layer only.
+    const [reduxLayerA, reduxLayerB] =
+      store.getState().viewer.maps[mapId].layers;
+    expect(reduxLayerB.dimensions).toEqual([
+      { name: 'time', currentValue: '2025-01-01T00:00:00Z' },
+    ]);
+    expect(reduxLayerA.dimensions).toEqual([
+      { name: 'time', currentValue: '2024-06-01T00:00:00Z' },
+    ]);
+    expect(store.getState().viewer.maps[mapId].isAnimating).toBe(true);
   });
 });

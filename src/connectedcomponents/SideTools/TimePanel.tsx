@@ -652,7 +652,7 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
                   // row other than the current one gets its "available"
                   // colour instead, unless it's the latest timestep.
                   bgcolor: rowColor(isSelected, isLatest, 'default'),
-                  color: isSelected ? '#ffffff' : awbColors.line,
+                  color: isSelected ? awbColors.onAccent : awbColors.line,
                   '&:hover': {
                     bgcolor: rowColor(isSelected, isLatest, 'hover'),
                   },

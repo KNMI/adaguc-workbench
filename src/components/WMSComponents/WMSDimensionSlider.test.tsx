@@ -1,16 +1,17 @@
+import type { MockedFunction } from 'vitest';
 import * as React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { getWMLayerById } from '@opengeoweb/webmap';
 import type { WMLayer } from '@opengeoweb/webmap';
 import WMSDimensionSlider from './WMSDimensionSlider';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
+vi.mock('@opengeoweb/webmap', () => ({
+  getWMLayerById: vi.fn(),
 }));
 
 // opengeoweb types this as always returning a WMLayer, but it returns
 // undefined for an unknown id - which these tests stub too.
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
 
@@ -27,9 +28,9 @@ const values = Array.from({ length: 50 }, (_, i) =>
 const makeDimension = () => ({
   name: 'time',
   units: 'ISO8601',
-  size: jest.fn(() => values.length),
-  getValueForIndex: jest.fn((index: number) => values[index]),
-  getIndexForValue: jest.fn((value: string) => values.indexOf(value)),
+  size: vi.fn(() => values.length),
+  getValueForIndex: vi.fn((index: number) => values[index]),
+  getIndexForValue: vi.fn((value: string) => values.indexOf(value)),
 });
 
 const renderSlider = (dimension: ReturnType<typeof makeDimension>) => {
@@ -37,7 +38,7 @@ const renderSlider = (dimension: ReturnType<typeof makeDimension>) => {
     getDimension: (name: string) => (name === 'time' ? dimension : undefined),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
-  const onSelectDimensionValue = jest.fn();
+  const onSelectDimensionValue = vi.fn();
   const utils = render(
     <WMSDimensionSlider
       selectedDimensionValue={values[10]}
@@ -45,7 +46,7 @@ const renderSlider = (dimension: ReturnType<typeof makeDimension>) => {
       onSelectDimensionValue={onSelectDimensionValue}
       dimensionName="time"
       linked={false}
-      onToggleLinked={jest.fn()}
+      onToggleLinked={vi.fn()}
     />,
   );
   return { ...utils, onSelectDimensionValue };
@@ -53,7 +54,7 @@ const renderSlider = (dimension: ReturnType<typeof makeDimension>) => {
 
 describe('WMSDimensionSlider', () => {
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('caps the slider at the last valid index (size() - 1), not size() itself', () => {
@@ -65,7 +66,7 @@ describe('WMSDimensionSlider', () => {
   });
 
   it('debounces rapid drag updates into a single committed value', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       const dimension = makeDimension();
       const { onSelectDimensionValue } = renderSlider(dimension);
@@ -84,11 +85,11 @@ describe('WMSDimensionSlider', () => {
       onSelectDimensionValue.mockClear();
 
       act(() => {
-        jest.advanceTimersByTime(10);
+        vi.advanceTimersByTime(10);
         fireEvent.change(slider, { target: { value: '22' } });
       });
       act(() => {
-        jest.advanceTimersByTime(10);
+        vi.advanceTimersByTime(10);
         fireEvent.change(slider, { target: { value: '25' } });
       });
 
@@ -96,7 +97,7 @@ describe('WMSDimensionSlider', () => {
       expect(onSelectDimensionValue).not.toHaveBeenCalled();
 
       act(() => {
-        jest.advanceTimersByTime(100);
+        vi.advanceTimersByTime(100);
       });
 
       // Only the final value of the burst - the one in between (22) never
@@ -104,7 +105,7 @@ describe('WMSDimensionSlider', () => {
       expect(onSelectDimensionValue).toHaveBeenCalledTimes(1);
       expect(onSelectDimensionValue).toHaveBeenCalledWith(values[25]);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -116,7 +117,7 @@ describe('WMSDimensionSlider', () => {
     // slider feel sluggish. It should only be needed for a genuinely
     // external change, not to re-confirm what this slider just set
     // itself.
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       const dimension = makeDimension();
       const { rerender } = renderSlider(dimension);
@@ -131,7 +132,7 @@ describe('WMSDimensionSlider', () => {
         fireEvent.change(slider, { target: { value: '30' } });
       });
       act(() => {
-        jest.advanceTimersByTime(250);
+        vi.advanceTimersByTime(250);
       });
 
       // The commit itself never needed getIndexForValue (only
@@ -144,16 +145,16 @@ describe('WMSDimensionSlider', () => {
         <WMSDimensionSlider
           selectedDimensionValue={values[30]}
           layerId={layerId}
-          onSelectDimensionValue={jest.fn()}
+          onSelectDimensionValue={vi.fn()}
           dimensionName="time"
           linked={false}
-          onToggleLinked={jest.fn()}
+          onToggleLinked={vi.fn()}
         />,
       );
 
       expect(dimension.getIndexForValue).not.toHaveBeenCalled();
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -166,10 +167,10 @@ describe('WMSDimensionSlider', () => {
       <WMSDimensionSlider
         selectedDimensionValue={values[40]}
         layerId={layerId}
-        onSelectDimensionValue={jest.fn()}
+        onSelectDimensionValue={vi.fn()}
         dimensionName="time"
         linked={false}
-        onToggleLinked={jest.fn()}
+        onToggleLinked={vi.fn()}
       />,
     );
 
@@ -178,7 +179,7 @@ describe('WMSDimensionSlider', () => {
   });
 
   it('cancels a pending debounced commit if the slider unmounts mid-drag', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       const dimension = makeDimension();
       const { onSelectDimensionValue, unmount } = renderSlider(dimension);
@@ -199,12 +200,12 @@ describe('WMSDimensionSlider', () => {
       });
       unmount();
       act(() => {
-        jest.advanceTimersByTime(500);
+        vi.advanceTimersByTime(500);
       });
 
       expect(onSelectDimensionValue).not.toHaveBeenCalled();
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -212,7 +213,7 @@ describe('WMSDimensionSlider', () => {
     // All hooks now run before the "no layer / no dimension" early returns,
     // so a render without the dimension (e.g. mid capabilities refresh)
     // must still call every one of them before bailing out.
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { rerender } = renderSlider(makeDimension());
     expect(screen.getByRole('slider')).toBeInTheDocument();
 
@@ -224,10 +225,10 @@ describe('WMSDimensionSlider', () => {
       <WMSDimensionSlider
         selectedDimensionValue={values[10]}
         layerId={layerId}
-        onSelectDimensionValue={jest.fn()}
+        onSelectDimensionValue={vi.fn()}
         dimensionName="time"
         linked={false}
-        onToggleLinked={jest.fn()}
+        onToggleLinked={vi.fn()}
       />,
     );
 
@@ -240,17 +241,17 @@ describe('WMSDimensionSlider', () => {
     // looks up the index has to re-run once layerDim shows up - even though
     // selectedDimensionValue itself hasn't changed in the meantime.
     mockGetWMLayerById.mockReturnValue(undefined);
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     // A fresh element each time - re-rendering the very same element object
     // would let React skip the render entirely.
     const slider = () => (
       <WMSDimensionSlider
         selectedDimensionValue={values[10]}
         layerId={layerId}
-        onSelectDimensionValue={jest.fn()}
+        onSelectDimensionValue={vi.fn()}
         dimensionName="time"
         linked={false}
-        onToggleLinked={jest.fn()}
+        onToggleLinked={vi.fn()}
       />
     );
     const { rerender } = render(slider());
@@ -275,12 +276,12 @@ describe('WMSDimensionSlider', () => {
     // list. Today LayerComponent happens to remount this slider whenever
     // its layer moves (layerIndex is part of the row's key), which hides
     // the problem - this keeps it from resurfacing if that key changes.
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       const dimension = makeDimension();
       const { rerender, onSelectDimensionValue: firstCallback } =
         renderSlider(dimension);
-      const latestCallback = jest.fn();
+      const latestCallback = vi.fn();
       rerender(
         <WMSDimensionSlider
           selectedDimensionValue={values[10]}
@@ -288,7 +289,7 @@ describe('WMSDimensionSlider', () => {
           onSelectDimensionValue={latestCallback}
           dimensionName="time"
           linked={false}
-          onToggleLinked={jest.fn()}
+          onToggleLinked={vi.fn()}
         />,
       );
 
@@ -301,7 +302,7 @@ describe('WMSDimensionSlider', () => {
       expect(latestCallback).toHaveBeenCalledWith(values[20]);
       expect(firstCallback).not.toHaveBeenCalled();
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 });

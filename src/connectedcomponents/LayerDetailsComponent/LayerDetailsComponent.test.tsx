@@ -1,31 +1,28 @@
+import type { MockedFunction } from 'vitest';
 import * as React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { getWMLayerById, queryWMSLayers } from '@opengeoweb/webmap';
 import type { WMLayer } from '@opengeoweb/webmap';
 import LayerDetailsComponent from './LayerDetailsComponent';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
-  queryWMSLayers: jest.fn(),
+vi.mock('@opengeoweb/webmap', () => ({
+  getWMLayerById: vi.fn(),
+  queryWMSLayers: vi.fn(),
 }));
 
-jest.mock('./ProjectionSelector', () => ({
-  __esModule: true,
+vi.mock('./ProjectionSelector', () => ({
   default: () => null,
 }));
-jest.mock('./AdagucNCDumpPanel', () => ({
-  __esModule: true,
+vi.mock('./AdagucNCDumpPanel', () => ({
   default: () => null,
 }));
-jest.mock('./WMSColorRangeSelector', () => ({
-  __esModule: true,
+vi.mock('./WMSColorRangeSelector', () => ({
   default: () => null,
 }));
 
 let lastWCSPanelDialogProps:
   { isOpen: boolean; onClose: () => void } | undefined;
-jest.mock('./WCSPanelDialog', () => ({
-  __esModule: true,
+vi.mock('./WCSPanelDialog', () => ({
   default: (props: { isOpen: boolean; onClose: () => void }) => {
     lastWCSPanelDialogProps = props;
     return props.isOpen ? <div data-testid="wcs-panel-dialog" /> : null;
@@ -34,14 +31,14 @@ jest.mock('./WCSPanelDialog', () => ({
 
 // opengeoweb types this as always returning a WMLayer, but it returns
 // undefined for an unknown id - which these tests stub too.
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
-const mockQueryWMSLayers = jest.mocked(queryWMSLayers);
+const mockQueryWMSLayers = vi.mocked(queryWMSLayers);
 
 describe('LayerDetailsComponent', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     lastWCSPanelDialogProps = undefined;
     mockQueryWMSLayers.mockResolvedValue([]);
     mockGetWMLayerById.mockReturnValue({

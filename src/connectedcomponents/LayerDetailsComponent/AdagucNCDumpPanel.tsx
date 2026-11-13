@@ -1,4 +1,5 @@
 import React from 'react';
+import { awbColors } from '../../application/appTheme';
 import { WMLayer } from '@opengeoweb/webmap';
 import { CopyToClipBoard } from '../CopyToClipBoard';
 
@@ -37,7 +38,7 @@ const AdagucNCDumpPanel = ({
           padding: '5px',
           fontSize: '10px',
           fontFamily: 'var(--awb-font-mono)',
-          background: 'white',
+          background: awbColors.surface,
         }}
       >
         <pre>{metadata}</pre>

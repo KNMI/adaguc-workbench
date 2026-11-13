@@ -1,3 +1,4 @@
+import type { MockedFunction } from 'vitest';
 import * as React from 'react';
 import {
   act,
@@ -12,25 +13,25 @@ import { openLayersGetMapImageStore } from '@opengeoweb/webmap-react';
 import { LayerComponent } from './LayerComponent';
 import { AdagucLayer } from '../../store/types';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
+vi.mock('@opengeoweb/webmap', () => ({
+  getWMLayerById: vi.fn(),
 }));
 
 // A minimal working stand-in for WMImageStore's own event registry (see
 // addImageEventCallback/removeEventCallback), so tests can fire a load
 // event the same way a real completed GetMap request would, rather than
-// just asserting against a jest.fn() mock.
-jest.mock('@opengeoweb/webmap-react', () => {
+// just asserting against a vi.fn() mock.
+vi.mock('@opengeoweb/webmap-react', () => {
   const callbacks: { id: string; callback: (...args: unknown[]) => void }[] =
     [];
   return {
     openLayersGetMapImageStore: {
-      loadDuration: { getLoadDurationForId: jest.fn(() => undefined) },
+      loadDuration: { getLoadDurationForId: vi.fn(() => undefined) },
       imagesbysrc: new Map(),
-      addImageEventCallback: jest.fn((callback, id) => {
+      addImageEventCallback: vi.fn((callback, id) => {
         callbacks.push({ id, callback });
       }),
-      removeEventCallback: jest.fn((id) => {
+      removeEventCallback: vi.fn((id) => {
         const index = callbacks.findIndex((entry) => entry.id === id);
         if (index !== -1) {
           callbacks.splice(index, 1);
@@ -60,21 +61,19 @@ const fireImageEvent = (image: {
   ).testOnlyFireImageEvent(image);
 };
 
-jest.mock('./WMSLayerSelector', () => ({
-  __esModule: true,
+vi.mock('./WMSLayerSelector', () => ({
   default: () => null,
 }));
-jest.mock('../WMSComponents/WMSStyleSelector', () => ({
-  __esModule: true,
+vi.mock('../WMSComponents/WMSStyleSelector', () => ({
   default: () => null,
 }));
 
 // opengeoweb types this as always returning a WMLayer, but it returns
 // undefined for an unknown id - which these tests stub too.
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
-const mockGetLoadDurationForId = jest.mocked(
+const mockGetLoadDurationForId = vi.mocked(
   // eslint-disable-next-line @typescript-eslint/unbound-method
   openLayersGetMapImageStore.loadDuration.getLoadDurationForId,
 );
@@ -95,29 +94,29 @@ const requiredProps = {
   selectedStyleName: 'default',
   styles: [],
   isAnimating: false,
-  onSelectLayer: jest.fn(),
-  openLayerDetails: jest.fn(),
-  onSelectStyle: jest.fn(),
-  onChangeLayerEnabled: jest.fn(),
-  onChangeOpacity: jest.fn(),
-  onDuplicate: jest.fn(),
-  getDimensionValue: jest.fn(),
-  setDimensionValue: jest.fn(),
-  getDimensionLinked: jest.fn(),
-  setDimensionLinked: jest.fn(),
-  removeLayer: jest.fn(),
-  layerToggleAnimation: jest.fn(),
-  zoomToLayer: jest.fn(),
-  onMoveUp: jest.fn(),
-  onMoveDown: jest.fn(),
+  onSelectLayer: vi.fn(),
+  openLayerDetails: vi.fn(),
+  onSelectStyle: vi.fn(),
+  onChangeLayerEnabled: vi.fn(),
+  onChangeOpacity: vi.fn(),
+  onDuplicate: vi.fn(),
+  getDimensionValue: vi.fn(),
+  setDimensionValue: vi.fn(),
+  getDimensionLinked: vi.fn(),
+  setDimensionLinked: vi.fn(),
+  removeLayer: vi.fn(),
+  layerToggleAnimation: vi.fn(),
+  zoomToLayer: vi.fn(),
+  onMoveUp: vi.fn(),
+  onMoveDown: vi.fn(),
   canMoveUp: true,
   canMoveDown: true,
-  onRefreshLayer: jest.fn().mockResolvedValue(undefined),
+  onRefreshLayer: vi.fn().mockResolvedValue(undefined),
 };
 
 describe('LayerComponent', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetWMLayerById.mockReturnValue(undefined);
     mockGetLoadDurationForId.mockReturnValue(undefined);
     openLayersGetMapImageStore.imagesbysrc.clear();
@@ -266,7 +265,7 @@ describe('LayerComponent', () => {
       enabled: true,
       dimensions: [],
     } as unknown as WMLayer);
-    const onChangeLayerEnabled = jest.fn();
+    const onChangeLayerEnabled = vi.fn();
 
     render(
       <LayerComponent
@@ -282,8 +281,8 @@ describe('LayerComponent', () => {
   });
 
   it('calls onMoveUp/onMoveDown when their buttons are clicked', () => {
-    const onMoveUp = jest.fn();
-    const onMoveDown = jest.fn();
+    const onMoveUp = vi.fn();
+    const onMoveDown = vi.fn();
     render(
       <LayerComponent
         {...requiredProps}
@@ -324,7 +323,7 @@ describe('LayerComponent', () => {
       dimensions: [],
     } as unknown as WMLayer;
     mockGetWMLayerById.mockReturnValue(wmLayer);
-    const onRefreshLayer = jest.fn(() => {
+    const onRefreshLayer = vi.fn(() => {
       // What a re-parse does: updates the registry WMLayer in place.
       wmLayer.title = 'New title';
       return Promise.resolve();
@@ -351,7 +350,7 @@ describe('LayerComponent', () => {
   it('shows and reports an opacity of 0 as 0, not as fully opaque', () => {
     // Regression guard: this used to read `opacity || 1`, so a layer at 0%
     // showed (and was drawn) as 100%.
-    const onChangeOpacity = jest.fn();
+    const onChangeOpacity = vi.fn();
     render(
       <LayerComponent
         {...requiredProps}
@@ -370,7 +369,7 @@ describe('LayerComponent', () => {
 
   it('disables the refresh button while a refresh is in flight', async () => {
     let resolveRefresh: () => void = () => {};
-    const onRefreshLayer = jest.fn(
+    const onRefreshLayer = vi.fn(
       () =>
         new Promise<void>((resolve) => {
           resolveRefresh = resolve;
@@ -515,9 +514,9 @@ describe('LayerComponent', () => {
       name: 'time',
       units: '',
       linked: false,
-      getIndexForValue: jest.fn(() => 0),
-      getValueForIndex: jest.fn(() => '2024-01-01T00:00:00Z'),
-      size: jest.fn(() => 5),
+      getIndexForValue: vi.fn(() => 0),
+      getValueForIndex: vi.fn(() => '2024-01-01T00:00:00Z'),
+      size: vi.fn(() => 5),
     };
     mockGetWMLayerById.mockReturnValue({
       dimensions: [{ name: 'time', currentValue: '2024-01-01T00:00:00Z' }],
@@ -530,7 +529,7 @@ describe('LayerComponent', () => {
       <LayerComponent
         {...requiredProps}
         layer={baseLayer}
-        getDimensionValue={jest.fn(() => '2024-01-01T00:00:00Z')}
+        getDimensionValue={vi.fn(() => '2024-01-01T00:00:00Z')}
       />,
     );
 
@@ -550,9 +549,9 @@ describe('LayerComponent', () => {
     const fakeTimeDimension = {
       name: 'time',
       units: '',
-      getIndexForValue: jest.fn(() => 0),
-      getValueForIndex: jest.fn(() => '2024-01-01T00:00:00Z'),
-      size: jest.fn(() => 5),
+      getIndexForValue: vi.fn(() => 0),
+      getValueForIndex: vi.fn(() => '2024-01-01T00:00:00Z'),
+      size: vi.fn(() => 5),
     };
     mockGetWMLayerById.mockReturnValue({
       dimensions: [{ name: 'time', currentValue: '2024-01-01T00:00:00Z' }],
@@ -560,14 +559,14 @@ describe('LayerComponent', () => {
         name === 'time' ? fakeTimeDimension : undefined,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
-    const setDimensionLinked = jest.fn();
+    const setDimensionLinked = vi.fn();
 
     render(
       <LayerComponent
         {...requiredProps}
         layer={baseLayer}
-        getDimensionValue={jest.fn(() => '2024-01-01T00:00:00Z')}
-        getDimensionLinked={jest.fn(() => false)}
+        getDimensionValue={vi.fn(() => '2024-01-01T00:00:00Z')}
+        getDimensionLinked={vi.fn(() => false)}
         setDimensionLinked={setDimensionLinked}
       />,
     );
@@ -587,14 +586,14 @@ describe('LayerComponent', () => {
   });
 
   it('shows the last GetMap request duration once a GetMap has completed, and keeps it up to date', () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     try {
       mockGetLoadDurationForId.mockReturnValue(undefined);
       render(<LayerComponent {...requiredProps} layer={baseLayer} />);
 
       mockGetLoadDurationForId.mockReturnValue(142);
       act(() => {
-        jest.advanceTimersByTime(500);
+        vi.advanceTimersByTime(500);
       });
       expect(screen.getByText('142 ms')).toBeInTheDocument();
 
@@ -602,11 +601,11 @@ describe('LayerComponent', () => {
       // duration, without needing the layer to be remounted.
       mockGetLoadDurationForId.mockReturnValue(87);
       act(() => {
-        jest.advanceTimersByTime(500);
+        vi.advanceTimersByTime(500);
       });
       expect(screen.getByText('87 ms')).toBeInTheDocument();
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 });

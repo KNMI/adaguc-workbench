@@ -1,33 +1,30 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { get as getOlProjection } from 'ol/proj';
 import Projection from 'ol/proj/Projection';
-import { useAppDispatch } from '../store/store';
+import { MAP_ID } from '../store/mapId';
+import { emptyMap, renderWithStore } from '../testUtils/renderWithStore';
 import PredefinedAreasDialog from './PredefinedAreasDialog';
 
 const fakeProjection = {} as Projection;
 
-jest.mock('../store/store', () => ({
-  actions: {
-    requestSetProjection: (payload: unknown) => ({
-      type: 'wmsservices/requestSetProjection',
-      payload,
-    }),
-  },
-  useAppDispatch: jest.fn(),
+vi.mock('ol/proj', () => ({
+  get: vi.fn(() => ({})),
 }));
 
-jest.mock('ol/proj', () => ({
-  get: jest.fn(() => ({})),
+const mockGetOlProjection = vi.mocked(getOlProjection);
+
+vi.mock('../utils/registerExtraProjections', () => ({
+  registerExtraProjections: vi.fn(),
 }));
 
-const mockGetOlProjection = jest.mocked(getOlProjection);
-
-jest.mock('../utils/registerExtraProjections', () => ({
-  registerExtraProjections: jest.fn(),
-}));
-
-const mockUseAppDispatch = jest.mocked(useAppDispatch);
+// Renders the dialog inside a real store holding the app's one map, so a
+// picked area ends up as that map's viewCommand.
+const renderDialog = (onDialogOpen = vi.fn()) =>
+  renderWithStore(
+    <PredefinedAreasDialog isDialogOpen onDialogOpen={onDialogOpen} />,
+    { [MAP_ID]: emptyMap() },
+  );
 
 describe('PredefinedAreasDialog', () => {
   afterEach(() => {
@@ -35,9 +32,7 @@ describe('PredefinedAreasDialog', () => {
   });
 
   it('lists every predefined area as a clickable tile', () => {
-    mockUseAppDispatch.mockReturnValue(jest.fn());
-
-    render(<PredefinedAreasDialog isDialogOpen onDialogOpen={jest.fn()} />);
+    renderDialog();
 
     expect(
       screen.getByRole('button', { name: 'World WGS84' }),
@@ -51,35 +46,28 @@ describe('PredefinedAreasDialog', () => {
   });
 
   it("shows each tile's srs id under its thumbnail", () => {
-    mockUseAppDispatch.mockReturnValue(jest.fn());
-
-    render(<PredefinedAreasDialog isDialogOpen onDialogOpen={jest.fn()} />);
+    renderDialog();
 
     expect(screen.getByText('EPSG:54030')).toBeInTheDocument();
     expect(screen.getByText('EPSG:28992')).toBeInTheDocument();
   });
 
-  it('dispatches requestSetProjection with the picked area and closes the dialog', () => {
-    const dispatch = jest.fn();
-    mockUseAppDispatch.mockReturnValue(dispatch);
-    const onDialogOpen = jest.fn();
+  it("requests the picked area's projection for the map and closes the dialog", () => {
+    const onDialogOpen = vi.fn();
 
-    render(<PredefinedAreasDialog isDialogOpen onDialogOpen={onDialogOpen} />);
+    const { store } = renderDialog(onDialogOpen);
 
     fireEvent.click(screen.getByRole('button', { name: 'Robinson' }));
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'wmsservices/requestSetProjection',
-      payload: {
-        mapId: 'map1',
-        srs: 'EPSG:54030',
-        bbox: {
-          left: -17036744.451383516,
-          bottom: -10711364.114367772,
-          right: 16912038.081015453,
-          top: 10488456.659686875,
-        },
+    expect(store.getState().viewer.maps[MAP_ID].viewCommand).toEqual({
+      srs: 'EPSG:54030',
+      bbox: {
+        left: -17036744.451383516,
+        bottom: -10711364.114367772,
+        right: 16912038.081015453,
+        top: 10488456.659686875,
       },
+      requestId: expect.any(Number),
     });
     expect(onDialogOpen).toHaveBeenCalledWith(false);
   });
@@ -92,19 +80,17 @@ describe('PredefinedAreasDialog', () => {
     // is exercised by having the mocked ol/proj.get() return null only
     // for North America's srs, the way the real one does for an
     // unregistered one.
-    const dispatch = jest.fn();
-    mockUseAppDispatch.mockReturnValue(dispatch);
     mockGetOlProjection.mockImplementation((srs) =>
       srs === 'EPSG:50001' ? null : fakeProjection,
     );
 
-    render(<PredefinedAreasDialog isDialogOpen onDialogOpen={jest.fn()} />);
+    const { store } = renderDialog();
 
     const tile = screen.getByRole('button', { name: 'North America' });
     expect(tile).toHaveAttribute('aria-disabled', 'true');
 
     fireEvent.click(tile);
 
-    expect(dispatch).not.toHaveBeenCalled();
+    expect(store.getState().viewer.maps[MAP_ID].viewCommand).toBeUndefined();
   });
 });

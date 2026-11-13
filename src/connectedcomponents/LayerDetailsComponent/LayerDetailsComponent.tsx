@@ -1,4 +1,5 @@
 import React from 'react';
+import { awbColors } from '../../application/appTheme';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
@@ -153,7 +154,7 @@ const LayerDetailsComponent = ({
               padding: '5px',
               fontSize: '10px',
               fontFamily: 'var(--awb-font-mono)',
-              background: 'white',
+              background: awbColors.surface,
             }}
           >
             <CopyToClipBoard

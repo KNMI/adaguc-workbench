@@ -1,38 +1,27 @@
+import type { MockedFunction, MockInstance } from 'vitest';
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { Provider } from 'react-redux';
 import { getWMLayerById } from '@opengeoweb/webmap';
 import type { WMLayer } from '@opengeoweb/webmap';
-import { useAppDispatch, useAppSelector } from '../../store/store';
+import { createAppStore } from '../../store/store';
 import { AdagucLayer } from '../../store/types';
+import { emptyMap } from '../../testUtils/renderWithStore';
 import TimePanel from './TimePanel';
 import { awbColors } from '../../application/appTheme';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  getWMLayerById: jest.fn(),
-}));
-
-jest.mock('../../store/store', () => ({
-  actions: {
-    changeLayerDimension: (payload: unknown) => ({
-      type: 'wmsservices/changeLayerDimension',
-      payload,
-    }),
-    layerToggleAnimation: (payload: unknown) => ({
-      type: 'wmsservices/layerToggleAnimation',
-      payload,
-    }),
-  },
-  useAppDispatch: jest.fn(),
-  useAppSelector: jest.fn(),
+// The layers' time dimensions come from opengeoweb's WMLayer registry,
+// which only gets filled in by a real map - each test stubs it instead.
+vi.mock('@opengeoweb/webmap', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@opengeoweb/webmap')>()),
+  getWMLayerById: vi.fn(),
 }));
 
 // opengeoweb types this as always returning a WMLayer, but it returns
 // undefined for an unknown id - which these tests stub too.
-const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+const mockGetWMLayerById = vi.mocked(getWMLayerById) as MockedFunction<
   (layerId: string) => WMLayer | undefined
 >;
-const mockUseAppDispatch = jest.mocked(useAppDispatch);
-const mockUseAppSelector = jest.mocked(useAppSelector);
 
 const mapId = 'map1';
 
@@ -85,47 +74,55 @@ const buildLayer = (overrides: Partial<AdagucLayer> = {}): AdagucLayer => ({
   ...overrides,
 });
 
-const selectState = (layers: AdagucLayer[], isAnimating = false): void => {
-  mockUseAppSelector.mockImplementation((selector) =>
-    selector({
+// The current time value of the store's layer at layerIndex.
+const currentTimeOf = (
+  store: ReturnType<typeof createAppStore>,
+  layerIndex = 0,
+): string | undefined =>
+  store
+    .getState()
+    .viewer.maps[mapId].layers[layerIndex].dimensions.find(
+      (dimension) => dimension.name === 'time',
+    )?.currentValue;
+
+describe('TimePanel', () => {
+  let store: ReturnType<typeof createAppStore>;
+  // Every action dispatched, from the panel or the test itself - the real
+  // reducer still runs for each one.
+  let mockDispatch: MockInstance;
+
+  // Renders the panel inside a fresh, real store whose map holds `layers`.
+  const renderPanel = (
+    layers: AdagucLayer[],
+    isAnimating = false,
+  ): ReturnType<typeof render> => {
+    store = createAppStore({
       viewer: {
-        maps: {
-          [mapId]: {
-            layers,
-            isAnimating,
-            isGetFeatureInfoActive: false,
-            isHistogramBoxSelectActive: false,
-            view: {
-              srs: 'EPSG:3857',
-              bbox: { left: -1, bottom: -1, right: 1, top: 1 },
-            },
-          },
-        },
+        maps: { [mapId]: emptyMap({ layers, isAnimating }) },
         services: {},
         baseLayers: [],
       },
-    }),
-  );
-};
-
-describe('TimePanel', () => {
-  let mockDispatch: jest.Mock;
+    });
+    mockDispatch = vi.spyOn(store, 'dispatch');
+    return render(
+      <Provider store={store}>
+        <TimePanel mapId={mapId} />
+      </Provider>,
+    );
+  };
 
   beforeEach(() => {
-    mockDispatch = jest.fn();
-    mockUseAppDispatch.mockReturnValue(mockDispatch);
     mockGetWMLayerById.mockReturnValue(undefined);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('shows an empty state when no enabled layer has a time dimension', () => {
-    selectState([buildLayer()]);
     mockGetWMLayerById.mockReturnValue(undefined);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([buildLayer()]);
 
     expect(
       screen.getByText('No enabled layers have a time dimension.'),
@@ -139,13 +136,12 @@ describe('TimePanel', () => {
       '2025-01-01T02:00:00Z',
     ]);
     const disabledLayer = buildLayer({ enabled: false });
-    selectState([disabledLayer]);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([disabledLayer]);
 
     expect(
       screen.getByText('No enabled layers have a time dimension.'),
@@ -158,13 +154,12 @@ describe('TimePanel', () => {
       '2025-01-01T01:00:00Z',
       '2025-01-01T02:00:00Z',
     ]);
-    selectState([buildLayer()]);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([buildLayer()]);
 
     // The "Local time" header renders in the test runner's own timezone
     // (same as the implementation does) - derived the same way here
@@ -192,6 +187,7 @@ describe('TimePanel', () => {
         dimensionValue: '2025-01-01T00:00:00Z',
       },
     });
+    expect(currentTimeOf(store)).toBe('2025-01-01T00:00:00Z');
   });
 
   it('marks the most recent value across all enabled layers as the latest timestep, with a star, its own colour, and a tooltip', async () => {
@@ -200,13 +196,12 @@ describe('TimePanel', () => {
       '2025-01-01T01:00:00Z',
       '2025-01-01T02:00:00Z',
     ]);
-    selectState([buildLayer()]);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([buildLayer()]);
 
     expect(screen.queryByText('02:00z')).not.toBeInTheDocument();
     const latestCell = screen.getByText('02:00z*');
@@ -229,32 +224,22 @@ describe('TimePanel', () => {
       '2025-01-01T01:00:00Z',
       '2025-01-01T02:00:00Z',
     ]);
-    selectState([buildLayer()]);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([buildLayer()]);
 
+    // Each step moves on from wherever the previous one left the layer.
     fireEvent.click(screen.getByLabelText('Step forward'));
-    expect(mockDispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          dimensionValue: '2025-01-01T02:00:00Z',
-        }),
-      }),
-    );
+    expect(currentTimeOf(store)).toBe('2025-01-01T02:00:00Z');
 
-    mockDispatch.mockClear();
     fireEvent.click(screen.getByLabelText('Step back'));
-    expect(mockDispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          dimensionValue: '2025-01-01T00:00:00Z',
-        }),
-      }),
-    );
+    expect(currentTimeOf(store)).toBe('2025-01-01T01:00:00Z');
+
+    fireEvent.click(screen.getByLabelText('Step back'));
+    expect(currentTimeOf(store)).toBe('2025-01-01T00:00:00Z');
   });
 
   it('keeps the same rows on screen across a single step - only the selected row moves - but pages to a freshly centered list once stepped past the edge', () => {
@@ -266,18 +251,17 @@ describe('TimePanel', () => {
     // single step, so the selected row visually never appears to move.
     const series = makeHourlySeries(50);
     const dimension = makeTimeDimension(series);
-    let layers = [
+    const layers = [
       buildLayer({
         dimensions: [{ name: 'time', currentValue: series[25] }],
       }),
     ];
-    selectState(layers);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    const { container, rerender } = render(<TimePanel mapId={mapId} />);
+    const { container } = renderPanel(layers);
     const rowTexts = (): string[] =>
       Array.from(container.querySelectorAll('tbody tr')).map(
         (tr) => tr.textContent ?? '',
@@ -289,29 +273,18 @@ describe('TimePanel', () => {
     expect(initialRows.length).toBe(20);
 
     const stepForwardOnce = (): void => {
-      mockDispatch.mockClear();
       fireEvent.click(screen.getByLabelText('Step forward'));
-      const [action] = mockDispatch.mock.calls[0] as [
-        { payload: { dimensionValue: string } },
-      ];
-      layers = [
-        buildLayer({
-          dimensions: [
-            { name: 'time', currentValue: action.payload.dimensionValue },
-          ],
-        }),
-      ];
-      selectState(layers);
-      rerender(<TimePanel mapId={mapId} />);
     };
 
     stepForwardOnce();
+    expect(currentTimeOf(store)).toBe(series[26]);
     expect(rowTexts()).toEqual(initialRows);
 
     // Keep stepping until well past the originally-shown page's own edge.
     for (let i = 0; i < 14; i += 1) {
       stepForwardOnce();
     }
+    expect(currentTimeOf(store)).toBe(series[40]);
     expect(rowTexts()).not.toEqual(initialRows);
   });
 
@@ -324,36 +297,25 @@ describe('TimePanel', () => {
       '2025-01-01T01:00:00Z',
       '2025-01-01T02:00:00Z',
     ]);
-    selectState([buildLayer()]);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    const { container } = render(<TimePanel mapId={mapId} />);
+    const { container } = renderPanel([buildLayer()]);
     const list = container.querySelector('table');
     if (!list) {
       throw new Error('TimePanel rendered no table');
     }
 
     fireEvent.wheel(list, { deltaY: 100 });
-    expect(mockDispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          dimensionValue: '2025-01-01T02:00:00Z',
-        }),
-      }),
-    );
+    expect(currentTimeOf(store)).toBe('2025-01-01T02:00:00Z');
 
-    mockDispatch.mockClear();
     fireEvent.wheel(list, { deltaY: -100 });
-    expect(mockDispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          dimensionValue: '2025-01-01T00:00:00Z',
-        }),
-      }),
-    );
+    expect(currentTimeOf(store)).toBe('2025-01-01T01:00:00Z');
+
+    fireEvent.wheel(list, { deltaY: -100 });
+    expect(currentTimeOf(store)).toBe('2025-01-01T00:00:00Z');
   });
 
   it('jumps to the earliest/latest nearby value', () => {
@@ -362,32 +324,18 @@ describe('TimePanel', () => {
       '2025-01-01T01:00:00Z',
       '2025-01-01T02:00:00Z',
     ]);
-    selectState([buildLayer()]);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([buildLayer()]);
 
     fireEvent.click(screen.getByLabelText('Jump to latest shown'));
-    expect(mockDispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          dimensionValue: '2025-01-01T02:00:00Z',
-        }),
-      }),
-    );
+    expect(currentTimeOf(store)).toBe('2025-01-01T02:00:00Z');
 
-    mockDispatch.mockClear();
     fireEvent.click(screen.getByLabelText('Jump to earliest shown'));
-    expect(mockDispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          dimensionValue: '2025-01-01T00:00:00Z',
-        }),
-      }),
-    );
+    expect(currentTimeOf(store)).toBe('2025-01-01T00:00:00Z');
   });
 
   it('applies a picked value to every enabled, time-aware layer, each snapped to its own closest value', () => {
@@ -413,7 +361,6 @@ describe('TimePanel', () => {
       name: 'air_temperature',
       dimensions: [{ name: 'time', currentValue: '2025-01-01T00:00:00Z' }],
     });
-    selectState([layerA, layerB]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetWMLayerById.mockImplementation((id: string): any => ({
       getDimension: (name: string) => {
@@ -424,15 +371,16 @@ describe('TimePanel', () => {
       },
     }));
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([layerA, layerB]);
 
     fireEvent.click(screen.getByLabelText('Jump to latest shown'));
 
     // layerA's coarse dimension has no 01:00 step, so its own closest
     // value for whatever gets picked is still one of its own two values.
     const dispatchedValues: string[] = mockDispatch.mock.calls.map(
-      ([action]: [{ payload: { dimensionValue: string } }]) =>
-        action.payload.dimensionValue,
+      ([action]) =>
+        (action as { payload: { dimensionValue: string } }).payload
+          .dimensionValue,
     );
     expect(dispatchedValues).toContain('2025-01-01T02:00:00Z');
     expect(
@@ -443,6 +391,9 @@ describe('TimePanel', () => {
       ),
     ).toBe(true);
     expect(mockDispatch).toHaveBeenCalledTimes(2);
+    // Both layers have a 02:00 step of their own.
+    expect(currentTimeOf(store, 0)).toBe('2025-01-01T02:00:00Z');
+    expect(currentTimeOf(store, 1)).toBe('2025-01-01T02:00:00Z');
   });
 
   it('toggles map-wide play/stop, driven by the reference layer', () => {
@@ -450,13 +401,12 @@ describe('TimePanel', () => {
       '2025-01-01T00:00:00Z',
       '2025-01-01T01:00:00Z',
     ]);
-    selectState([buildLayer()]);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([buildLayer()]);
 
     expect(
       screen.getByRole('button', { name: 'Play animation' }),
@@ -469,6 +419,13 @@ describe('TimePanel', () => {
       type: 'wmsservices/layerToggleAnimation',
       payload: { mapId, layerIndex: 0, scope: 'all' },
     });
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
+    expect(store.getState().viewer.maps[mapId].isAnimating).toBe(false);
+    expect(
+      screen.getByRole('button', { name: 'Play animation' }),
+    ).toBeInTheDocument();
   });
 
   it('shows Stop while the map is animating', () => {
@@ -476,13 +433,12 @@ describe('TimePanel', () => {
       '2025-01-01T00:00:00Z',
       '2025-01-01T01:00:00Z',
     ]);
-    selectState([buildLayer()], true);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([buildLayer()], true);
 
     expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument();
   });
@@ -493,13 +449,12 @@ describe('TimePanel', () => {
       '2025-01-01T01:00:00Z',
       '2025-01-01T02:00:00Z',
     ]);
-    selectState([buildLayer()]);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([buildLayer()]);
 
     fireEvent.change(screen.getByLabelText('Hour'), {
       target: { value: '2' },
@@ -515,6 +470,7 @@ describe('TimePanel', () => {
         dimensionValue: '2025-01-01T02:00:00Z',
       },
     });
+    expect(currentTimeOf(store)).toBe('2025-01-01T02:00:00Z');
   });
 
   it("applies a field's up/down step button immediately, without needing blur or Enter", () => {
@@ -527,13 +483,12 @@ describe('TimePanel', () => {
       '2025-01-01T01:00:00Z',
       '2025-01-01T02:00:00Z',
     ]);
-    selectState([buildLayer()]);
     mockGetWMLayerById.mockReturnValue({
       getDimension: (name: string) => (name === 'time' ? dimension : undefined),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
-    render(<TimePanel mapId={mapId} />);
+    renderPanel([buildLayer()]);
 
     fireEvent.click(screen.getByLabelText('Increase Hour'));
 

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import * as React from 'react';
 import {
   act,
@@ -12,24 +13,22 @@ import type { LayerProps, WMSServiceInfo } from '@opengeoweb/webmap';
 import { queryWMSLayers, queryWMSServiceInfo } from '@opengeoweb/webmap';
 import AutoWMS from './AutoWMS';
 
-jest.mock('@opengeoweb/webmap', () => ({
-  queryWMSLayers: jest.fn(),
-  queryWMSServiceInfo: jest.fn(),
+vi.mock('@opengeoweb/webmap', () => ({
+  queryWMSLayers: vi.fn(),
+  queryWMSServiceInfo: vi.fn(),
 }));
 
-const mockQueryWMSLayers = jest.mocked(queryWMSLayers);
-const mockQueryWMSServiceInfo = jest.mocked(queryWMSServiceInfo);
+const mockQueryWMSLayers = vi.mocked(queryWMSLayers);
+const mockQueryWMSServiceInfo = vi.mocked(queryWMSServiceInfo);
 
 const AUTOWMS_URL = 'http://localhost:8080/autowms?';
 const WMS_URL = 'http://example.com/wms?SERVICE=WMS&';
 
 type FetchMockEntry = { url: string; init?: RequestInit };
 
-const makeFetchMock = (
-  handler: (url: string) => Promise<unknown>,
-): jest.Mock => {
+const makeFetchMock = (handler: (url: string) => Promise<unknown>): Mock => {
   const calls: FetchMockEntry[] = [];
-  const mockFetch = jest.fn((url: string, init?: RequestInit) => {
+  const mockFetch = vi.fn((url: string, init?: RequestInit) => {
     calls.push({ url, init });
     return handler(url).then((body) => ({
       ok: true,
@@ -58,7 +57,7 @@ const waitForLoadingToFinish = async (): Promise<void> => {
 };
 
 // Flush the mount-time `fetch('./config.json')` effect before interacting.
-const flushConfigFetch = async (mockFetch: jest.Mock): Promise<void> => {
+const flushConfigFetch = async (mockFetch: Mock): Promise<void> => {
   await waitFor(() => {
     expect(mockFetch).toHaveBeenCalledWith('./config.json');
   });
@@ -85,16 +84,16 @@ describe('AutoWMS', () => {
 
   afterEach(() => {
     queryClient.clear();
-    jest.useRealTimers();
+    vi.useRealTimers();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (global as any).fetch;
+    delete (globalThis as any).fetch;
   });
 
   it('renders the AutoWMS input', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     expect(
       screen.getByLabelText('Add AutoWMS or WMS service'),
     ).toBeInTheDocument();
@@ -103,11 +102,13 @@ describe('AutoWMS', () => {
   });
 
   it('does not fetch the explorer listing while the user is still typing', async () => {
-    jest.useFakeTimers();
+    // Advancing with real time too, so waitFor (which polls on timers)
+    // still gets to run.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
     mockFetch.mockClear();
 
@@ -122,7 +123,7 @@ describe('AutoWMS', () => {
 
     // Once the user pauses, exactly one request is made, for the full url.
     act(() => {
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
     });
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
@@ -134,11 +135,13 @@ describe('AutoWMS', () => {
   });
 
   it('fetches immediately when the Load button is clicked, without waiting for the debounce', async () => {
-    jest.useFakeTimers();
+    // Advancing with real time too, so waitFor (which polls on timers)
+    // still gets to run.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
     mockFetch.mockClear();
 
@@ -155,11 +158,13 @@ describe('AutoWMS', () => {
   });
 
   it('fetches immediately when Enter is pressed in the input', async () => {
-    jest.useFakeTimers();
+    // Advancing with real time too, so waitFor (which polls on timers)
+    // still gets to run.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
     mockFetch.mockClear();
 
@@ -175,7 +180,7 @@ describe('AutoWMS', () => {
 
   it('lists the layers of a WMS service and calls addLayer when one is selected', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       {
         name: 'layer1',
@@ -187,7 +192,7 @@ describe('AutoWMS', () => {
       abstract: 'Test abstract',
     } as unknown as WMSServiceInfo);
 
-    const addLayer = jest.fn();
+    const addLayer = vi.fn();
     render(<AutoWMS addLayer={addLayer} />);
     await flushConfigFetch(mockFetch);
 
@@ -218,7 +223,7 @@ describe('AutoWMS', () => {
     // to a bare "&LAYERS=..." that the browser resolved against the
     // current page instead of the actual WMS service.
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     let resolveFirstLayers: (layers: LayerProps[]) => void = () => {};
     const firstLayersPromise = new Promise<LayerProps[]>((resolve) => {
@@ -229,7 +234,7 @@ describe('AutoWMS', () => {
       abstract: '',
     } as unknown as WMSServiceInfo);
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -267,7 +272,7 @@ describe('AutoWMS', () => {
 
   it('shows and hides the layer details popup without adding the layer', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       {
         name: 'layer1',
@@ -280,7 +285,7 @@ describe('AutoWMS', () => {
       abstract: 'Test abstract',
     } as unknown as WMSServiceInfo);
 
-    const addLayer = jest.fn();
+    const addLayer = vi.fn();
     render(<AutoWMS addLayer={addLayer} />);
     await flushConfigFetch(mockFetch);
 
@@ -310,9 +315,11 @@ describe('AutoWMS', () => {
   });
 
   it('loads preview images at most 5 per second', async () => {
-    jest.useFakeTimers();
+    // Advancing with real time too, so waitFor (which polls on timers)
+    // still gets to run.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     const sevenLayers = Array.from({ length: 7 }, (_, i) => ({
       name: `layer${i + 1}`,
       title: `Layer ${i + 1}`,
@@ -323,7 +330,7 @@ describe('AutoWMS', () => {
       abstract: '',
     } as unknown as WMSServiceInfo);
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -342,7 +349,7 @@ describe('AutoWMS', () => {
     expect(screen.getAllByRole('img')).toHaveLength(5);
 
     act(() => {
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
     });
 
     await waitFor(() => {
@@ -357,7 +364,7 @@ describe('AutoWMS', () => {
     // independently (not the whole phrase as a single substring) is what
     // should find it.
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       {
         name: 'air_pressure_msl',
@@ -370,7 +377,7 @@ describe('AutoWMS', () => {
       abstract: '',
     } as unknown as WMSServiceInfo);
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -392,7 +399,7 @@ describe('AutoWMS', () => {
 
   it('filters the layer list by title or name', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       {
         name: 'temperature-2m/nearest',
@@ -410,7 +417,7 @@ describe('AutoWMS', () => {
       abstract: '',
     } as unknown as WMSServiceInfo);
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -442,7 +449,7 @@ describe('AutoWMS', () => {
 
   it('shows a no-match message instead of the list when nothing matches the filter', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       { name: 'layer1', title: 'Layer One', styles: [] },
     ] as unknown as LayerProps[]);
@@ -450,7 +457,7 @@ describe('AutoWMS', () => {
       abstract: '',
     } as unknown as WMSServiceInfo);
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -472,7 +479,7 @@ describe('AutoWMS', () => {
     // Regression guard: a filter left over from a previous service would
     // otherwise silently hide every layer of the newly loaded one.
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       { name: 'layer1', title: 'Layer One', styles: [] },
     ] as unknown as LayerProps[]);
@@ -480,7 +487,7 @@ describe('AutoWMS', () => {
       abstract: '',
     } as unknown as WMSServiceInfo);
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -519,9 +526,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -556,9 +563,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -592,9 +599,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -630,9 +637,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -669,9 +676,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    const { rerender } = render(<AutoWMS addLayer={jest.fn()} isActive />);
+    const { rerender } = render(<AutoWMS addLayer={vi.fn()} isActive />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -683,7 +690,7 @@ describe('AutoWMS', () => {
       expect(screen.getByText(/Current path: sub/)).toBeInTheDocument();
     });
 
-    rerender(<AutoWMS addLayer={jest.fn()} isActive={false} />);
+    rerender(<AutoWMS addLayer={vi.fn()} isActive={false} />);
 
     fireEvent.keyDown(document.body, { key: 'Backspace' });
 
@@ -705,9 +712,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -737,9 +744,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -777,9 +784,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -838,13 +845,13 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([]);
     mockQueryWMSServiceInfo.mockResolvedValue({
       abstract: '',
     } as unknown as WMSServiceInfo);
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -912,7 +919,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       { name: 'layer1', title: 'Layer One', styles: [] },
     ] as unknown as LayerProps[]);
@@ -920,7 +927,7 @@ describe('AutoWMS', () => {
       abstract: 'Test abstract',
     } as unknown as WMSServiceInfo);
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -977,7 +984,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       { name: 'layer1', title: 'Layer One', styles: [] },
     ] as unknown as LayerProps[]);
@@ -985,7 +992,7 @@ describe('AutoWMS', () => {
       abstract: 'Test abstract',
     } as unknown as WMSServiceInfo);
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -1012,7 +1019,7 @@ describe('AutoWMS', () => {
     // the explorer showed the same "No items found." either way. Reported
     // against http://localhost:8080/autowms, a host nothing was listening
     // on.
-    const mockFetch = jest.fn((url: string) => {
+    const mockFetch = vi.fn((url: string) => {
       if (url === './config.json') {
         return Promise.resolve({
           ok: true,
@@ -1021,9 +1028,9 @@ describe('AutoWMS', () => {
       }
       return Promise.reject(new TypeError('Failed to fetch'));
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -1058,12 +1065,12 @@ describe('AutoWMS', () => {
         ],
       });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
     mockQueryWMSLayers.mockRejectedValue(new TypeError('Failed to fetch'));
     mockQueryWMSServiceInfo.mockRejectedValue(new TypeError('Failed to fetch'));
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
     fireEvent.change(screen.getByLabelText('Add AutoWMS or WMS service'), {
       target: { value: AUTOWMS_URL },
@@ -1084,17 +1091,17 @@ describe('AutoWMS', () => {
     // must populate the input and fetch it immediately, the same as
     // pressing Enter would.
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     const { rerender } = render(
-      <AutoWMS addLayer={jest.fn()} externalServiceRequest={undefined} />,
+      <AutoWMS addLayer={vi.fn()} externalServiceRequest={undefined} />,
     );
     await flushConfigFetch(mockFetch);
     mockFetch.mockClear();
 
     rerender(
       <AutoWMS
-        addLayer={jest.fn()}
+        addLayer={vi.fn()}
         externalServiceRequest={{ service: AUTOWMS_URL, requestId: 1 }}
       />,
     );
@@ -1112,11 +1119,11 @@ describe('AutoWMS', () => {
 
   it('does not reload when the same service request is seen again', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     const request = { service: AUTOWMS_URL, requestId: 1 };
     const { rerender } = render(
-      <AutoWMS addLayer={jest.fn()} externalServiceRequest={request} />,
+      <AutoWMS addLayer={vi.fn()} externalServiceRequest={request} />,
     );
     await flushConfigFetch(mockFetch);
     await waitFor(() => {
@@ -1127,7 +1134,7 @@ describe('AutoWMS', () => {
     await waitForLoadingToFinish();
     mockFetch.mockClear();
 
-    rerender(<AutoWMS addLayer={jest.fn()} externalServiceRequest={request} />);
+    rerender(<AutoWMS addLayer={vi.fn()} externalServiceRequest={request} />);
 
     expect(mockFetch).not.toHaveBeenCalledWith(
       `${AUTOWMS_URL}request=getfiles&path=`,
@@ -1154,9 +1161,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -1192,10 +1199,10 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
     const { rerender } = render(
-      <AutoWMS addLayer={jest.fn()} externalServiceRequest={undefined} />,
+      <AutoWMS addLayer={vi.fn()} externalServiceRequest={undefined} />,
     );
     // Let the deployment default finish auto-loading first.
     expect(await screen.findByText('SubFolder')).toBeInTheDocument();
@@ -1203,7 +1210,7 @@ describe('AutoWMS', () => {
     // The user then submits that exact same url from the top bar.
     rerender(
       <AutoWMS
-        addLayer={jest.fn()}
+        addLayer={vi.fn()}
         externalServiceRequest={{ service: DEFAULT_URL, requestId: 1 }}
       />,
     );
@@ -1219,9 +1226,9 @@ describe('AutoWMS', () => {
     // to later, and show up wherever that shared history is used.
     const RECENT_SERVICES_KEY = 'adaguc_recent_wms_services';
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -1247,9 +1254,9 @@ describe('AutoWMS', () => {
       JSON.stringify(['https://a/autowms?', 'https://b/autowms?']),
     );
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
     mockFetch.mockClear();
 
@@ -1289,9 +1296,9 @@ describe('AutoWMS', () => {
       `http://localhost/?autowms=${encodeURIComponent(queryServiceUrl)}`,
     );
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     expect(
@@ -1329,9 +1336,9 @@ describe('AutoWMS', () => {
       // real listing here, so resolution should move past both of them.
       return Promise.resolve({ notAListing: true });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     expect(await screen.findByText('SubFolder')).toBeInTheDocument();
@@ -1362,9 +1369,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');
@@ -1394,9 +1401,9 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
 
-    render(<AutoWMS addLayer={jest.fn()} />);
+    render(<AutoWMS addLayer={vi.fn()} />);
     await flushConfigFetch(mockFetch);
 
     const input = screen.getByLabelText('Add AutoWMS or WMS service');

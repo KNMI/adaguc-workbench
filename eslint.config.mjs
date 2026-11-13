@@ -39,7 +39,7 @@ export default tseslint.config(
       },
       globals: {
         ...globals.browser,
-        // Runtime config, injected by webpack (see webpack.config.js).
+        // Runtime config, set by a script in index.html.
         config: 'readonly',
       },
     },
@@ -128,10 +128,6 @@ export default tseslint.config(
   {
     files: ['src/**/*.test.{ts,tsx}'],
     rules: {
-      // jest.mock() factories can't reference the file's own imports, so
-      // pulling a module in with require() inside one is the standard
-      // pattern there.
-      '@typescript-eslint/no-require-imports': 'off',
       // Tests mock getWMLayerById itself (getWMLayer goes through it).
       'no-restricted-imports': 'off',
     },
