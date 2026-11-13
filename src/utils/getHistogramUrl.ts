@@ -1,5 +1,6 @@
 import { Bbox, getCorrectWMSDimName } from '@opengeoweb/webmap';
 import { getWMLayer } from './getWMLayer';
+import { requestedDimensionValue } from './requestedDimensionValue';
 import { AdagucLayer } from '../store/types';
 import { makeGoodServiceLink } from './makeGoodServiceLink';
 
@@ -28,13 +29,15 @@ export const getHistogramUrl = (
     .getDimensions()
     .map(
       (dimension) =>
-        `&${getCorrectWMSDimName(dimension.name)}=${dimension.currentValue}`,
+        `&${getCorrectWMSDimName(dimension.name)}=${requestedDimensionValue(dimension, layer.dimensions)}`,
     )
     .join('');
 
   return (
     `${makeGoodServiceLink(wmLayer.service)}SERVICE=WMS&VERSION=1.3.0&REQUEST=GetHistoGram` +
     `&LAYERS=${encodeURIComponent(wmLayer.getLayerName())}` +
+    // The style the map actually requested (after opengeoweb's own fallback
+    // for an unknown or "default" style) - not redux's raw choice.
     `&STYLES=${encodeURIComponent(wmLayer.getStyle() ?? '')}` +
     `&CRS=${encodeURIComponent(srs)}` +
     `&BBOX=${bbox.left},${bbox.bottom},${bbox.right},${bbox.top}` +

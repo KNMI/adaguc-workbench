@@ -121,6 +121,20 @@ describe('thunks.addLayer', () => {
     expect(unspecified.payload.enabled).toBe(true);
   });
 
+  it('rejects, rather than adding a nameless layer, when no name is given and the service lists no layers', async () => {
+    mockQueryWMSLayers.mockResolvedValue([]);
+
+    const result = await runThunk(
+      thunks.addLayer({ mapId, serviceUrl }),
+      emptyState,
+    );
+
+    expect(result.meta.requestStatus).toBe('rejected');
+    expect(result.error.message).toBe(
+      `${serviceUrl} doesn't list any layers to add.`,
+    );
+  });
+
   it('still adds the layer, with empty dimensions, when it cannot be parsed', async () => {
     // Regression guard: a layer the service genuinely doesn't have (wrong
     // name, since-removed, etc.) used to reject the whole thunk - this now

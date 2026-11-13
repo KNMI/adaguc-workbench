@@ -46,4 +46,18 @@ describe('WMSColorRangeSelector', () => {
     expect(refreshLayerSource).toHaveBeenCalledWith(wmLayer);
     expect(min).toHaveValue('2.000');
   });
+
+  it('clears the range from the layer and the fields when Reset is clicked', () => {
+    // Regression guard: Reset used to clear the layer's range but leave the
+    // old numbers in both fields.
+    const wmLayer = makeLayer('&COLORSCALERANGE=-5.000,40.000');
+    render(<WMSColorRangeSelector wmLayer={wmLayer} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+
+    expect(wmLayer.wmsextensions.url).toBe('');
+    expect(refreshLayerSource).toHaveBeenCalledWith(wmLayer);
+    expect(screen.getByLabelText('Min value')).toHaveValue('0.000');
+    expect(screen.getByLabelText('Max value')).toHaveValue('1.000');
+  });
 });

@@ -1,6 +1,7 @@
 import { ImageWMS } from 'ol/source';
 import { getCorrectWMSDimName } from '@opengeoweb/webmap';
 import { getWMLayer } from './getWMLayer';
+import { requestedDimensionValue } from './requestedDimensionValue';
 import { MapLocation } from '@opengeoweb/webmap-react';
 import { AdagucLayer } from '../store/types';
 import { SERIES_DIMENSION_NAMES } from './seriesDimensions';
@@ -204,7 +205,7 @@ export const getTimeSeriesUrl = (
           ? sampleDimensionValues(dimension, maxSteps).join(',')
           : '*';
     } else {
-      value = dimension.currentValue;
+      value = requestedDimensionValue(dimension, layer.dimensions);
     }
     dimParams.append(getCorrectWMSDimName(dimension.name), value);
   });

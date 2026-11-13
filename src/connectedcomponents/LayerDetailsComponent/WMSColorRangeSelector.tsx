@@ -72,6 +72,11 @@ const WMSColorRangeSelector = ({
         variant="outlined"
         onClick={() => {
           setWMSExtensionUrl(wmLayer, '');
+          // Show what the layer now requests again, instead of the range
+          // that was just removed.
+          const { min, max } = readColorScaleRange(wmLayer);
+          setMinValue(min);
+          setMaxValue(max);
         }}
       >
         Reset

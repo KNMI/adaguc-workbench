@@ -78,9 +78,13 @@ export const addLayer = createAppAsyncThunk(
     // should still show up in the layer list (if with empty dimensions)
     // rather than vanish silently, so the user can see what was requested.
     const layerToFind = layers.find((layeri) => layeri.name === name);
-    // '' only when no name was asked for and the service lists no layers -
-    // still added, the same as any other layer it can't resolve.
-    const layerName = (layerToFind ? name : (layers[0]?.name ?? name)) ?? '';
+    const layerName = layerToFind ? name : (layers[0]?.name ?? name);
+    // No name was asked for, and the service lists no layers to pick one
+    // from - there is nothing meaningful to add (this used to add a
+    // nameless entry to the layer list instead).
+    if (!layerName) {
+      throw new Error(`${serviceUrl} doesn't list any layers to add.`);
+    }
     const id = generateLayerId();
     const wmLayer = new WMLayer({
       id,

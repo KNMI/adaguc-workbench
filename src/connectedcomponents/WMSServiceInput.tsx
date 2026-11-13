@@ -1,5 +1,11 @@
 import * as React from 'react';
-import { Autocomplete, IconButton, TextField } from '@mui/material';
+import {
+  Alert,
+  Autocomplete,
+  IconButton,
+  Snackbar,
+  TextField,
+} from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { actions, useAppDispatch } from '../store/store';
@@ -41,6 +47,8 @@ const WMSServiceInput = ({
   const mapId = MAP_ID;
 
   const [value, setValue] = React.useState<string>('');
+  // Why the last submitted service couldn't be added, if it couldn't.
+  const [error, setError] = React.useState<string | null>(null);
   const [recentServices, setRecentServices] = React.useState<string[]>(() =>
     getRecentServices(),
   );
@@ -72,6 +80,17 @@ const WMSServiceInput = ({
     if (!service) {
       return;
     }
+    setError(null);
+    const showError = (e: unknown): void => {
+      // eslint-disable-next-line no-console
+      console.warn(e);
+      // A rejected thunk's error arrives serialized: a plain { message }.
+      const message =
+        e && typeof e === 'object' && 'message' in e
+          ? String(e.message)
+          : undefined;
+      setError(message || `Could not add ${service}.`);
+    };
     // Remembers whatever url actually ended up working - the resolved
     // AutoWMS url (e.g. with "/autowms" appended), not necessarily the
     // bare one typed, so the remembered entry is one that'll work again
@@ -92,10 +111,7 @@ const WMSServiceInput = ({
       return;
     }
     if (isOGCWMSServiceUrl(service)) {
-      addAsLayer().catch((e: unknown) => {
-        // eslint-disable-next-line no-console
-        console.warn(e);
-      });
+      addAsLayer().catch(showError);
       return;
     }
 
@@ -112,84 +128,100 @@ const WMSServiceInput = ({
         }
         return addAsLayer();
       })
-      .catch((e: unknown) => {
-        // eslint-disable-next-line no-console
-        console.warn(e);
-      });
+      .catch(showError);
   };
 
   return (
-    <Autocomplete
-      freeSolo
-      openOnFocus
-      options={options}
-      inputValue={value}
-      onInputChange={(_event, newValue) => {
-        setValue(newValue);
-      }}
-      // freeSolo's onChange already fires with the typed value on Enter,
-      // the same as it does when an option is clicked - a separate
-      // keydown handler here would submit it a second time.
-      onChange={(_event, newValue) => {
-        if (typeof newValue === 'string' && newValue) {
-          submitService(newValue);
-        }
-      }}
-      sx={sx}
-      renderOption={(optionProps, option) => {
-        // MUI puts `key` in optionProps - spreading it alongside an
-        // explicit `key` prop below would warn, so it's pulled out here.
-        const { key, ...rest } = optionProps;
-        return (
-          <li
-            key={key}
-            {...rest}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <span
+    <>
+      <Snackbar
+        open={error !== null}
+        autoHideDuration={8000}
+        onClose={() => {
+          setError(null);
+        }}
+      >
+        <Alert
+          severity="error"
+          variant="filled"
+          onClose={() => {
+            setError(null);
+          }}
+        >
+          {error}
+        </Alert>
+      </Snackbar>
+      <Autocomplete
+        freeSolo
+        openOnFocus
+        options={options}
+        inputValue={value}
+        onInputChange={(_event, newValue) => {
+          setValue(newValue);
+        }}
+        // freeSolo's onChange already fires with the typed value on Enter,
+        // the same as it does when an option is clicked - a separate
+        // keydown handler here would submit it a second time.
+        onChange={(_event, newValue) => {
+          if (typeof newValue === 'string' && newValue) {
+            submitService(newValue);
+          }
+        }}
+        sx={sx}
+        renderOption={(optionProps, option) => {
+          // MUI puts `key` in optionProps - spreading it alongside an
+          // explicit `key` prop below would warn, so it's pulled out here.
+          const { key, ...rest } = optionProps;
+          return (
+            <li
+              key={key}
+              {...rest}
               style={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}
             >
-              {option}
-            </span>
-            {option !== defaultAutoWMSService && (
-              <IconButton
-                size="small"
-                aria-label={`Remove ${option} from recent services`}
-                // The listbox selects an option on mousedown, before the
-                // click this is actually waiting for ever fires - without
-                // stopping it here too, clicking this button would select
-                // (and submit) the option it's meant to delete instead.
-                onMouseDown={(event) => {
-                  event.stopPropagation();
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleForgetRecentService(option);
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            )}
-          </li>
-        );
-      }}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          placeholder={placeholder}
-          variant="outlined"
-          size="small"
-        />
-      )}
-    />
+                {option}
+              </span>
+              {option !== defaultAutoWMSService && (
+                <IconButton
+                  size="small"
+                  aria-label={`Remove ${option} from recent services`}
+                  // The listbox selects an option on mousedown, before the
+                  // click this is actually waiting for ever fires - without
+                  // stopping it here too, clicking this button would select
+                  // (and submit) the option it's meant to delete instead.
+                  onMouseDown={(event) => {
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleForgetRecentService(option);
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              )}
+            </li>
+          );
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            placeholder={placeholder}
+            variant="outlined"
+            size="small"
+          />
+        )}
+      />
+    </>
   );
 };
 

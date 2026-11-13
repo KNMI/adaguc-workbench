@@ -97,6 +97,7 @@ export default tseslint.config(
             '**/*.test.ts',
             '**/*.test.tsx',
             'src/setupTests.ts',
+            'src/testUtils/**',
             'stories/**',
           ],
         },

@@ -1,21 +1,21 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import AdagucCreatePermalinkDialog from './AdagucCreatePermalinkDialog';
+import { makePermaLink } from './handleWindowLocationQueryString';
+import { emptyMap, renderWithStore } from '../testUtils/renderWithStore';
 
-// AdagucCreatePermalinkDialog's own real imports (useAppSelector from the
-// store, makePermaLink) pull in @opengeoweb/webmap, an ESM-only package
-// Jest can't parse as-is - not what these tests are about, so both are
-// stubbed directly instead.
-jest.mock('../store/store', () => ({
-  useAppSelector: jest.fn(() => undefined),
-}));
-jest.mock('./handleWindowLocationQueryString', () => ({
-  makePermaLink: jest.fn(
-    () => 'http://localhost/?srs=EPSG%3A3857&bbox=-1,-1,1,1',
-  ),
-}));
+// The real store, holding a map with its own (distinctive) view - so the
+// dialog has to share the permalink for exactly that map.
+const map = emptyMap({
+  view: { srs: 'EPSG:4326', bbox: { left: 1, bottom: 2, right: 3, top: 4 } },
+});
+const PERMALINK = makePermaLink(map);
 
-const PERMALINK = 'http://localhost/?srs=EPSG%3A3857&bbox=-1,-1,1,1';
+const renderDialog = () =>
+  renderWithStore(
+    <AdagucCreatePermalinkDialog isDialogOpen onDialogOpen={jest.fn()} />,
+    { map1: map },
+  );
 
 describe('AdagucCreatePermalinkDialog', () => {
   afterEach(() => {
@@ -29,12 +29,11 @@ describe('AdagucCreatePermalinkDialog', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (navigator as any).share = mockShare;
 
-    render(
-      <AdagucCreatePermalinkDialog isDialogOpen onDialogOpen={jest.fn()} />,
-    );
+    renderDialog();
 
     fireEvent.click(screen.getByRole('button', { name: 'share' }));
 
+    expect(PERMALINK).toContain('srs=EPSG%3A4326&bbox=1,2,3,4');
     expect(mockShare).toHaveBeenCalledWith({
       title: 'Adaguc Workbench',
       url: PERMALINK,
@@ -52,9 +51,7 @@ describe('AdagucCreatePermalinkDialog', () => {
       .spyOn(console, 'error')
       .mockImplementation(() => {});
 
-    render(
-      <AdagucCreatePermalinkDialog isDialogOpen onDialogOpen={jest.fn()} />,
-    );
+    renderDialog();
     fireEvent.click(screen.getByRole('button', { name: 'share' }));
 
     // Lets the rejected promise's .catch handler run.
@@ -65,9 +62,7 @@ describe('AdagucCreatePermalinkDialog', () => {
   });
 
   it('falls back to a menu of common share targets when the Web Share API is unavailable', () => {
-    render(
-      <AdagucCreatePermalinkDialog isDialogOpen onDialogOpen={jest.fn()} />,
-    );
+    renderDialog();
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(navigator.share).toBeUndefined();
@@ -95,9 +90,7 @@ describe('AdagucCreatePermalinkDialog', () => {
   });
 
   it('closes the fallback menu after picking a share target', () => {
-    render(
-      <AdagucCreatePermalinkDialog isDialogOpen onDialogOpen={jest.fn()} />,
-    );
+    renderDialog();
 
     fireEvent.click(screen.getByRole('button', { name: 'share' }));
     expect(screen.getByRole('menuitem', { name: /Email/ })).toBeInTheDocument();

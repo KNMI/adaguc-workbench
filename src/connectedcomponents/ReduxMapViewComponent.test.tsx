@@ -3,7 +3,6 @@ import { act, render } from '@testing-library/react';
 import {
   getLayerExtentForProjection,
   makeView,
-  setViewFromExtent,
   useAnimationForLayer,
 } from '@opengeoweb/webmap-react';
 import { getWMLayerById } from '@opengeoweb/webmap';
@@ -12,17 +11,22 @@ import { get as getOlProjection } from 'ol/proj';
 import { useAppDispatch, useAppSelector } from '../store/store';
 import { AdagucLayer, ViewerState } from '../store/types';
 import { ReduxMapViewComponent } from './ReduxMapViewComponent';
+import { fitViewToBbox } from '../utils/fitViewToBbox';
 
-// Pulls in ol/interaction/DragBox (ESM-only) - its own behaviour is covered
-// by OpenLayersHistogramBoxSelect's own test file instead.
+// Needs a real OpenLayers map - its own behaviour is covered by
+// OpenLayersHistogramBoxSelect's own test file instead.
 jest.mock('./OpenLayersHistogramBoxSelect', () => ({
   __esModule: true,
   default: () => null,
 }));
 
-// ol is ESM-only; by default every srs counts as one OpenLayers knows.
+// Lets each test decide which srs's OpenLayers knows - by default, all.
 jest.mock('ol/proj', () => ({
   get: jest.fn(() => ({})),
+}));
+
+jest.mock('../utils/fitViewToBbox', () => ({
+  fitViewToBbox: jest.fn(),
 }));
 
 jest.mock('../utils/registerExtraProjections', () => ({
@@ -72,7 +76,6 @@ jest.mock('@opengeoweb/webmap-react', () => {
     },
     OpenLayersGetFeatureInfo: () => null,
     getLayerExtentForProjection: jest.fn(),
-    setViewFromExtent: jest.fn(),
     makeView: jest.fn(),
     useAnimationForLayer: jest.fn(() => ({ dimensions: [] })),
     TimeContext: ReactLib.createContext({}),
@@ -107,7 +110,7 @@ jest.mock('../store/store', () => ({
 }));
 
 const mockMakeView = jest.mocked(makeView);
-const mockSetViewFromExtent = jest.mocked(setViewFromExtent);
+const mockFitViewToBbox = jest.mocked(fitViewToBbox);
 const mockGetLayerExtentForProjection = jest.mocked(
   getLayerExtentForProjection,
 );
@@ -153,8 +156,8 @@ describe('ReduxMapViewComponent', () => {
       callOrder.push('attachViewToMap');
       return view;
     });
-    mockSetViewFromExtent.mockImplementation(() => {
-      callOrder.push('setViewFromExtent');
+    mockFitViewToBbox.mockImplementation(() => {
+      callOrder.push('fitViewToBbox');
     });
 
     mockState = {
@@ -206,11 +209,7 @@ describe('ReduxMapViewComponent', () => {
       rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
-    expect(callOrder).toEqual([
-      'makeView',
-      'attachViewToMap',
-      'setViewFromExtent',
-    ]);
+    expect(callOrder).toEqual(['makeView', 'attachViewToMap', 'fitViewToBbox']);
 
     // Fitting must happen on the exact view that was created for this
     // viewCommand and attached to the map - not on some other view (e.g.
@@ -218,7 +217,7 @@ describe('ReduxMapViewComponent', () => {
     const lastAttachCall =
       mockAttachViewToMap.mock.calls[mockAttachViewToMap.mock.calls.length - 1];
     const attachedView = lastAttachCall[0];
-    const [fittedView, fittedBbox] = mockSetViewFromExtent.mock.calls[0];
+    const [fittedView, fittedBbox] = mockFitViewToBbox.mock.calls[0];
     expect(fittedView).toBe(attachedView);
     expect(fittedBbox).toEqual(bbox);
   });
@@ -454,7 +453,7 @@ describe('ReduxMapViewComponent', () => {
       rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
-    expect(mockSetViewFromExtent).not.toHaveBeenCalled();
+    expect(mockFitViewToBbox).not.toHaveBeenCalled();
   });
 
   it('draws enabled base layers below the data layers and enabled overlays above them', () => {

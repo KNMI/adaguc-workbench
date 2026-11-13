@@ -2,10 +2,11 @@ import * as React from 'react';
 import {
   act,
   fireEvent,
-  render,
+  render as renderWithoutQueryClient,
   screen,
   waitFor,
 } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getWMLayerById } from '@opengeoweb/webmap';
 import type { WMLayer } from '@opengeoweb/webmap';
 import { useAppDispatch, useAppSelector } from '../../store/store';
@@ -22,10 +23,9 @@ jest.mock('@opengeoweb/webmap', () => ({
   getWMLayerById: jest.fn(),
 }));
 
-// getFeatureInfoUrl/getTimeSeriesUrl both pull in 'ol/source' (an ESM-only
-// package jest can't parse as-is) just to build a GetFeatureInfo url - that
-// machinery isn't what this test is about, so the builders are stubbed
-// directly rather than mocking 'ol/source' itself.
+// The url builders are stubbed so each test controls exactly which
+// requests the panel makes - building real ones (they have their own tests)
+// would need a fully parsed WMLayer behind every layer here.
 jest.mock('../../utils/getFeatureInfoUrl', () => ({
   getFeatureInfoUrl: jest.fn(),
 }));
@@ -190,6 +190,16 @@ const fakeHistogramResponse = {
   },
 };
 
+// The panel fetches through React Query - a fresh client per test, so
+// nothing cached by one test can leak into another.
+let queryClient: QueryClient;
+const render = (ui: React.ReactElement) =>
+  renderWithoutQueryClient(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  });
+
 describe('QueryPanel', () => {
   let mockDispatch: jest.Mock;
   let fakeState: ViewerState;
@@ -217,6 +227,7 @@ describe('QueryPanel', () => {
   });
 
   beforeEach(() => {
+    queryClient = new QueryClient();
     mockDispatch = jest.fn();
     mockUseAppDispatch.mockReturnValue(mockDispatch);
 
@@ -232,8 +243,13 @@ describe('QueryPanel', () => {
     mockGetFeatureInfoUrl.mockReturnValue(
       'http://localhost:8080/adagucserver?mock=getfeatureinfo',
     );
-    mockGetTimeSeriesUrl.mockReturnValue(
-      'http://localhost:8080/adagucserver?mock=timeseries',
+    // Like the real one, the url reflects the pin and the requested range -
+    // the panel fetches anew exactly when its request url changes.
+    mockGetTimeSeriesUrl.mockImplementation(
+      (_layer, location, _limits, timeRange) =>
+        `http://localhost:8080/adagucserver?mock=timeseries` +
+        `&lat=${location.lat}&lon=${location.lon}` +
+        (timeRange ? `&TIME=${timeRange.start}/${timeRange.end}` : ''),
     );
     mockGetHistogramUrl.mockReturnValue(
       'http://localhost:8080/adagucserver?mock=histogram',
@@ -243,6 +259,7 @@ describe('QueryPanel', () => {
   });
 
   afterEach(() => {
+    queryClient.clear();
     jest.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).fetch;
@@ -590,6 +607,64 @@ describe('QueryPanel', () => {
         undefined,
       );
     });
+  });
+
+  it('keeps the TimeSeries range override when switching to another subtab and back', () => {
+    const timeDimension = { getClosestValue: jest.fn() };
+    mockGetWMLayerById.mockReturnValue({
+      getDimension: (name: string) =>
+        name === 'time' ? timeDimension : undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    mockGetTimeDimensionRange.mockReturnValue({
+      start: '2025-01-01T00:00:00Z',
+      end: '2025-01-01T05:00:00Z',
+    });
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
+      }),
+    ) as unknown as typeof fetch;
+    fakeState = buildState({ mapPinLocation: fakeMapPinLocation });
+    render(<QueryPanel mapId={mapId} isActive />);
+    fireEvent.click(screen.getByRole('button', { name: 'TimeSeries' }));
+    fireEvent.change(screen.getByLabelText('Start'), {
+      target: { value: '2025-02-01T00:00:00Z' },
+    });
+    fireEvent.change(screen.getByLabelText('End'), {
+      target: { value: '2025-02-02T00:00:00Z' },
+    });
+    fireEvent.blur(screen.getByLabelText('End'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'GetFeatureInfo' }));
+    expect(screen.queryByLabelText('Start')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'TimeSeries' }));
+
+    expect(screen.getByLabelText('Start')).toHaveValue('2025-02-01T00:00:00Z');
+    expect(screen.getByLabelText('End')).toHaveValue('2025-02-02T00:00:00Z');
+    expect(screen.getByRole('button', { name: 'Auto' })).toBeInTheDocument();
+  });
+
+  it('fetches the time series for a new pin while the GetFeatureInfo subtab is shown', async () => {
+    // GetFeatureInfo and TimeSeries share the map-click pin: both are
+    // fetched right away, so either is ready to switch to.
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve(JSON.stringify(fakeTimeSeriesResponse)),
+      }),
+    ) as unknown as typeof fetch;
+    fakeState = buildState({ mapPinLocation: fakeMapPinLocation });
+
+    render(<QueryPanel mapId={mapId} isActive />);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('mock=timeseries'),
+      );
+    });
+    expect(screen.queryByTestId('timeseries-chart')).not.toBeInTheDocument();
   });
 
   it('does not commit a stale End value when Start is blurred by tabbing into End', async () => {

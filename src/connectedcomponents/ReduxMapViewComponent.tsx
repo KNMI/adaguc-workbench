@@ -10,7 +10,6 @@ import {
   OpenLayersLayer,
   OpenLayersGetFeatureInfo,
   getLayerExtentForProjection,
-  setViewFromExtent,
   makeView,
   MapLocation,
 } from '@opengeoweb/webmap-react';
@@ -27,6 +26,7 @@ import { AnimationClock, AnimationTick } from './AnimationClock';
 import { ErrorBoundary } from '../components/ErrorBoundary/ErrorBoundary';
 import OpenLayersHistogramBoxSelect from './OpenLayersHistogramBoxSelect';
 import { registerExtraProjections } from '../utils/registerExtraProjections';
+import { fitViewToBbox } from '../utils/fitViewToBbox';
 
 registerExtraProjections();
 
@@ -207,7 +207,7 @@ export const ReduxMapViewComponent = ({
     if (!pendingFitBbox.current) {
       return;
     }
-    setViewFromExtent(view, pendingFitBbox.current);
+    fitViewToBbox(view, pendingFitBbox.current);
     pendingFitBbox.current = null;
     // Fitting above can itself fire the view's 'change' event before the
     // listener effect further below (declared after this one, so it

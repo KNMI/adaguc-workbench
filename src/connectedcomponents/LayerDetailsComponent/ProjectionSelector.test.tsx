@@ -1,30 +1,10 @@
 import * as React from 'react';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import type { WMLayer } from '@opengeoweb/webmap';
-import { get as getOlProjection } from 'ol/proj';
+import { emptyMap, renderWithStore } from '../../testUtils/renderWithStore';
 import ProjectionSelector from './ProjectionSelector';
 
-const mockDispatch = jest.fn();
-// The real store pulls in @opengeoweb/webmap, an ESM-only package Jest
-// can't parse as-is - not what these tests are about, so it's stubbed.
-jest.mock('../../store/store', () => ({
-  useAppDispatch: () => mockDispatch,
-  useAppSelector: jest.fn(() => ({ srs: 'EPSG:3857' })),
-  actions: {
-    requestSetProjection: (payload: unknown) => ({
-      type: 'requestSetProjection',
-      payload,
-    }),
-  },
-}));
-
-// ol is ESM-only too. Only the srs's listed here count as ones OpenLayers
-// has a proj4 definition for.
-const mockKnownSrs = new Set(['EPSG:4326', 'EPSG:3857']);
-jest.mock('ol/proj', () => ({
-  get: jest.fn((srs: string) => (mockKnownSrs.has(srs) ? {} : null)),
-}));
-const mockGetOlProjection = jest.mocked(getOlProjection);
+const mapId = 'map1';
 
 const wmLayer = {
   id: 'layer-1',
@@ -40,11 +20,16 @@ const wmLayer = {
   ],
 } as unknown as WMLayer;
 
+// The real store and the real OpenLayers projection list: EPSG:4326 and
+// EPSG:3857 are built into OpenLayers, and the map starts out in 3857.
+const renderSelector = (layer: WMLayer = wmLayer) =>
+  renderWithStore(<ProjectionSelector mapId={mapId} wmLayer={layer} />, {
+    [mapId]: emptyMap(),
+  });
+
 describe('ProjectionSelector', () => {
   afterEach(() => {
     jest.restoreAllMocks();
-    mockDispatch.mockClear();
-    mockGetOlProjection.mockClear();
   });
 
   it('renders the header cells inside a table row, without a DOM nesting error', () => {
@@ -53,7 +38,7 @@ describe('ProjectionSelector', () => {
     // as a console error every time the Layer settings dialog opens.
     const consoleError = jest.spyOn(console, 'error').mockImplementation();
 
-    render(<ProjectionSelector mapId="map1" wmLayer={wmLayer} />);
+    renderSelector();
 
     const [headerRow] = screen.getAllByRole('row');
     expect(
@@ -64,8 +49,8 @@ describe('ProjectionSelector', () => {
     expect(consoleError).not.toHaveBeenCalled();
   });
 
-  it('lists projections sorted by SRS and selects one when its row is clicked', () => {
-    render(<ProjectionSelector mapId="map1" wmLayer={wmLayer} />);
+  it('lists projections sorted by SRS and switches the map to one when its row is clicked', () => {
+    const { store } = renderSelector();
 
     const [, firstRow, secondRow] = screen.getAllByRole('row');
     expect(within(firstRow).getByText('EPSG:3857')).toBeInTheDocument();
@@ -75,13 +60,9 @@ describe('ProjectionSelector', () => {
 
     fireEvent.click(secondRow);
 
-    expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'requestSetProjection',
-      payload: {
-        mapId: 'map1',
-        srs: 'EPSG:4326',
-        bbox: { left: -180, bottom: -90, right: 180, top: 90 },
-      },
+    expect(store.getState().viewer.maps[mapId].viewCommand).toMatchObject({
+      srs: 'EPSG:4326',
+      bbox: { left: -180, bottom: -90, right: 180, top: 90 },
     });
   });
 
@@ -99,8 +80,7 @@ describe('ProjectionSelector', () => {
         },
       ],
     } as unknown as WMLayer;
-
-    render(<ProjectionSelector mapId="map1" wmLayer={layerWithUnknownSrs} />);
+    const { store } = renderSelector(layerWithUnknownSrs);
 
     const [, row] = screen.getAllByRole('row');
     expect(within(row).getByText('EPSG:9999')).toBeInTheDocument();
@@ -109,6 +89,6 @@ describe('ProjectionSelector', () => {
 
     fireEvent.click(row);
 
-    expect(mockDispatch).not.toHaveBeenCalled();
+    expect(store.getState().viewer.maps[mapId].viewCommand).toBeUndefined();
   });
 });

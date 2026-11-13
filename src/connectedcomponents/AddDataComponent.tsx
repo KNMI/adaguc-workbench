@@ -10,8 +10,8 @@ import {
   OpenLayersLayer,
   OpenLayersMapView,
   makeView,
-  setViewFromExtent,
 } from '@opengeoweb/webmap-react';
+import { fitViewToBbox } from '../utils/fitViewToBbox';
 import { LayerType, WMBBOX, generateMapId } from '@opengeoweb/webmap';
 import { baseLayerWorldMap } from '../utils/layerDefinitions';
 import WMSServiceInput from './WMSServiceInput';
@@ -40,7 +40,7 @@ const DataElement = (
   const view = React.useMemo(() => {
     const newView = makeView(srs || 'EPSG:3857');
     if (bbox) {
-      setViewFromExtent(newView, new WMBBOX(bbox));
+      fitViewToBbox(newView, new WMBBOX(bbox));
     }
     return newView;
   }, [srs, bbox]);

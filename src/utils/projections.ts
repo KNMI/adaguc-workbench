@@ -4,10 +4,12 @@
 // 4269, 3575, 3785, 3857, 3411, 3412, 28992, 5041, 102100, 3067) - the proj4
 // definition registerExtraProjections adds, so the map can switch to it.
 //
-// Before giving an srs a proj4 definition, check its axis order: under WMS
-// 1.3 an srs like EPSG:4258 or EPSG:32661 is requested lat/lon (north
-// first), which OpenLayers needs to be told about or images land in the
-// wrong place. The ones defined below are all easting/northing.
+// Mind an srs's axis order when giving it a proj4 definition: under WMS 1.3
+// some (like EPSG:4258 and EPSG:32661) are requested north first. Their
+// definitions say so with +axis=neu - OpenLayers then swaps the BBOX it
+// sends for them, while still keeping its own map coordinates east first
+// (proj4 only applies +axis when explicitly asked to, which OpenLayers
+// doesn't).
 //
 // Kept free of imports on purpose, so the table can be used (and tested)
 // without loading proj4 or OpenLayers.
@@ -36,7 +38,12 @@ export const projections: Record<string, ProjectionInfo> = {
     name: 'Amersfoort / RD New -- Netherlands - Holland - Dutch',
   },
   'EPSG:3067': { name: 'ETRS89 / TM35FIN(E,N) -- Finland' },
-  'EPSG:32661': { name: 'WGS 84 / UPS North (N,E)' },
+  'EPSG:32661': {
+    name: 'WGS 84 / UPS North (N,E)',
+    // epsg.io, plus its northing-first axis order.
+    proj4:
+      '+proj=stere +lat_0=90 +lon_0=0 +k=0.994 +x_0=2000000 +y_0=2000000 +datum=WGS84 +units=m +no_defs +type=crs +axis=neu',
+  },
   'EPSG:3411': { name: 'NSIDC Sea Ice Polar Stereographic North' },
   'EPSG:3412': { name: 'NSIDC Sea Ice Polar Stereographic South' },
   'EPSG:3575': { name: 'WGS 84 / North Pole LAEA Europe' },
@@ -44,7 +51,12 @@ export const projections: Record<string, ProjectionInfo> = {
     name: 'WGS 84 / Pseudo-Mercator -- Spherical Mercator, Google Maps, OpenStreetMap, Bing, ArcGIS, ESRI',
   },
   'EPSG:40000': { name: 'KNMI ECA&D Polar stereographic' },
-  'EPSG:4258': { name: 'ETRS89' },
+  'EPSG:4258': {
+    name: 'ETRS89',
+    // epsg.io, plus its latitude-first axis order.
+    proj4:
+      '+proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs +type=crs +axis=neu',
+  },
   'EPSG:4326': {
     name: 'WGS 84 -- WGS84 - World Geodetic System 1984, used in GPS',
   },

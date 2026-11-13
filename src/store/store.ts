@@ -47,10 +47,17 @@ export type AppThunkDispatch = ThunkDispatch<ViewerState, any, AnyAction>;
 export const useAppDispatch = () => useDispatch<AppThunkDispatch>();
 export const useAppSelector: TypedUseSelectorHook<ViewerState> = useSelector;
 
-const store = configureStore({
-  reducer: {
-    viewer: ViewerSlice.reducer,
-  },
-});
+// A store of its own - the app uses the one below; tests make a fresh one
+// each (see src/testUtils/renderWithStore.tsx), optionally starting from a
+// given state.
+export const createAppStore = (preloadedState?: ViewerState) =>
+  configureStore({
+    reducer: {
+      viewer: ViewerSlice.reducer,
+    },
+    preloadedState,
+  });
+
+const store = createAppStore();
 
 export default store;

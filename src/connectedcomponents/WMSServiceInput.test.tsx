@@ -70,6 +70,29 @@ describe('WMSServiceInput', () => {
     );
   });
 
+  it('shows why a service could not be added as a layer', async () => {
+    mockDispatch.mockReturnValue({
+      unwrap: () =>
+        Promise.reject(
+          // The serialized form a rejected thunk's error arrives in.
+          new Error(
+            "http://example.com/wms?SERVICE=WMS& doesn't list any layers to add.",
+          ),
+        ),
+    });
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    render(<WMSServiceInput />);
+
+    typeAndSubmit('http://example.com/wms?SERVICE=WMS&');
+
+    expect(
+      await screen.findByText(
+        "http://example.com/wms?SERVICE=WMS& doesn't list any layers to add.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+
   it('routes an AutoWMS-looking url to the AutoWMS panel, without probing', () => {
     // Regression guard: AutoWMS explorer endpoints are plain file-listing
     // services, not OGC WMS ones, so they can't be added as a map layer.
