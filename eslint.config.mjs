@@ -53,12 +53,22 @@ export default tseslint.config(
       },
     },
     rules: {
-      // Only the two classic hook rules for now. eslint-plugin-react-hooks
-      // 7's own "recommended" config also enables its React Compiler rules
-      // (refs, purity, set-state-in-effect, ...) - adopting those is a
-      // separate piece of work.
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'error',
+      // The classic hook rules plus the React Compiler ones (refs, purity,
+      // immutability, ...), all as errors.
+      ...Object.fromEntries(
+        Object.keys(reactHooks.configs.flat.recommended.rules).map((rule) => [
+          rule,
+          'error',
+        ]),
+      ),
+      // Off on purpose: it flags any state set synchronously in an effect,
+      // which here is mostly deliberate - clearing old results before a
+      // fetch the effect starts, or resetting local fields when a key
+      // changes - in the larger panels (AutoWMS, QueryPanel, TimePanel,
+      // WCSPanel). Satisfying it would mean restructuring those (e.g.
+      // fetching through React Query instead) for one fewer render, in an
+      // app that doesn't use the React Compiler.
+      'react-hooks/set-state-in-effect': 'off',
 
       // Kept from airbnb: rules that catch actual bugs or real confusion.
       eqeqeq: ['error', 'always', { null: 'ignore' }],

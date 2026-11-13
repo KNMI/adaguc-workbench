@@ -92,13 +92,17 @@ export const AnimationClock = ({
     (dimension) => dimension.name === 'time',
   )?.currentValue;
 
+  // Ticks once per new time step, passing along whatever timeContext is
+  // current at that moment - timeContext changing on its own isn't a tick.
+  const emitTick = React.useEffectEvent((tickTime: string) => {
+    onTick({ time: tickTime, timeContext });
+  });
   React.useEffect(() => {
     if (!time) {
       return;
     }
-    onTick({ time, timeContext });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [time, onTick]);
+    emitTick(time);
+  }, [time]);
 
   return null;
 };

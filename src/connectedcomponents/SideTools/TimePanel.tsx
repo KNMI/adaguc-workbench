@@ -360,7 +360,7 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
     .join('|')}@${rowsToFit}`;
   const [displayedValues, setDisplayedValues] = React.useState<string[]>([]);
   const prevSignatureRef = React.useRef<string | undefined>(undefined);
-  React.useEffect(() => {
+  const updateDisplayedValues = React.useEffectEvent(() => {
     const signatureChanged = prevSignatureRef.current !== pageSignature;
     prevSignatureRef.current = pageSignature;
     if (currentValue === undefined) {
@@ -381,11 +381,13 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
         rowsToFit,
       );
     });
-    // enabledLayersWithTime/effectiveWindowSize are recreated every render -
-    // pageSignature (built from rowsToFit and the layers' own stable ids)
-    // is their proxy, so a real change in what should be on screen is what
-    // re-triggers this, not every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  // enabledLayersWithTime/effectiveWindowSize are recreated every render -
+  // pageSignature (built from rowsToFit and the layers' own stable ids) is
+  // their proxy, so a real change in what should be on screen is what
+  // re-triggers this, not every render.
+  React.useEffect(() => {
+    updateDisplayedValues();
   }, [currentValue, pageSignature]);
 
   // Mouse-wheel-to-step, matching the legacy tool's own
@@ -406,10 +408,14 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
   // once the table actually appears; a callback ref is invoked by React
   // on every real mount/unmount of the node, so it can't miss that.
   const selectedRowRef = React.useRef<HTMLTableRowElement>(null);
+  // Synced after every commit (React doesn't allow writing refs during
+  // render) - always before the next wheel event can reach handleWheel.
   const stepBackwardRef = React.useRef(stepBackward);
-  stepBackwardRef.current = stepBackward;
   const stepForwardRef = React.useRef(stepForward);
-  stepForwardRef.current = stepForward;
+  React.useLayoutEffect(() => {
+    stepBackwardRef.current = stepBackward;
+    stepForwardRef.current = stepForward;
+  });
 
   const handleWheel = React.useCallback((event: WheelEvent): void => {
     event.preventDefault();
@@ -450,7 +456,9 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
         resizeObserverRef.current = observer;
       }
     },
-    [handleWheel],
+    // setRowsToFit never changes; listed so the dependencies match what
+    // the callback actually uses.
+    [handleWheel, setRowsToFit],
   );
 
   // Keeps the highlighted row in view - repeated wheel-stepping would

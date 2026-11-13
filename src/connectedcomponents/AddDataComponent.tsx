@@ -35,7 +35,8 @@ const DataElement = (
 ): React.ReactElement<DataElementProps> => {
   const { title, subtitle, handleAddData, layer, service, srs, bbox } = element;
 
-  const mapId = React.useRef<string>(generateMapId()).current;
+  // Generated once, on mount.
+  const [mapId] = React.useState(generateMapId);
   const view = React.useMemo(() => {
     const newView = makeView(srs || 'EPSG:3857');
     if (bbox) {

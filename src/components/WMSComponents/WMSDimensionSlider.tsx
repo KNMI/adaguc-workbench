@@ -70,39 +70,24 @@ const WMSDimensionSlider = ({
     setStateDimIndex(layerDim.getIndexForValue(selectedDimValue));
   }, [selectedDimValue, layerDim]);
 
-  // The debounced callback below is created only once, so it reads these
-  // through refs rather than closing over whatever they were on the first
-  // render - layerDim may not have existed yet then, and onSelectDimValue
-  // is a fresh closure from the parent every render (one that knows this
-  // layer's current position in the list).
-  const layerDimRef = React.useRef(layerDim);
-  layerDimRef.current = layerDim;
-  const onSelectDimValueRef = React.useRef(onSelectDimValue);
-  onSelectDimValueRef.current = onSelectDimValue;
-
-  const debouncedHandleChange = React.useRef(
-    debounce(
-      (dstateDimIndex) => {
-        const currentDim = layerDimRef.current;
-        if (!currentDim) {
-          return;
-        }
-        const newValue = currentDim.getValueForIndex(dstateDimIndex) as string;
-        lastCommittedValueRef.current = newValue;
-        onSelectDimValueRef.current(newValue);
-      },
-      DEBOUNCE_MS,
-      { leading: true, trailing: true, maxWait: DEBOUNCE_MS },
-    ),
-  ).current;
+  // Created once, on mount. Each change hands it a ready-made commit for
+  // that change, built in handleChange below with that render's own
+  // layerDim and onSelectDimValue - a fresh closure from the parent every
+  // render, one that knows this layer's current position in the list. The
+  // trailing call always runs the latest one handed in, so the debounced
+  // function itself never needs to hold on to any of those values.
+  const [debouncedCommit] = React.useState(() =>
+    debounce((commit: () => void) => commit(), DEBOUNCE_MS, {
+      leading: true,
+      trailing: true,
+      maxWait: DEBOUNCE_MS,
+    }),
+  );
 
   // Cancels a pending trailing commit if this slider unmounts mid-drag
   // (e.g. its layer is removed, or the panel closes) - otherwise it could
   // still fire afterwards for a slider that no longer exists.
-  React.useEffect(
-    () => () => debouncedHandleChange.cancel(),
-    [debouncedHandleChange],
-  );
+  React.useEffect(() => () => debouncedCommit.cancel(), [debouncedCommit]);
 
   if (!wmLayer) {
     console.warn(`No layer exists for ${layerId}`);
@@ -118,7 +103,13 @@ const WMSDimensionSlider = ({
     if (dimIndex < 0) dimIndex = 0;
     if (dimIndex > layerDim.size() - 1) dimIndex = layerDim.size() - 1;
     setStateDimIndex(dimIndex);
-    debouncedHandleChange(dimIndex);
+    debouncedCommit(() => {
+      // Only resolved once the debounce actually commits it - most of a
+      // drag's intermediate indexes never need a value at all.
+      const newValue = layerDim.getValueForIndex(dimIndex) as string;
+      lastCommittedValueRef.current = newValue;
+      onSelectDimValue(newValue);
+    });
   };
 
   return (

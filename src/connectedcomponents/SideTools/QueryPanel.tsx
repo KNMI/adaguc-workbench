@@ -536,10 +536,12 @@ const QueryPanel = ({
   // not while the user is actively typing in them, since
   // effectiveTimeRangeKey only changes via timeRangeOverride once a typed
   // value is already committed.
-  React.useEffect(() => {
+  const resetTimeRangeFields = React.useEffectEvent(() => {
     setStartText(effectiveTimeRange?.start ?? '');
     setEndText(effectiveTimeRange?.end ?? '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  React.useEffect(() => {
+    resetTimeRangeFields();
   }, [effectiveTimeRangeKey]);
 
   // Mirrors the time series one: only the fields that actually affect the
@@ -585,6 +587,27 @@ const QueryPanel = ({
       });
   }, [mapPinLocation, layers]);
 
+  // Runs once the debounce below settles, with the layers and time range as
+  // they are by then.
+  const fetchTimeSeries = React.useEffectEvent((pin: MapLocation) => {
+    setTimeSeriesResults({});
+    // A pinned selection from a previous dataset could otherwise point
+    // at a series (e.g. a member number) that doesn't exist in the new
+    // one.
+    setPinnedSeriesByLayer({});
+    layers
+      .filter((layer) => layer.enabled)
+      .forEach((layer) => {
+        fetchTimeSeriesForLayer(
+          layer,
+          pin,
+          setTimeSeriesResults,
+          undefined,
+          activeTimeRangeOverride,
+        );
+      });
+  });
+
   React.useEffect(() => {
     if (!mapPinLocation) {
       return undefined;
@@ -598,39 +621,20 @@ const QueryPanel = ({
     // rather than clearing it (and briefly flashing "Loading…") for
     // changes that are about to be superseded anyway.
     const timeoutId = setTimeout(() => {
-      setTimeSeriesResults({});
-      // A pinned selection from a previous dataset could otherwise point
-      // at a series (e.g. a member number) that doesn't exist in the new
-      // one.
-      setPinnedSeriesByLayer({});
-      layers
-        .filter((layer) => layer.enabled)
-        .forEach((layer) => {
-          fetchTimeSeriesForLayer(
-            layer,
-            mapPinLocation,
-            setTimeSeriesResults,
-            undefined,
-            activeTimeRangeOverride,
-          );
-        });
+      fetchTimeSeries(mapPinLocation);
     }, TIMESERIES_FETCH_DEBOUNCE_MS);
     return () => clearTimeout(timeoutId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapPinLocation, timeSeriesFetchKey, activeTimeRangeOverrideKey]);
 
-  React.useEffect(() => {
-    if (!histogramBox) {
-      return;
-    }
+  const fetchHistograms = React.useEffectEvent((box: AdagucHistogramBox) => {
     setHistogramResults({});
     enabledLayers.forEach((layer) => {
       const url = getHistogramUrl(
         layer,
-        histogramBox.bbox,
-        histogramBox.srs,
-        histogramBox.pixelWidth,
-        histogramBox.pixelHeight,
+        box.bbox,
+        box.srs,
+        box.pixelWidth,
+        box.pixelHeight,
       );
       if (!url) {
         return;
@@ -672,7 +676,12 @@ const QueryPanel = ({
           }));
         });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  React.useEffect(() => {
+    if (!histogramBox) {
+      return;
+    }
+    fetchHistograms(histogramBox);
   }, [histogramBox, histogramFetchKey]);
 
   const jumpLayerToTime = (layer: AdagucLayer, time: string): void => {

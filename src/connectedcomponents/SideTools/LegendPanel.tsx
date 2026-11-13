@@ -38,7 +38,7 @@ const LegendPanel = ({ mapId }: LegendPanelProps): React.ReactElement => {
   const styleSyncKey = enabledLayers
     .map((layer) => `${layer.id}:${layer.style ?? ''}`)
     .join('|');
-  React.useEffect(() => {
+  const syncStyles = React.useEffectEvent(() => {
     enabledLayers.forEach((layer) => {
       const wmLayer = getWMLayerById(layer.id);
       if (!wmLayer) {
@@ -54,7 +54,9 @@ const LegendPanel = ({ mapId }: LegendPanelProps): React.ReactElement => {
       wmLayer.setStyle(validStyleName);
     });
     forceLegendSync();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  React.useEffect(() => {
+    syncStyles();
   }, [styleSyncKey]);
 
   const handleRefresh = (): void => {

@@ -538,9 +538,12 @@ export const LayerComponent = ({
             value={(wmLayer?.opacity || 1) * 100}
             sx={{ flexGrow: 1, mx: 1.5 }}
             onChange={(e, value: number) => {
-              if (wmLayer) {
-                wmLayer.opacity = value / 100;
-                onChangeOpacity(wmLayer.opacity);
+              // Looked up now rather than mutating the render-time wmLayer:
+              // WMLayer is opengeoweb's own mutable object, updated in place.
+              const target = getWMLayerById(layer?.id);
+              if (target) {
+                target.opacity = value / 100;
+                onChangeOpacity(target.opacity);
                 update();
               }
             }}
@@ -559,9 +562,10 @@ export const LayerComponent = ({
                 : 'Enable layer'
             }
             onClick={() => {
-              if (wmLayer) {
-                wmLayer.enabled = !wmLayer.enabled;
-                onChangeLayerEnabled(wmLayer.enabled);
+              const target = getWMLayerById(layer?.id);
+              if (target) {
+                target.enabled = !target.enabled;
+                onChangeLayerEnabled(target.enabled);
                 update();
               }
             }}

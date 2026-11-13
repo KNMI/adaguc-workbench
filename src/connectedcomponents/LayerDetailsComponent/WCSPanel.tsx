@@ -86,14 +86,16 @@ const WCSPanel = ({ mapId, wmLayer }: WCSPanelProps): React.ReactElement => {
   // The dimension fields always come from this layer's own (WMS) current
   // dimension values, same as webmapjsext's WCSPanel.js - DescribeCoverage
   // doesn't need to (and in practice doesn't) describe them itself.
-  React.useEffect(() => {
+  const resetFieldsFromLayer = React.useEffectEvent(() => {
     const initialDimensionValues: Record<string, string> = {};
     wmLayer.dimensions.forEach((dimension) => {
       initialDimensionValues[dimension.name] = dimension.currentValue;
     });
     setDimensionValues(initialDimensionValues);
     setSelectedCoverageName(wmLayer.name ?? '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  React.useEffect(() => {
+    resetFieldsFromLayer();
   }, [wmLayer.id]);
 
   // The service may offer more coverages than just the one this layer

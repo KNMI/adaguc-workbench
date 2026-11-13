@@ -320,13 +320,13 @@ const AutoWMS = ({
     }
   };
 
-  // Kept up to date every render so the keydown listener below (which
-  // only needs to be (re)attached when isActive changes) always calls the
-  // current goUpOneLevel - that closure's own dependencies (path,
-  // currentLeaf, autoWMSService, ...) change far more often than isActive
-  // does.
-  const goUpOneLevelRef = React.useRef(goUpOneLevel);
-  goUpOneLevelRef.current = goUpOneLevel;
+  // An effect event, so the keydown listener below (which only needs to
+  // be (re)attached when isActive changes) always calls the current
+  // goUpOneLevel - that closure's own dependencies (path, currentLeaf,
+  // autoWMSService, ...) change far more often than isActive does.
+  const onGoUpOneLevelKey = React.useEffectEvent(() => {
+    goUpOneLevel();
+  });
 
   // Backspace, as a shortcut for the "Up one level" button above - but
   // not while the user is typing somewhere (a filter box, the service
@@ -349,7 +349,7 @@ const AutoWMS = ({
         return;
       }
       event.preventDefault();
-      goUpOneLevelRef.current();
+      onGoUpOneLevelKey();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -440,23 +440,27 @@ const AutoWMS = ({
     return () => window.clearTimeout(timeoutId);
   }, [autoWMSServiceInput, autoWMSService]);
 
-  React.useEffect(() => {
+  const reloadAutoWMSList = React.useEffectEvent(() => {
     fetchAutoWMSList();
     // A filter left over from the previously browsed folder/service would
     // otherwise silently hide items of the one just navigated into.
     setDatasetFilter('');
-    // autoWMSFetchGeneration: see its own declaration above - needed so
-    // this still re-fetches even when path/autoWMSService resolve to the
-    // same value as before.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  // autoWMSFetchGeneration: see its own declaration above - needed so this
+  // still re-fetches even when path/autoWMSService resolve to the same
+  // value as before.
+  React.useEffect(() => {
+    reloadAutoWMSList();
   }, [path, autoWMSService, autoWMSFetchGeneration]);
 
-  React.useEffect(() => {
+  const reloadOGCWMSLayers = React.useEffectEvent(() => {
     fetchLayersFromOGCWMSService();
     // A filter left over from a previous service would otherwise silently
     // hide every layer of the newly loaded one.
     setLayerFilter('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  React.useEffect(() => {
+    reloadOGCWMSLayers();
   }, [ogcWMSService, wmsFetchGeneration]);
 
   // Reveals (and so starts loading) at most MAX_PREVIEW_IMAGES_PER_SECOND
@@ -493,7 +497,7 @@ const AutoWMS = ({
   // entered manually - without it, a bookmarked/shared link pointing at
   // just the bare host never resolved to anything, and was never
   // remembered as a suggestion for next time either.
-  React.useEffect(() => {
+  const loadInitialService = React.useEffectEvent(() => {
     if (serviceFromQueryString) {
       loadAutoWMSService(serviceFromQueryString);
     }
@@ -510,7 +514,9 @@ const AutoWMS = ({
         loadAutoWMSService(defaultService);
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  React.useEffect(() => {
+    loadInitialService();
   }, []);
 
   // Matches the layer filter below: split into words and require each one
