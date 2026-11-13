@@ -3,8 +3,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { Style } from '@opengeoweb/webmap';
 import WMSStyleSelector from './WMSStyleSelector';
 
-const makeStyle = (name: string, title: string): Style =>
-  ({ name, title, legendURL: '', abstract: '' }) as Style;
+const makeStyle = (name: string, title: string): Style => ({
+  name,
+  title,
+  legendURL: '',
+  abstract: '',
+});
 
 const twoStyles: Style[] = [
   makeStyle('a', 'Style A'),

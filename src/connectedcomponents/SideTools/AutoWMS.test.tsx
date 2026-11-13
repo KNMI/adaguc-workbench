@@ -79,7 +79,7 @@ describe('AutoWMS', () => {
 
   it('renders the AutoWMS input', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     expect(
@@ -92,7 +92,7 @@ describe('AutoWMS', () => {
   it('does not fetch the explorer listing while the user is still typing', async () => {
     jest.useFakeTimers();
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -123,7 +123,7 @@ describe('AutoWMS', () => {
   it('fetches immediately when the Load button is clicked, without waiting for the debounce', async () => {
     jest.useFakeTimers();
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -144,7 +144,7 @@ describe('AutoWMS', () => {
   it('fetches immediately when Enter is pressed in the input', async () => {
     jest.useFakeTimers();
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -162,7 +162,7 @@ describe('AutoWMS', () => {
 
   it('lists the layers of a WMS service and calls addLayer when one is selected', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       {
         name: 'layer1',
@@ -205,7 +205,7 @@ describe('AutoWMS', () => {
     // to a bare "&LAYERS=..." that the browser resolved against the
     // current page instead of the actual WMS service.
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     let resolveFirstLayers: (layers: LayerProps[]) => void = () => {};
     const firstLayersPromise = new Promise<LayerProps[]>((resolve) => {
@@ -254,7 +254,7 @@ describe('AutoWMS', () => {
 
   it('shows and hides the layer details popup without adding the layer', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       {
         name: 'layer1',
@@ -299,7 +299,7 @@ describe('AutoWMS', () => {
   it('loads preview images at most 5 per second', async () => {
     jest.useFakeTimers();
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     const sevenLayers = Array.from({ length: 7 }, (_, i) => ({
       name: `layer${i + 1}`,
       title: `Layer ${i + 1}`,
@@ -344,7 +344,7 @@ describe('AutoWMS', () => {
     // independently (not the whole phrase as a single substring) is what
     // should find it.
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       {
         name: 'air_pressure_msl',
@@ -379,7 +379,7 @@ describe('AutoWMS', () => {
 
   it('filters the layer list by title or name', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       {
         name: 'temperature-2m/nearest',
@@ -429,7 +429,7 @@ describe('AutoWMS', () => {
 
   it('shows a no-match message instead of the list when nothing matches the filter', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       { name: 'layer1', title: 'Layer One', styles: [] },
     ] as unknown as LayerProps[]);
@@ -459,7 +459,7 @@ describe('AutoWMS', () => {
     // Regression guard: a filter left over from a previous service would
     // otherwise silently hide every layer of the newly loaded one.
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       { name: 'layer1', title: 'Layer One', styles: [] },
     ] as unknown as LayerProps[]);
@@ -506,7 +506,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -543,7 +543,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -579,7 +579,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -617,7 +617,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -656,7 +656,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     const { rerender } = render(<AutoWMS addLayer={jest.fn()} isActive />);
     await flushConfigFetch(mockFetch);
@@ -692,7 +692,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -724,7 +724,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -764,7 +764,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -825,7 +825,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([]);
     mockQueryWMSServiceInfo.mockResolvedValue({
       abstract: '',
@@ -899,7 +899,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       { name: 'layer1', title: 'Layer One', styles: [] },
     ] as unknown as LayerProps[]);
@@ -964,7 +964,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
     mockQueryWMSLayers.mockResolvedValue([
       { name: 'layer1', title: 'Layer One', styles: [] },
     ] as unknown as LayerProps[]);
@@ -1031,7 +1031,7 @@ describe('AutoWMS', () => {
     // must populate the input and fetch it immediately, the same as
     // pressing Enter would.
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     const { rerender } = render(
       <AutoWMS addLayer={jest.fn()} externalServiceRequest={undefined} />,
@@ -1059,7 +1059,7 @@ describe('AutoWMS', () => {
 
   it('does not reload when the same service request is seen again', async () => {
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     const request = { service: AUTOWMS_URL, requestId: 1 };
     const { rerender } = render(
@@ -1101,7 +1101,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -1139,7 +1139,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     const { rerender } = render(
       <AutoWMS addLayer={jest.fn()} externalServiceRequest={undefined} />,
@@ -1166,7 +1166,7 @@ describe('AutoWMS', () => {
     // to later, and show up wherever that shared history is used.
     const RECENT_SERVICES_KEY = 'adaguc_recent_wms_services';
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -1194,7 +1194,7 @@ describe('AutoWMS', () => {
       JSON.stringify(['https://a/autowms?', 'https://b/autowms?']),
     );
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -1236,7 +1236,7 @@ describe('AutoWMS', () => {
       `http://localhost/?autowms=${encodeURIComponent(queryServiceUrl)}`,
     );
     const mockFetch = makeFetchMock(configJsonHandler);
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -1276,7 +1276,7 @@ describe('AutoWMS', () => {
       // real listing here, so resolution should move past both of them.
       return Promise.resolve({ notAListing: true });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -1309,7 +1309,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);
@@ -1341,7 +1341,7 @@ describe('AutoWMS', () => {
       }
       return Promise.resolve({ result: [] });
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<AutoWMS addLayer={jest.fn()} />);
     await flushConfigFetch(mockFetch);

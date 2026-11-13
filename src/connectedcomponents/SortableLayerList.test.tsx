@@ -67,7 +67,6 @@ describe('SortableLayerList', () => {
     // slider's thumb - as the start of a reorder-drag of the whole card
     // (confirmed live: dragging a time slider made the card gain
     // SortableJS's own "sortable-chosen" class and become draggable).
-    // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
     const { ReactSortable } = require('react-sortablejs');
     const mockReactSortable = jest.mocked(ReactSortable);
 

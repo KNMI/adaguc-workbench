@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-props-no-spreading */
 import * as React from 'react';
 import { View } from 'ol';
 import { get as getOlProjection } from 'ol/proj';
@@ -32,7 +31,6 @@ registerExtraProjections();
 
 export interface ReduxMapViewComponentProps {
   mapId: string;
-  update: () => void;
 }
 
 // The layer list shows the topmost-drawn layer first, so it needs the
@@ -84,7 +82,6 @@ const Watermark = (): React.ReactElement => (
 
 export const ReduxMapViewComponent = ({
   mapId,
-  update,
 }: ReduxMapViewComponentProps): React.ReactElement<ReduxMapViewComponentProps> => {
   const dispatch = useAppDispatch();
   const mapLayers = useAppSelector((state: ViewerState): AdagucLayer[] =>
@@ -311,12 +308,6 @@ export const ReduxMapViewComponent = ({
               zIndex={DATA_LAYER_BASE_ZINDEX + mapLayers.length - 1 - index}
               isAnimating={isAnimating}
               animationTick={animationTick}
-              onLayerReady={() => {
-                update();
-              }}
-              onLayerError={() => {
-                update();
-              }}
               onInitializeLayer={({ layerId, style, dimensions }) => {
                 dispatch(
                   actions.initializeLayer({

@@ -13,8 +13,6 @@ jest.mock('@opengeoweb/webmap', () => ({
 
 jest.mock('@opengeoweb/webmap-react', () => {
   /* eslint-disable
-     global-require,
-     @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call,
      @typescript-eslint/no-unsafe-return */
   const ReactLib = require('react');
@@ -38,8 +36,6 @@ jest.mock('@opengeoweb/webmap-react', () => {
     TimeContext: MockTimeContext,
   };
   /* eslint-enable
-     global-require,
-     @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call,
      @typescript-eslint/no-unsafe-return */
 });

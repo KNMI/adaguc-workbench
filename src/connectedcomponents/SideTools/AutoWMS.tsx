@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-props-no-spreading */
 import * as React from 'react';
 import {
   LayerProps,
@@ -64,14 +63,12 @@ interface AutoWMSProps {
   // is given a url that looks like an AutoWMS explorer endpoint rather
   // than a plain OGC WMS one - opens it here instead of adding it as a
   // layer.
-  // eslint-disable-next-line react/require-default-props
   externalServiceRequest?: AdagucAutoWMSServiceCommand;
   // Whether this is the currently selected tab in the side tool panel -
   // this component stays mounted (just hidden) when another tab is
   // picked (see SideToolPanel), so the Backspace-to-go-up shortcut below
   // needs this to know not to fire while e.g. the Query tab is showing.
   // Defaults to true so standalone/test usage doesn't need to pass it.
-  // eslint-disable-next-line react/require-default-props
   isActive?: boolean;
 }
 
@@ -415,6 +412,11 @@ const AutoWMS = ({
   // looks like an AutoWMS explorer url - load it the same way Enter/Load
   // would.
   const lastAppliedExternalRequestId = React.useRef<number>(0);
+  // An effect event, so the effect below only re-runs for a new request,
+  // while still calling the current render's loadAutoWMSService.
+  const onExternalServiceRequest = React.useEffectEvent((service: string) => {
+    loadAutoWMSService(service);
+  });
   React.useEffect(() => {
     if (
       !externalServiceRequest ||
@@ -423,7 +425,7 @@ const AutoWMS = ({
       return;
     }
     lastAppliedExternalRequestId.current = externalServiceRequest.requestId;
-    loadAutoWMSService(externalServiceRequest.service);
+    onExternalServiceRequest(externalServiceRequest.service);
   }, [externalServiceRequest]);
 
   // Debounce typing: only commit (and thus fetch) once the user pauses,
@@ -436,7 +438,7 @@ const AutoWMS = ({
       setAutoWMSService(autoWMSServiceInput);
     }, AUTOWMS_INPUT_DEBOUNCE_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [autoWMSServiceInput]);
+  }, [autoWMSServiceInput, autoWMSService]);
 
   React.useEffect(() => {
     fetchAutoWMSList();
@@ -499,7 +501,6 @@ const AutoWMS = ({
     // the suggestion list below, regardless of what's actually loaded),
     // but only used to load something here when the url didn't already
     // say otherwise.
-    // eslint-disable-next-line no-void
     void fetchDefaultAutoWMSService().then((defaultService) => {
       if (!defaultService) {
         return;

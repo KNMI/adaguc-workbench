@@ -54,8 +54,6 @@ let mockOpenLayersLayerCalls: Array<{
 }>;
 jest.mock('@opengeoweb/webmap-react', () => {
   /* eslint-disable
-     global-require,
-     @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call,
      @typescript-eslint/no-unsafe-return,
      @typescript-eslint/no-explicit-any */
@@ -79,8 +77,6 @@ jest.mock('@opengeoweb/webmap-react', () => {
     TimeContext: ReactLib.createContext({}),
   };
   /* eslint-enable
-     global-require,
-     @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call,
      @typescript-eslint/no-unsafe-return,
      @typescript-eslint/no-explicit-any */
@@ -182,9 +178,7 @@ describe('ReduxMapViewComponent', () => {
   });
 
   it('attaches a new view to the map before fitting it to a viewCommand bbox', () => {
-    const { rerender } = render(
-      <ReduxMapViewComponent mapId={mapId} update={jest.fn()} />,
-    );
+    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
     // The initial mount already creates and attaches a default view; only
     // the calls triggered by the viewCommand below are under test.
     callOrder.length = 0;
@@ -204,7 +198,7 @@ describe('ReduxMapViewComponent', () => {
           },
         },
       };
-      rerender(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+      rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
     expect(callOrder).toEqual([
@@ -246,9 +240,7 @@ describe('ReduxMapViewComponent', () => {
       () => fittedView as unknown as ReturnType<typeof makeView>,
     );
 
-    const { rerender } = render(
-      <ReduxMapViewComponent mapId={mapId} update={jest.fn()} />,
-    );
+    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
     dispatchMock.mockClear();
 
     act(() => {
@@ -269,7 +261,7 @@ describe('ReduxMapViewComponent', () => {
           },
         },
       };
-      rerender(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+      rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
     expect(dispatchMock).toHaveBeenCalledWith(
@@ -310,9 +302,7 @@ describe('ReduxMapViewComponent', () => {
     );
     mockGetLayerExtentForProjection.mockReturnValue([1, 2, 3, 4]);
 
-    const { rerender } = render(
-      <ReduxMapViewComponent mapId={mapId} update={jest.fn()} />,
-    );
+    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
     dispatchMock.mockClear();
 
     act(() => {
@@ -329,7 +319,7 @@ describe('ReduxMapViewComponent', () => {
           },
         },
       };
-      rerender(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+      rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
     expect(fittedView.fit).toHaveBeenCalledWith([1, 2, 3, 4]);
@@ -364,9 +354,7 @@ describe('ReduxMapViewComponent', () => {
     const dispatchMock = jest.fn();
     mockUseAppDispatch.mockReturnValue(dispatchMock);
 
-    const { rerender } = render(
-      <ReduxMapViewComponent mapId={mapId} update={jest.fn()} />,
-    );
+    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
 
     // Simulate the user having just panned/zoomed on the old view right
     // before switching projections - this arms its 200ms debounce timer.
@@ -398,7 +386,7 @@ describe('ReduxMapViewComponent', () => {
           },
         },
       };
-      rerender(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+      rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
     act(() => {
@@ -425,9 +413,7 @@ describe('ReduxMapViewComponent', () => {
     mockGetOlProjection.mockImplementation((srs) =>
       srs === 'EPSG:9999' ? null : ({} as ReturnType<typeof getOlProjection>),
     );
-    const { rerender } = render(
-      <ReduxMapViewComponent mapId={mapId} update={jest.fn()} />,
-    );
+    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
     callOrder.length = 0;
 
     act(() => {
@@ -448,7 +434,7 @@ describe('ReduxMapViewComponent', () => {
           },
         },
       };
-      rerender(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+      rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
     expect(callOrder).toEqual([]);
@@ -457,12 +443,10 @@ describe('ReduxMapViewComponent', () => {
   });
 
   it('does not re-fit when the component re-renders without a new viewCommand', () => {
-    const { rerender } = render(
-      <ReduxMapViewComponent mapId={mapId} update={jest.fn()} />,
-    );
+    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
 
     act(() => {
-      rerender(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+      rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
     expect(mockSetViewFromExtent).not.toHaveBeenCalled();
@@ -506,7 +490,7 @@ describe('ReduxMapViewComponent', () => {
     };
     mockState.viewer.maps[mapId].layers = [dataLayer];
 
-    render(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+    render(<ReduxMapViewComponent mapId={mapId} />);
 
     // Regression guard: webmap-react's OpenLayersLayer hardcodes
     // `enabled: true` internally for any `type: 'twms'` base/overlay layer
@@ -553,7 +537,7 @@ describe('ReduxMapViewComponent', () => {
     // so it must end up with the highest zIndex on the map.
     mockState.viewer.maps[mapId].layers = [topLayer, bottomLayer];
 
-    render(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+    render(<ReduxMapViewComponent mapId={mapId} />);
 
     const zIndexById = new Map(
       mockOpenLayersLayerCalls.map((call) => [call.id, call.zIndex]),
@@ -584,9 +568,7 @@ describe('ReduxMapViewComponent', () => {
       opacity: 1,
     };
     mockState.viewer.maps[mapId].layers = [layerA, layerB];
-    const { rerender } = render(
-      <ReduxMapViewComponent mapId={mapId} update={jest.fn()} />,
-    );
+    const { rerender } = render(<ReduxMapViewComponent mapId={mapId} />);
 
     const initialZIndexById = new Map(
       mockOpenLayersLayerCalls.map((call) => [call.id, call.zIndex]),
@@ -611,7 +593,7 @@ describe('ReduxMapViewComponent', () => {
       },
     };
     act(() => {
-      rerender(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+      rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
     const reorderedZIndexById = new Map(
@@ -661,11 +643,10 @@ describe('ReduxMapViewComponent', () => {
     mockUseAnimationForLayer.mockReturnValue({
       dimensions: [{ name: 'time', currentValue: '2025-01-01T00:00:00Z' }],
       timeContext: { isAnimating: true, prefetchList: [] },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    });
 
     act(() => {
-      render(<ReduxMapViewComponent mapId={mapId} update={jest.fn()} />);
+      render(<ReduxMapViewComponent mapId={mapId} />);
     });
 
     // A single shared clock drives the ticking - it is only ever given

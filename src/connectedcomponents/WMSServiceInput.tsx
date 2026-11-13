@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-props-no-spreading */
 import * as React from 'react';
 import { Autocomplete, IconButton, TextField } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
@@ -22,14 +21,11 @@ const isOGCWMSServiceUrl = (url: string): boolean =>
   url.toLocaleLowerCase().includes('service=wms');
 
 export interface WMSServiceInputProps {
-  // eslint-disable-next-line react/require-default-props
   placeholder?: string;
-  // eslint-disable-next-line react/require-default-props
   sx?: SxProps<Theme>;
   // Called once the entered service has been successfully routed (added
   // as a layer, or opened in the AutoWMS panel) - lets a caller showing
   // this inside a dialog close it, for instance.
-  // eslint-disable-next-line react/require-default-props
   onHandled?: () => void;
 }
 

@@ -40,23 +40,15 @@ export const fetchWMSService = createAsyncThunk(
 // stuck for however long that retry chain takes.
 const ADD_LAYER_TIMEOUT_MS = 10000;
 
-const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
-  new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new Error(`Timed out after ${ms}ms`)),
-      ms,
-    );
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
+// Settles like `promise` (passing its own rejection through untouched), or
+// rejects once `ms` has passed first.
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms);
   });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
 
 export const addLayer = createAsyncThunk(
   'maps/addLayer',
@@ -122,7 +114,7 @@ export const addLayer = createAsyncThunk(
       id,
       dimensions,
       hasError,
-    } as AddLayerInterfaceFulFilled;
+    };
   },
 );
 

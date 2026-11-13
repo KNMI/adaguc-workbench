@@ -3,7 +3,6 @@ import { getMapDimURL, getWMLayerById } from '@opengeoweb/webmap';
 import { MapLocation } from '@opengeoweb/webmap-react';
 import { AdagucLayer } from '../store/types';
 
-// eslint-disable-next-line import/prefer-default-export
 export const getFeatureInfoUrl = (
   layer: AdagucLayer,
   mapPinLocation: MapLocation,

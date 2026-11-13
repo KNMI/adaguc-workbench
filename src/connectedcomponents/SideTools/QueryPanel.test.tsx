@@ -61,8 +61,6 @@ jest.mock('../../store/store', () => ({
 let mockClickedChartLabel: string | undefined;
 jest.mock('recharts', () => {
   /* eslint-disable
-     global-require,
-     @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call,
      @typescript-eslint/no-unsafe-return,
      @typescript-eslint/no-explicit-any */
@@ -103,8 +101,6 @@ jest.mock('recharts', () => {
       ReactLib.isValidElement(content) ? content : null,
   };
   /* eslint-enable
-     global-require,
-     @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call,
      @typescript-eslint/no-unsafe-return,
      @typescript-eslint/no-explicit-any */
@@ -1101,7 +1097,7 @@ describe('QueryPanel', () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       text: () => Promise.resolve(serviceExceptionXml),
-    }) as unknown as typeof fetch;
+    });
 
     const { rerender } = render(<QueryPanel mapId={mapId} isActive />);
     act(() => {
@@ -1122,7 +1118,7 @@ describe('QueryPanel', () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       text: () => Promise.resolve(JSON.stringify(fakeHistogramResponse)),
-    }) as unknown as typeof fetch;
+    });
 
     const { rerender } = render(<QueryPanel mapId={mapId} isActive />);
     act(() => {

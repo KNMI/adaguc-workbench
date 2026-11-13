@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-props-no-spreading */
 import * as React from 'react';
 import { LayerType, getWMLayerById } from '@opengeoweb/webmap';
 import {
@@ -36,8 +35,8 @@ export interface ReduxMapLayerProps {
   // AnimationClock/ReduxMapViewComponent) - null until its first tick, or
   // whenever not animating.
   animationTick: AnimationTick | null;
-  onLayerReady: () => void;
-  onLayerError: () => void;
+  onLayerReady?: () => void;
+  onLayerError?: () => void;
   onInitializeLayer: (payload: OnInitializeLayerProps) => void;
 }
 
@@ -60,8 +59,8 @@ const getLayerProps = (
 interface InnerLayerProps {
   layer: AdagucLayer;
   zIndex: number;
-  onLayerReady: () => void;
-  onLayerError: () => void;
+  onLayerReady?: () => void;
+  onLayerError?: () => void;
   onInitializeLayer: (payload: OnInitializeLayerProps) => void;
 }
 

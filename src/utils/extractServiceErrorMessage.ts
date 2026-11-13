@@ -4,7 +4,6 @@
 // requested - rather than JSON. Pulls the human-readable message out of
 // that, falling back to the raw response text when it isn't recognizably
 // an OGC exception report.
-// eslint-disable-next-line import/prefer-default-export
 export const extractServiceErrorMessage = (responseText: string): string => {
   const trimmed = responseText.trim();
   if (!trimmed) {

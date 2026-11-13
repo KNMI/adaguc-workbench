@@ -2,7 +2,6 @@
 // query parameter (case-insensitive, like all WMS query keys) - pulling it
 // out lets the layer panel show which dataset a layer actually comes from,
 // which the service url itself doesn't make obvious at a glance.
-// eslint-disable-next-line import/prefer-default-export
 export const getDatasetNameFromServiceUrl = (
   serviceUrl: string,
 ): string | undefined => {

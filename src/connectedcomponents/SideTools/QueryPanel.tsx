@@ -583,7 +583,6 @@ const QueryPanel = ({
             console.error(e);
           });
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapPinLocation, layers]);
 
   React.useEffect(() => {
@@ -745,7 +744,6 @@ const QueryPanel = ({
   const renderGetFeatureInfoBody = (layer: AdagucLayer): React.ReactNode => (
     <div
       className="getfeatureinfo_result_contents"
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={sanitizeHTML(
         getFeatureInfoResults[layer.id] || '--',
       )}
@@ -804,8 +802,11 @@ const QueryPanel = ({
     const seriesOrderByDataKey = new Map(
       seriesRenderInfo.map(({ dataKey }, index) => [dataKey, index]),
     );
+    // Every Line here is given a string dataKey (see getSeriesDataKey).
     const itemSorter = (item: { dataKey?: unknown }): number =>
-      seriesOrderByDataKey.get(String(item.dataKey)) ?? 0;
+      typeof item.dataKey === 'string'
+        ? (seriesOrderByDataKey.get(item.dataKey) ?? 0)
+        : 0;
 
     // Hovering previews a single series without losing whatever's pinned
     // - it takes over again once the mouse moves away. With nothing

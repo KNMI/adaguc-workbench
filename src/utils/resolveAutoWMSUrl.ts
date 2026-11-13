@@ -19,19 +19,15 @@ const withSuffix = (url: string, suffix: string): string =>
 // under - tries that url as given, then each of the common suffixes above,
 // returning the first one that actually looks like a real AutoWMS listing,
 // or undefined if none of them do.
-// eslint-disable-next-line import/prefer-default-export
 export const resolveAutoWMSUrl = async (
   url: string,
 ): Promise<string | undefined> => {
-  // eslint-disable-next-line no-restricted-syntax
   for (const suffix of AUTOWMS_URL_SUFFIXES) {
     const candidate = withSuffix(url, suffix);
     try {
-      // eslint-disable-next-line no-await-in-loop
       const response = await fetch(
         `${makeGoodServiceLink(candidate)}request=getfiles&path=`,
       );
-      // eslint-disable-next-line no-await-in-loop
       const json: unknown = await response.json();
       if (looksLikeAutoWMSListing(json)) {
         return candidate;

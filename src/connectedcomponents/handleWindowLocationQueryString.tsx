@@ -34,9 +34,7 @@ const addLayers = async (
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-misused-promises, no-async-promise-executor
   return new Promise<void>(async (resolve) => {
-    // eslint-disable-next-line no-restricted-syntax
     for (const layer of layerList.reverse()) {
-      // eslint-disable-next-line no-await-in-loop
       await dispatch(
         thunks.addLayer({
           mapId,
@@ -96,7 +94,6 @@ export const handleWindowLocationQueryString = (
       }
       return null;
     });
-    // eslint-disable-next-line no-void
     void addLayers(layerList, mapId, dispatch).then(() => {
       const dims = lowerCaseUrlParams.get('dims')?.split(',');
       if (dims && dims.length > 0 && layerList.length > 0) {

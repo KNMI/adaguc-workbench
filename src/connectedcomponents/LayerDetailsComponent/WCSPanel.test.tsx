@@ -140,7 +140,7 @@ describe('WCSPanel', () => {
     mockUseAppSelector.mockImplementation((selector) => selector(state));
     global.fetch = jest.fn().mockResolvedValue({
       text: () => Promise.resolve(DESCRIBE_COVERAGE_XML),
-    }) as unknown as typeof fetch;
+    });
   });
 
   afterEach(() => {
@@ -182,7 +182,7 @@ describe('WCSPanel', () => {
             '<formats>GeoTIFF</formats>\n      <formats>AAIGRID</formats>\n      <formats>NetCDF4</formats>',
           ),
         ),
-    }) as unknown as typeof fetch;
+    });
 
     render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
 
@@ -218,7 +218,7 @@ describe('WCSPanel', () => {
         Promise.resolve(
           '<CoverageDescription><ServiceExceptionReport/></CoverageDescription>',
         ),
-    }) as unknown as typeof fetch;
+    });
 
     render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
 
@@ -228,7 +228,7 @@ describe('WCSPanel', () => {
   });
 
   it('lists the coverages offered by the service and switches to the one picked', async () => {
-    global.fetch = makeFetchMock() as unknown as typeof fetch;
+    global.fetch = makeFetchMock();
 
     render(<WCSPanel mapId={mapId} wmLayer={makeWMLayer()} />);
 

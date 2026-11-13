@@ -78,7 +78,6 @@ const getStyleListForReduxLayer = (
   return serviceLayer?.styles ?? [];
 };
 
-// eslint-disable-next-line import/prefer-default-export
 export const reducers = {
   registerMap: (
     draftState: AdagucMapsState,

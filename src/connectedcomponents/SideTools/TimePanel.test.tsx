@@ -2,7 +2,7 @@ import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { getWMLayerById } from '@opengeoweb/webmap';
 import { useAppDispatch, useAppSelector } from '../../store/store';
-import { AdagucLayer, ViewerState } from '../../store/types';
+import { AdagucLayer } from '../../store/types';
 import TimePanel from './TimePanel';
 
 jest.mock('@opengeoweb/webmap', () => ({
@@ -98,7 +98,7 @@ const selectState = (layers: AdagucLayer[], isAnimating = false): void => {
         services: {},
         baseLayers: [],
       },
-    } as unknown as ViewerState),
+    }),
   );
 };
 
@@ -328,7 +328,7 @@ describe('TimePanel', () => {
     const list = container.querySelector('table');
     expect(list).not.toBeNull();
 
-    fireEvent.wheel(list as Element, { deltaY: 100 });
+    fireEvent.wheel(list, { deltaY: 100 });
     expect(mockDispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         payload: expect.objectContaining({
@@ -338,7 +338,7 @@ describe('TimePanel', () => {
     );
 
     mockDispatch.mockClear();
-    fireEvent.wheel(list as Element, { deltaY: -100 });
+    fireEvent.wheel(list, { deltaY: -100 });
     expect(mockDispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         payload: expect.objectContaining({

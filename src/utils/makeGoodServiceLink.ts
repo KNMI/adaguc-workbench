@@ -6,7 +6,6 @@
 // separator" and produce a broken "??key=value" request no server
 // recognizes - or the url having query params already but no trailing
 // separator at all (producing a broken "...xkey=value" request instead).
-// eslint-disable-next-line import/prefer-default-export
 export const makeGoodServiceLink = (service: string): string => {
   const trimmed = service.replace(/[?&]+$/, '');
   return `${trimmed}${trimmed.includes('?') ? '&' : '?'}`;

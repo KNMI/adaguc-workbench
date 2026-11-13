@@ -151,7 +151,7 @@ describe('WMSServiceInput', () => {
 
   it('falls back to adding the layer when the ambiguous url does not look like AutoWMS', async () => {
     const mockFetch = jest.fn().mockRejectedValue(new Error('not json'));
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     render(<WMSServiceInput />);
     typeAndSubmit('http://example.com/some/service?');
@@ -283,7 +283,7 @@ describe('WMSServiceInput', () => {
     global.fetch = jest.fn().mockResolvedValue({
       json: () =>
         Promise.resolve({ autowmsurl: 'https://geoservices.knmi.nl/autowms?' }),
-    }) as unknown as typeof fetch;
+    });
 
     render(<WMSServiceInput />);
     const input = screen.getByPlaceholderText(PLACEHOLDER);
@@ -320,7 +320,7 @@ describe('WMSServiceInput', () => {
     global.fetch = jest.fn().mockResolvedValue({
       json: () =>
         Promise.resolve({ autowmsurl: 'https://geoservices.knmi.nl/autowms?' }),
-    }) as unknown as typeof fetch;
+    });
 
     render(<WMSServiceInput />);
     const input = screen.getByPlaceholderText(PLACEHOLDER);

@@ -11,7 +11,6 @@ const AdagucNCDumpPanel = ({
   const [metadata, setMetadata] = React.useState('Fetching ...');
   const url = `${wmLayer.service}&service=wms&request=getmetadata&format=text/plain&layer=${wmLayer.name}`;
 
-  // eslint-disable-next-line no-void
   void fetch(url).then(async (r) => {
     const g = await r.text();
     setMetadata(g);

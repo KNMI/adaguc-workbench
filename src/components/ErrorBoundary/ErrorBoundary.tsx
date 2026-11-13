@@ -10,19 +10,16 @@ export interface ErrorBoundaryProps {
   // defaultProps can't satisfy both react/static-property-placement and TS
   // for an optional prop on a class component, so these are left optional
   // without one and defaulted at the point of use instead.
-  // eslint-disable-next-line react/require-default-props
   onError?: (error: Error) => void;
   // Extra style merged onto the fallback card, e.g. to float it in a
   // corner when the surrounding layout has no normal flow for it (such as
   // inside the map view, where children are rendered over the OL canvas).
-  // eslint-disable-next-line react/require-default-props
   fallbackStyle?: React.CSSProperties;
   // Shows a remove button in the fallback itself when given - the whole
   // point of catching the error here is that the broken layer's own UI
   // (including its normal remove button) never renders at all, which
   // otherwise leaves no way to get rid of it again except reloading the
   // whole page and hoping it doesn't come back from a saved permalink.
-  // eslint-disable-next-line react/require-default-props
   onRemove?: () => void;
 }
 

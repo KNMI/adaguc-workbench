@@ -36,6 +36,9 @@ const traverseXmlChildren = (
     } else if (Array.isArray(existing)) {
       existing.push(newNode);
     } else {
+      // tsc needs this cast (it doesn't narrow `existing` here), even
+      // though typescript-eslint's type info considers it redundant.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       draftJson[nodeName] = [existing as XmlJsonNode, newNode];
     }
 

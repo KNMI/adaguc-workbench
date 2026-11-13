@@ -5,7 +5,6 @@
 // the layer's current one), and parseTimeSeriesResponse turns the resulting
 // extra nesting level into one series per value instead of collapsing it
 // away like it does for other (singular) dimensions.
-// eslint-disable-next-line import/prefer-default-export
 export const SERIES_DIMENSION_NAMES = new Set([
   'percentile',
   'member',

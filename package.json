@@ -4,7 +4,7 @@
   "scripts": {
     "start": "webpack-dev-server --mode development --port 4000 --hot",
     "build": "webpack --mode production",
-    "lint": "prettier src --check && DEBUG=eslint:cli-engine eslint 'src/**/*.{ts,tsx}' --max-warnings=0 && DEBUG=eslint:cli-engine eslint 'stories/**/*.{ts,tsx}' --max-warnings=0",
+    "lint": "prettier src --check && eslint src stories --max-warnings=0",
     "test": "jest",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -46,6 +46,7 @@
     "@babel/preset-react": "^7.22.5",
     "@babel/preset-typescript": "^7.16.7",
     "@babel/register": "^7.22.5",
+    "@eslint/js": "^9.39.5",
     "@storybook/addon-docs": "^10.6.7",
     "@storybook/addon-links": "^10.6.7",
     "@storybook/addon-mcp": "^10.6.7",
@@ -58,23 +59,16 @@
     "@types/lodash": "^4.17.25",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
     "babel-jest": "^30.5.2",
     "babel-loader": "^9.1.2",
-    "eslint": "^8.42.0",
-    "eslint-config-airbnb": "^19.0.4",
-    "eslint-config-airbnb-typescript": "^18.0.0",
+    "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-babel": "^5.3.1",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-jest": "^27.9.0",
-    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-prettier": "^5.5.7",
-    "eslint-plugin-promise": "^7.3.0",
-    "eslint-plugin-react": "^7.32.2",
-    "eslint-plugin-react-hooks": "^4.6.2",
-    "eslint-plugin-testing-library": "^7.16.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
     "html-loader": "^4.2.0",
     "html-webpack-plugin": "^5.5.2",
     "identity-obj-proxy": "^3.0.0",
@@ -84,6 +78,7 @@
     "prettier": "^3.0.2",
     "storybook": "^10.6.7",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.2",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.0.4"
   },
@@ -97,9 +92,6 @@
       "minimatch": "^11.0.8"
     },
     "@typescript-eslint/parser": {
-      "minimatch": "^11.0.8"
-    },
-    "eslint-plugin-testing-library": {
       "minimatch": "^11.0.8"
     },
     "@storybook/builder-webpack5": {

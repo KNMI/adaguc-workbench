@@ -6,30 +6,28 @@ import { refreshLayerSource } from '../../utils/refreshLayerSource';
 interface WMSColorRangeSelectorProps {
   wmLayer: WMLayer;
 }
+// The COLORSCALERANGE this layer currently requests (see updateColorRange
+// below), or 0-1 when it doesn't set one.
+const readColorScaleRange = (
+  wmLayer: WMLayer,
+): { min: string; max: string } => {
+  const url = wmLayer?.wmsextensions?.url || '';
+  const items = new URLSearchParams(url);
+  const colorScaleRangeItems = items.get('COLORSCALERANGE')?.trim().split(',');
+  return colorScaleRangeItems?.length === 2
+    ? { min: colorScaleRangeItems[0], max: colorScaleRangeItems[1] }
+    : { min: '0.000', max: '1.000' };
+};
+
 const WMSColorRangeSelector = ({
   wmLayer,
 }: WMSColorRangeSelectorProps): React.ReactElement => {
-  const [minValue, setMinValue] = React.useState<string>('');
-  const [maxValue, setMaxValue] = React.useState<string>('');
-
-  const parseWMSExtension = () => {
-    const url = wmLayer?.wmsextensions?.url || '';
-    const items = new URLSearchParams(url);
-    const colorScaleRange = items.get('COLORSCALERANGE')?.trim();
-
-    const colorScaleRangeItems = colorScaleRange?.split(',');
-    const wmsMinValue =
-      colorScaleRangeItems?.length === 2 ? colorScaleRangeItems[0] : '0.000';
-
-    const wmsMaxValue =
-      colorScaleRangeItems?.length === 2 ? colorScaleRangeItems[1] : '1.000';
-    setMinValue(wmsMinValue);
-    setMaxValue(wmsMaxValue);
-  };
-
-  React.useEffect(() => {
-    parseWMSExtension();
-  }, []);
+  const [minValue, setMinValue] = React.useState(
+    () => readColorScaleRange(wmLayer).min,
+  );
+  const [maxValue, setMaxValue] = React.useState(
+    () => readColorScaleRange(wmLayer).max,
+  );
 
   const updateColorRange = () => {
     const minValueFloat = parseFloat(minValue).toFixed(3);

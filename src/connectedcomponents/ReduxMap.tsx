@@ -19,11 +19,6 @@ const ReduxMap = (): React.ReactElement => {
   const dispatch = useAppDispatch();
   const mapId = MAP_ID;
 
-  const [count, setCount] = React.useState(0);
-  const update = () => {
-    setCount(count + 1);
-  };
-
   const [toolsPanelIsExpanded, toggleExpandToolsPanel] = React.useState(true);
 
   // handleAddLayerHash needs the layers currently on the map (to dedupe
@@ -51,7 +46,9 @@ const ReduxMap = (): React.ReactElement => {
     // Handles a #addlayer(...) hash already present when the page itself
     // first loads - the listener below only covers it changing afterwards.
     handleAddLayerHash(mapId, dispatch, mapLayersRef.current);
-  }, []);
+    // Both are stable (the store's dispatch, and a constant map id), so
+    // this still only runs once, on mount.
+  }, [dispatch, mapId]);
 
   // Picks up a #addlayer('<service>','<name>') hash set on this already-
   // open tab (e.g. from another script/bookmarklet), live - setting
@@ -67,26 +64,32 @@ const ReduxMap = (): React.ReactElement => {
     };
   }, [mapId, dispatch]);
 
-  const mosaicItems: { [viewId: string]: React.ReactElement } = {
-    b: (
-      <div>
-        <SortableLayerList mapId={mapId} />
-      </div>
-    ),
-    c: (
-      <div>
-        <ReduxMapViewComponent mapId={mapId} update={update} />
-      </div>
-    ),
-    d: (
-      <div>
-        <SideToolPanel
-          toolsPanelIsExpanded={toolsPanelIsExpanded}
-          toggleExpandToolsPanel={toggleExpandToolsPanel}
-        />
-      </div>
-    ),
-  };
+  // Memoized so that re-rendering this component (e.g. because mapLayers
+  // changed) doesn't also re-render every panel - each of them reads what
+  // it needs from the store itself.
+  const mosaicItems = React.useMemo(
+    (): { [viewId: string]: React.ReactElement } => ({
+      b: (
+        <div>
+          <SortableLayerList mapId={mapId} />
+        </div>
+      ),
+      c: (
+        <div>
+          <ReduxMapViewComponent mapId={mapId} />
+        </div>
+      ),
+      d: (
+        <div>
+          <SideToolPanel
+            toolsPanelIsExpanded={toolsPanelIsExpanded}
+            toggleExpandToolsPanel={toggleExpandToolsPanel}
+          />
+        </div>
+      ),
+    }),
+    [mapId, toolsPanelIsExpanded],
+  );
 
   return (
     <ThemeWrapper>

@@ -14,7 +14,6 @@ export const CopyToClipBoard = ({
 
   const copyTextToClipBoard = (_text: string): void => {
     setTimeout(() => {
-      // eslint-disable-next-line no-void
       void navigator.clipboard.writeText(_text).then(() => {
         setSnackOpen(true);
       });

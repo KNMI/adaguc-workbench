@@ -2,7 +2,6 @@
 // `autowmsurl`, e.g. KNMI's own https://geoservices.knmi.nl/autowms) -
 // pinned as an always-available option in the "add service" inputs'
 // suggestion list, not just loaded once on first visit.
-// eslint-disable-next-line import/prefer-default-export
 export const fetchDefaultAutoWMSService = async (): Promise<
   string | undefined
 > => {

@@ -9,7 +9,6 @@ import { projections } from './projections';
 // already provide, so the map can actually switch to those srs's.
 let registered = false;
 
-// eslint-disable-next-line import/prefer-default-export
 export const registerExtraProjections = (): void => {
   if (registered) {
     return;

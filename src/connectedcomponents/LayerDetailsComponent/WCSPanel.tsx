@@ -167,12 +167,19 @@ const WCSPanel = ({ mapId, wmLayer }: WCSPanelProps): React.ReactElement => {
         setSelectedFormat(defaultFormat ?? '');
       })
       .catch((e: unknown) => {
-        setLoadError(e instanceof Error ? e.message : String(e));
+        // String() on anything else (e.g. a plain object) would show
+        // "[object Object]" - say something useful instead.
+        if (e instanceof Error) {
+          setLoadError(e.message);
+        } else if (typeof e === 'string') {
+          setLoadError(e);
+        } else {
+          setLoadError('Could not load the coverage description.');
+        }
       })
       .finally(() => {
         setIsLoading(false);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wmLayer.service, selectedCoverageName]);
 
   // Appends the map's own current view as an extra, always-available
@@ -328,7 +335,6 @@ const WCSPanel = ({ mapId, wmLayer }: WCSPanelProps): React.ReactElement => {
           }}
         >
           {projectionOptions.map((option, index) => (
-            // eslint-disable-next-line react/no-array-index-key
             <MenuItem key={`${option.srs}-${index}`} value={index}>
               {option.label}
             </MenuItem>

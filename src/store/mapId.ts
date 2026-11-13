@@ -2,5 +2,4 @@
 // (state.viewer.maps is keyed by id), but the UI only ever shows this one.
 // Kept out of store.ts on purpose: many tests mock that module wholesale,
 // which would leave this constant undefined there.
-// eslint-disable-next-line import/prefer-default-export
 export const MAP_ID = 'map1';

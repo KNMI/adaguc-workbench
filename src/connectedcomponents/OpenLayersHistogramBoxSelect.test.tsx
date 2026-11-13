@@ -6,16 +6,12 @@ import OpenLayersHistogramBoxSelect from './OpenLayersHistogramBoxSelect';
 
 jest.mock('@opengeoweb/webmap-react', () => {
   /* eslint-disable
-     global-require,
-     @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call */
   const ReactLib = require('react');
   return {
     MapContext: ReactLib.createContext({ map: null }),
   };
   /* eslint-enable
-     global-require,
-     @typescript-eslint/no-var-requires,
      @typescript-eslint/no-unsafe-call */
 });
 

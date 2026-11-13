@@ -7,7 +7,6 @@ import { AdagucBaseLayer } from '../store/types';
 // ships with (see @opengeoweb/webmap's tileServerSettingsList). Fixed,
 // descriptive ids rather than generateLayerId(): this is a small, static,
 // hand-authored list, not something added/removed at runtime.
-// eslint-disable-next-line import/prefer-default-export
 export const DEFAULT_BASE_LAYERS: AdagucBaseLayer[] = [
   {
     id: 'baselayer-naturalearth2',

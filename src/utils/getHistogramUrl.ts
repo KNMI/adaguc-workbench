@@ -11,7 +11,6 @@ import { makeGoodServiceLink } from './makeGoodServiceLink';
 // (adaguc-server's CCreateHistogram.cpp), not from these - adaguc-viewer's
 // own tool passes the dragged box's actual on-screen pixel size here, so
 // this mirrors that instead of a fixed sampling grid.
-// eslint-disable-next-line import/prefer-default-export
 export const getHistogramUrl = (
   layer: AdagucLayer,
   bbox: Bbox,

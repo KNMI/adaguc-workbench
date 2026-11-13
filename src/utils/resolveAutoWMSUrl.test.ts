@@ -11,7 +11,7 @@ describe('resolveAutoWMSUrl', () => {
     const mockFetch = jest.fn().mockResolvedValue({
       json: () => Promise.resolve({ result: [] }),
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     await expect(resolveAutoWMSUrl('http://host/autowms')).resolves.toBe(
       'http://host/autowms',
@@ -59,7 +59,7 @@ describe('resolveAutoWMSUrl', () => {
     const mockFetch = jest.fn().mockResolvedValue({
       json: () => Promise.resolve({ notAListing: true }),
     });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     await expect(resolveAutoWMSUrl('http://host')).resolves.toBeUndefined();
     expect(mockFetch).toHaveBeenCalledTimes(3);
@@ -75,7 +75,7 @@ describe('resolveAutoWMSUrl', () => {
       .mockResolvedValueOnce({
         json: () => Promise.resolve({ result: [] }),
       });
-    global.fetch = mockFetch as unknown as typeof fetch;
+    global.fetch = mockFetch;
 
     await expect(resolveAutoWMSUrl('http://host')).resolves.toBe(
       'http://host/adaguc-server/autowms',

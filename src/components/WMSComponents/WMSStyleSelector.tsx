@@ -74,7 +74,6 @@ const WMSStyleSelector = ({
           }
         >
           {styleList.map((l, i) => (
-            // eslint-disable-next-line react/no-array-index-key
             <MenuItem key={`${l.name}i${i}`} value={l.name}>
               {l.title} - {l.name}
             </MenuItem>

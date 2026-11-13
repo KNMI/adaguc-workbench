@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-props-no-spreading */
 import * as React from 'react';
 import { ThemeWrapper } from '@opengeoweb/theme';
 import 'react-mosaic-component/react-mosaic-component.css';
@@ -104,7 +103,6 @@ export interface AddDataComponentProps {
   // Called once a url typed into the custom-service field has been
   // successfully routed (added as a layer, or opened in the AutoWMS
   // panel) - lets the dialog this is shown in close itself.
-  // eslint-disable-next-line react/require-default-props
   onServiceHandled?: () => void;
 }
 const AddDataComponent = ({

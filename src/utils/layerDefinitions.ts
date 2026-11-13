@@ -1,6 +1,5 @@
 import { LayerType, generateLayerId } from '@opengeoweb/webmap';
 
-// eslint-disable-next-line import/prefer-default-export
 export const baseLayerWorldMap = {
   name: 'WorldMap',
   title: 'WorldMap',
