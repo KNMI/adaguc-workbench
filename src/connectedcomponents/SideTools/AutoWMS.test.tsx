@@ -2,11 +2,12 @@ import * as React from 'react';
 import {
   act,
   fireEvent,
-  render,
+  render as renderWithoutQueryClient,
   screen,
   waitFor,
   within,
 } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { LayerProps, WMSServiceInfo } from '@opengeoweb/webmap';
 import { queryWMSLayers, queryWMSServiceInfo } from '@opengeoweb/webmap';
 import AutoWMS from './AutoWMS';
@@ -64,14 +65,26 @@ const flushConfigFetch = async (mockFetch: jest.Mock): Promise<void> => {
   await waitForLoadingToFinish();
 };
 
+// The listings are fetched through React Query - a fresh client per test,
+// so nothing cached by one test can leak into another.
+let queryClient: QueryClient;
+const render = (ui: React.ReactElement) =>
+  renderWithoutQueryClient(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  });
+
 describe('AutoWMS', () => {
   beforeEach(() => {
+    queryClient = new QueryClient();
     window.localStorage.clear();
     mockQueryWMSLayers.mockReset();
     mockQueryWMSServiceInfo.mockReset();
   });
 
   afterEach(() => {
+    queryClient.clear();
     jest.useRealTimers();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).fetch;
@@ -1023,6 +1036,46 @@ describe('AutoWMS', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('No items found.')).not.toBeInTheDocument();
+  });
+
+  it("shows why a dataset's layers couldn't be listed, while that dataset is open", async () => {
+    // The explorer list (which shows a listing's own error) is hidden while
+    // a dataset is open - a failed GetCapabilities used to leave just an
+    // empty panel, with nothing saying why.
+    const DATASET_WMS_URL = 'http://example.com/adaguc?DATASET=test&';
+    const mockFetch = makeFetchMock((url) => {
+      if (url === './config.json') {
+        return Promise.resolve({});
+      }
+      return Promise.resolve({
+        result: [
+          {
+            path: 'test.nc',
+            name: 'Test dataset',
+            leaf: true,
+            adaguc: DATASET_WMS_URL,
+          },
+        ],
+      });
+    });
+    global.fetch = mockFetch;
+    mockQueryWMSLayers.mockRejectedValue(new TypeError('Failed to fetch'));
+    mockQueryWMSServiceInfo.mockRejectedValue(new TypeError('Failed to fetch'));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(<AutoWMS addLayer={jest.fn()} />);
+    await flushConfigFetch(mockFetch);
+    fireEvent.change(screen.getByLabelText('Add AutoWMS or WMS service'), {
+      target: { value: AUTOWMS_URL },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Load service' }));
+    fireEvent.click(await screen.findByText('Test dataset'));
+
+    expect(
+      await screen.findByText(
+        `Could not reach ${DATASET_WMS_URL} - the service could not be reached.`,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('loads an externally requested service, bypassing manual typing', async () => {
