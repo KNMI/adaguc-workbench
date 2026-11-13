@@ -398,6 +398,9 @@ const AutoWMS = ({
         setRecentServices(rememberRecentService(finalService));
         setAutoWMSFetchGeneration((generation) => generation + 1);
       })
+      .catch((e) => {
+        handleError(e);
+      })
       .finally(() => {
         setLoading(false);
       });
