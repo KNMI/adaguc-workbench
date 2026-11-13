@@ -1,9 +1,9 @@
 import * as React from 'react';
 import {
   getLegendGraphicURLForLayer,
-  getWMLayerById,
   legendImageStore,
 } from '@opengeoweb/webmap';
+import { getWMLayer } from '../../utils/getWMLayer';
 import { clearImageCacheForAllMaps } from '@opengeoweb/webmap-react';
 import { IconButton, Tooltip } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -40,7 +40,7 @@ const LegendPanel = ({ mapId }: LegendPanelProps): React.ReactElement => {
     .join('|');
   const syncStyles = React.useEffectEvent(() => {
     enabledLayers.forEach((layer) => {
-      const wmLayer = getWMLayerById(layer.id);
+      const wmLayer = getWMLayer(layer.id);
       if (!wmLayer) {
         return;
       }
@@ -63,7 +63,7 @@ const LegendPanel = ({ mapId }: LegendPanelProps): React.ReactElement => {
     legendImageStore.clear();
     clearImageCacheForAllMaps();
     enabledLayers.forEach((layer) => {
-      const wmLayer = getWMLayerById(layer.id);
+      const wmLayer = getWMLayer(layer.id);
       if (wmLayer) {
         refreshLayerSource(wmLayer);
       }
@@ -82,7 +82,7 @@ const LegendPanel = ({ mapId }: LegendPanelProps): React.ReactElement => {
       </div>
       {enabledLayers.length === 0 && <div>No layers added</div>}
       {enabledLayers.map((layer) => {
-        const wmLayer = getWMLayerById(layer.id);
+        const wmLayer = getWMLayer(layer.id);
         const legendUrl = wmLayer ? getLegendGraphicURLForLayer(wmLayer) : '';
         const cacheBustedUrl =
           legendUrl && refreshToken > 0

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Popper, DialogContent, DialogTitle, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import { getWMLayerById } from '@opengeoweb/webmap';
+import { getWMLayer } from '../../utils/getWMLayer';
 import LayerDetailsComponent from './LayerDetailsComponent';
 
 interface LayerDetailDialogProps {
@@ -16,7 +16,7 @@ const LayerDetailDialog = ({
   layerId,
   onClose,
 }: LayerDetailDialogProps): React.ReactElement => {
-  const wmLayer = getWMLayerById(layerId);
+  const wmLayer = getWMLayer(layerId);
 
   return (
     <Popper

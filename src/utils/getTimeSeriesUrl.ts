@@ -1,5 +1,6 @@
 import { ImageWMS } from 'ol/source';
-import { getCorrectWMSDimName, getWMLayerById } from '@opengeoweb/webmap';
+import { getCorrectWMSDimName } from '@opengeoweb/webmap';
+import { getWMLayer } from './getWMLayer';
 import { MapLocation } from '@opengeoweb/webmap-react';
 import { AdagucLayer } from '../store/types';
 import { SERIES_DIMENSION_NAMES } from './seriesDimensions';
@@ -150,7 +151,7 @@ export const getTimeSeriesUrl = (
   maxStepsByDimension?: Record<string, number>,
   timeRangeOverride?: TimeRange,
 ): string | undefined => {
-  const wmLayer = getWMLayerById(layer.id);
+  const wmLayer = getWMLayer(layer.id);
   if (!wmLayer || !mapPinLocation || !wmLayer.getmapURL) {
     return undefined;
   }

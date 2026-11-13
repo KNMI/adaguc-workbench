@@ -12,7 +12,7 @@ export interface AutoWMSLayerDetailsDialogProps {
 
 // A details popup for a layer the user hasn't added to the map yet, styled
 // like LayerDetailDialog's "WMS Details" tab. It can't reuse that dialog
-// directly: it reads a live, already-registered WMLayer (getWMLayerById),
+// directly: it reads a live, already-registered WMLayer (getWMLayer),
 // which an AutoWMS preview layer never has, and two of its other tabs
 // (color range, projections) would act on the real map's current view even
 // though this layer was never added to it. Everything shown here instead

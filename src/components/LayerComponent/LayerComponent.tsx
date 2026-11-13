@@ -1,6 +1,7 @@
 import * as React from 'react';
 
-import { Style, getWMLayerById } from '@opengeoweb/webmap';
+import { Style } from '@opengeoweb/webmap';
+import { getWMLayer } from '../../utils/getWMLayer';
 import { openLayersGetMapImageStore } from '@opengeoweb/webmap-react';
 import {
   Box,
@@ -63,7 +64,6 @@ export interface LayerComponentProps {
   removeLayer: () => void;
   layerToggleAnimation: () => void;
   zoomToLayer: () => void;
-  update: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
   canMoveUp: boolean;
@@ -89,7 +89,6 @@ export const LayerComponent = ({
   removeLayer,
   layerToggleAnimation,
   zoomToLayer,
-  update: updateParent,
   layerIndex,
   onMoveUp,
   onMoveDown,
@@ -97,7 +96,6 @@ export const LayerComponent = ({
   canMoveDown,
   onRefreshLayer,
 }: LayerComponentProps): React.ReactElement<LayerComponentProps> => {
-  const [count, setUpdate] = React.useState(0);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   // How long this layer's last GetMap image request took, in ms - set by
@@ -138,16 +136,13 @@ export const LayerComponent = ({
   const [hasImageLoadError, setHasImageLoadError] = React.useState(false);
   React.useEffect(() => {
     setHasImageLoadError(
-      layerHasImageLoadError(
-        openLayersGetMapImageStore,
-        getWMLayerById(layer.id),
-      ),
+      layerHasImageLoadError(openLayersGetMapImageStore, getWMLayer(layer.id)),
     );
     const callbackId = `LayerComponent-image-error-${layer.id}`;
     const handleImageEvent: Parameters<
       typeof openLayersGetMapImageStore.addImageEventCallback
     >[0] = (image) => {
-      if (!imageSrcBelongsToLayer(image.getSrc(), getWMLayerById(layer.id))) {
+      if (!imageSrcBelongsToLayer(image.getSrc(), getWMLayer(layer.id))) {
         return;
       }
       setHasImageLoadError(image.hasError());
@@ -161,17 +156,12 @@ export const LayerComponent = ({
     };
   }, [layer.id]);
 
-  const update = () => {
-    updateParent();
-    setUpdate((count + 1) % 10);
-  };
-
   const handleRefreshLayer = (): void => {
     setIsRefreshing(true);
+    // Re-parsing updates the layer's capabilities in opengeoweb's registry,
+    // which this card reads its title and dimensions from - the re-render
+    // from isRefreshing going back to false picks those up.
     onRefreshLayer()
-      .then(() => {
-        update();
-      })
       .finally(() => {
         setIsRefreshing(false);
       })
@@ -180,7 +170,7 @@ export const LayerComponent = ({
         console.warn('Failed to refresh layer capabilities');
       });
   };
-  const wmLayer = getWMLayerById(layer?.id);
+  const wmLayer = getWMLayer(layer?.id);
   const cardTitle = (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
       <CopyToClipBoard
@@ -380,7 +370,6 @@ export const LayerComponent = ({
                 serviceUrl={serviceUrl}
                 onSelectLayer={(layerName) => {
                   onSelectLayer(layerName);
-                  update();
                 }}
               />
             </Box>
@@ -400,7 +389,7 @@ export const LayerComponent = ({
               />
             </Box>
           </Stack>
-          {getWMLayerById(layer?.id)?.dimensions.map((layerDimension) => {
+          {getWMLayer(layer?.id)?.dimensions.map((layerDimension) => {
             const dimensionValue =
               getDimensionValue(layerDimension.name) ??
               layerDimension.currentValue;
@@ -538,17 +527,19 @@ export const LayerComponent = ({
         </Tooltip>
         <Tooltip title="Change opacity of this layer">
           <Slider
-            value={(wmLayer?.opacity || 1) * 100}
+            // From redux, like the map itself (see ReduxMapLayer) - not
+            // `|| 1`, which showed (and drew) a layer at 0% as fully opaque.
+            value={(layer?.opacity ?? 1) * 100}
+            aria-label="Layer opacity"
             sx={{ flexGrow: 1, mx: 1.5 }}
             onChange={(e, value: number) => {
-              // Looked up now rather than mutating the render-time wmLayer:
-              // WMLayer is opengeoweb's own mutable object, updated in place.
-              const target = getWMLayerById(layer?.id);
+              const opacity = value / 100;
+              // Kept in sync too, for anything reading the WMLayer itself.
+              const target = getWMLayer(layer?.id);
               if (target) {
-                target.opacity = value / 100;
-                onChangeOpacity(target.opacity);
-                update();
+                target.opacity = opacity;
               }
+              onChangeOpacity(opacity);
             }}
             size="small"
             min={0}
@@ -566,12 +557,11 @@ export const LayerComponent = ({
             aria-label={layer?.enabled ? 'Disable layer' : 'Enable layer'}
             onClick={() => {
               const enabled = !layer?.enabled;
-              const target = getWMLayerById(layer?.id);
+              const target = getWMLayer(layer?.id);
               if (target) {
                 target.enabled = enabled;
               }
               onChangeLayerEnabled(enabled);
-              update();
             }}
           >
             {layer?.enabled ? (

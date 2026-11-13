@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
-import { getWMLayerById } from '@opengeoweb/webmap';
+import { getWMLayer } from '../../utils/getWMLayer';
 import { actions, useAppDispatch, useAppSelector } from '../../store/store';
 import { selectors } from '../../store/selectors';
 import { AdagucLayer, ViewerState } from '../../store/types';
@@ -164,7 +164,7 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
       if (!layer.enabled) {
         return acc;
       }
-      const dimension = getWMLayerById(layer.id)?.getDimension('time');
+      const dimension = getWMLayer(layer.id)?.getDimension('time');
       if (dimension) {
         acc.push({ layer, layerIndex, dimension });
       }

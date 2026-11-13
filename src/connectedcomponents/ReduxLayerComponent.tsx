@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { Style, generateLayerId, getWMLayerById } from '@opengeoweb/webmap';
+import { Style, generateLayerId } from '@opengeoweb/webmap';
+import { getWMLayer } from '../utils/getWMLayer';
 import { clearImageCacheForAllMaps } from '@opengeoweb/webmap-react';
 import { actions, useAppDispatch, useAppSelector } from '../store/store';
 import { selectors } from '../store/selectors';
@@ -174,7 +175,7 @@ export const ReduxLayerComponent = ({
   // redux-tracked service (the layer/style pickers' own lists) would
   // otherwise keep reusing.
   const refreshLayerCapabilities = async (): Promise<void> => {
-    const wmLayer = getWMLayerById(layerId);
+    const wmLayer = getWMLayer(layerId);
     if (wmLayer) {
       try {
         await wmLayer.parseLayer(true);
@@ -248,7 +249,6 @@ export const ReduxLayerComponent = ({
       setDimensionLinked={(dimensionName: string, linked: boolean): void => {
         setLayerDimensionLinked(dimensionName, linked);
       }}
-      update={(): void => {}}
       styles={styleList}
       selectedStyleName={layer?.style}
       onSelectStyle={(style: string): void => {

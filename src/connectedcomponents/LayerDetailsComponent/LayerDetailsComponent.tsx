@@ -3,7 +3,8 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import { queryWMSLayers, getWMLayerById } from '@opengeoweb/webmap';
+import { queryWMSLayers } from '@opengeoweb/webmap';
+import { getWMLayer } from '../../utils/getWMLayer';
 import ProjectionSelector from './ProjectionSelector';
 import AdagucNCDumpPanel from './AdagucNCDumpPanel';
 import WMSColorRangeSelector from './WMSColorRangeSelector';
@@ -49,7 +50,7 @@ const LayerDetailsComponent = ({
   const [isWCSPanelOpen, setIsWCSPanelOpen] = React.useState(false);
   const [layerObject, setLayerObject] = React.useState<object>();
 
-  const wmLayer = getWMLayerById(layerIdState);
+  const wmLayer = getWMLayer(layerIdState);
   const wmLayerService = wmLayer?.service;
   const wmLayerName = wmLayer?.name;
 

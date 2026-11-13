@@ -19,7 +19,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { getWMLayerById } from '@opengeoweb/webmap';
+import { getWMLayer } from '../../utils/getWMLayer';
 import { MapLocation } from '@opengeoweb/webmap-react';
 import '../../assets/styles.css';
 import { actions, useAppDispatch, useAppSelector } from '../../store/store';
@@ -236,7 +236,7 @@ const computeDimensionLimits = (
   layer: AdagucLayer,
   queryLimit: number,
 ): Record<string, number> | undefined => {
-  const wmLayer = getWMLayerById(layer.id);
+  const wmLayer = getWMLayer(layer.id);
   if (!wmLayer) {
     return undefined;
   }
@@ -467,7 +467,7 @@ const QueryPanel = ({
   // default range (see getTimeSeriesUrl), so the fields start out matching
   // whatever would actually be requested automatically. Deliberately NOT
   // memoized on timeSeriesFetchKey (or anything else derived from redux):
-  // getWMLayerById reads a live registry the webmap library populates
+  // getWMLayer reads a live registry the webmap library populates
   // asynchronously, outside React/redux entirely, so a layer can already
   // be enabled in redux before its own live WMLayer (and dimension) exists
   // - memoizing on a redux-derived key could permanently cache that
@@ -477,10 +477,10 @@ const QueryPanel = ({
   // current state; it's just a couple of lookups, cheap enough to not
   // need memoizing.
   const referenceLayer = enabledLayers.find(
-    (layer) => !!getWMLayerById(layer.id)?.getDimension('time'),
+    (layer) => !!getWMLayer(layer.id)?.getDimension('time'),
   );
   const defaultTimeDimension = referenceLayer
-    ? getWMLayerById(referenceLayer.id)?.getDimension('time')
+    ? getWMLayer(referenceLayer.id)?.getDimension('time')
     : undefined;
   const defaultTimeRange: TimeRange | undefined = defaultTimeDimension
     ? getTimeDimensionRange(defaultTimeDimension, DEFAULT_MAX_TIME_STEPS)
@@ -692,7 +692,7 @@ const QueryPanel = ({
     // Snap to the dimension's own value representation (as getMapDimURL
     // does for dimension overrides elsewhere), so this matches exactly
     // what the time slider would set and the slider picks up the change.
-    const timeDimension = getWMLayerById(layer.id)?.getDimension('time');
+    const timeDimension = getWMLayer(layer.id)?.getDimension('time');
     const dimensionValue = timeDimension
       ? timeDimension.getClosestValue(time, true)
       : time;

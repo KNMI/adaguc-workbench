@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { LayerType, getWMLayerById } from '@opengeoweb/webmap';
+import { LayerType } from '@opengeoweb/webmap';
+import { getWMLayer } from '../utils/getWMLayer';
 import {
   OpenLayersLayerProps,
   TimeContextType,
@@ -22,7 +23,7 @@ const MIN_ANIMATION_STEPS = 12;
 // the current time through to latest, then wraps) gets the same looping
 // behaviour, but starting where the user left it.
 export const getNumStepsFromCurrentTime = (layer: AdagucLayer): number => {
-  const timeDimension = getWMLayerById(layer.id)?.getDimension('time');
+  const timeDimension = getWMLayer(layer.id)?.getDimension('time');
   const currentValue = layer.dimensions.find(
     (dimension) => dimension.name === 'time',
   )?.currentValue;
@@ -71,7 +72,7 @@ export const AnimationClock = ({
     service: layer.serviceUrl,
     style: layer.style,
     enabled: layer.enabled,
-    opacity: layer.opacity || 1,
+    opacity: layer.opacity ?? 1,
     layerType: LayerType.mapLayer,
     name: layer.name,
     dimensions: layer.dimensions,

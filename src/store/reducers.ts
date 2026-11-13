@@ -460,7 +460,7 @@ export const reducers = {
       id,
       style: styleName || layer?.styles?.[0]?.name || '',
       dimensions,
-      opacity: opacity || 1,
+      opacity: opacity ?? 1,
       isReady: false,
       hasError,
     });

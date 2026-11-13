@@ -102,6 +102,19 @@ export default tseslint.config(
         },
       ],
       'import/no-duplicates': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@opengeoweb/webmap',
+              importNames: ['getWMLayerById'],
+              message:
+                'Use getWMLayer (src/utils/getWMLayer.ts): it is typed to return undefined for an unknown layer id, which getWMLayerById also does.',
+            },
+          ],
+        },
+      ],
       'import/first': 'error',
 
       // Same as before: the codebase leans on loosely typed third-party
@@ -118,6 +131,8 @@ export default tseslint.config(
       // pulling a module in with require() inside one is the standard
       // pattern there.
       '@typescript-eslint/no-require-imports': 'off',
+      // Tests mock getWMLayerById itself (getWMLayer goes through it).
+      'no-restricted-imports': 'off',
     },
   },
   // Must stay last: turns off every rule that conflicts with Prettier and

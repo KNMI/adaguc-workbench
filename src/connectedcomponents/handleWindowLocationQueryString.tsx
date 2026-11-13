@@ -1,4 +1,5 @@
-import { Bbox, getWMLayerById } from '@opengeoweb/webmap';
+import { Bbox } from '@opengeoweb/webmap';
+import { getWMLayer } from '../utils/getWMLayer';
 import { AppThunkDispatch, actions } from '../store/store';
 import { thunks } from '../store/thunks';
 import { AdagucMap } from '../store/types';
@@ -81,7 +82,10 @@ export const handleWindowLocationQueryString = (
         const layerFormat = layerProps[1];
         const layerEnabled = layerProps[2] !== 'false';
         const layerStyle = layerProps[3];
-        const layerOpacity = parseFloat(layerProps[4]);
+        const parsedOpacity = parseFloat(layerProps[4]);
+        // A missing/garbled value falls back to fully opaque, but a real
+        // 0 stays 0.
+        const layerOpacity = Number.isFinite(parsedOpacity) ? parsedOpacity : 1;
         const layerServiceIndex = parseInt(`${layerProps[5]}`, 10);
         if (layerServiceIndex < services.length) {
           return [
@@ -140,7 +144,7 @@ export const makePermaLink = (map: AdagucMap): string => {
   const layersLink = layers
     .map((layer) => {
       const layerName = layer.name;
-      const wmLayer = getWMLayerById(layer.id);
+      const wmLayer = getWMLayer(layer.id);
       const layerFormat = wmLayer?.format || '';
       const layerEnabled = layer.enabled ? 'true' : 'false';
       const layerStyle = layer.style;

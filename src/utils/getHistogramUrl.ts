@@ -1,4 +1,5 @@
-import { Bbox, getCorrectWMSDimName, getWMLayerById } from '@opengeoweb/webmap';
+import { Bbox, getCorrectWMSDimName } from '@opengeoweb/webmap';
+import { getWMLayer } from './getWMLayer';
 import { AdagucLayer } from '../store/types';
 import { makeGoodServiceLink } from './makeGoodServiceLink';
 
@@ -18,7 +19,7 @@ export const getHistogramUrl = (
   pixelWidth: number,
   pixelHeight: number,
 ): string | undefined => {
-  const wmLayer = getWMLayerById(layer.id);
+  const wmLayer = getWMLayer(layer.id);
   if (!wmLayer) {
     return undefined;
   }

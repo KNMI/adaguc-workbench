@@ -1,5 +1,6 @@
 import { ImageWMS } from 'ol/source';
-import { getMapDimURL, getWMLayerById } from '@opengeoweb/webmap';
+import { getMapDimURL } from '@opengeoweb/webmap';
+import { getWMLayer } from './getWMLayer';
 import { MapLocation } from '@opengeoweb/webmap-react';
 import { AdagucLayer } from '../store/types';
 
@@ -7,7 +8,7 @@ export const getFeatureInfoUrl = (
   layer: AdagucLayer,
   mapPinLocation: MapLocation,
 ): string | undefined => {
-  const wmLayer = getWMLayerById(layer.id);
+  const wmLayer = getWMLayer(layer.id);
   if (!wmLayer || !mapPinLocation || !wmLayer.getmapURL) {
     return undefined;
   }

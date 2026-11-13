@@ -117,7 +117,7 @@ export const addLayer = createAppAsyncThunk(
       // Not `enabled || true`, which turned a permalink's disabled layer
       // back on in redux while the WMLayer itself stayed disabled.
       enabled: enabled ?? true,
-      opacity: opacity || 1,
+      opacity: opacity ?? 1,
       styleName,
       serviceUrl,
       mapId,

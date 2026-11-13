@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { LayerType, getWMLayerById } from '@opengeoweb/webmap';
+import { LayerType } from '@opengeoweb/webmap';
+import { getWMLayer } from '../utils/getWMLayer';
 import {
   OnInitializeLayerProps,
   OpenLayersLayer,
@@ -48,7 +49,7 @@ const getLayerProps = (
   service: layer.serviceUrl,
   style: layer.style,
   enabled: layer.enabled,
-  opacity: layer.opacity || 1,
+  opacity: layer.opacity ?? 1,
   layerType: LayerType.mapLayer,
   name: layer.name,
   dimensions: layer.dimensions,
@@ -110,7 +111,7 @@ const AnimatedMapLayer = ({
     if (!animationTick) {
       return undefined;
     }
-    const timeDimension = getWMLayerById(layer.id)?.getDimension('time');
+    const timeDimension = getWMLayer(layer.id)?.getDimension('time');
     return (
       timeDimension?.getClosestValue(animationTick.time, true) ??
       animationTick.time

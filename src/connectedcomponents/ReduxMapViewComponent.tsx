@@ -3,7 +3,8 @@ import { View } from 'ol';
 import { get as getOlProjection } from 'ol/proj';
 import { debounce } from 'lodash';
 import { Tooltip } from '@mui/material';
-import { LayerType, getWMLayerById } from '@opengeoweb/webmap';
+import { LayerType } from '@opengeoweb/webmap';
+import { getWMLayer } from '../utils/getWMLayer';
 import {
   OpenLayersMapView,
   OpenLayersLayer,
@@ -122,7 +123,7 @@ export const ReduxMapViewComponent = ({
   // whichever layer is topmost with a time dimension) keeps them in
   // lockstep, since they all then re-render from the same state update.
   const animationClockLayer = mapLayers.find((layer) =>
-    getWMLayerById(layer.id)?.getDimension('time'),
+    getWMLayer(layer.id)?.getDimension('time'),
   );
   const [animationTick, setAnimationTick] =
     React.useState<AnimationTick | null>(null);
@@ -227,7 +228,7 @@ export const ReduxMapViewComponent = ({
       return;
     }
     lastAppliedZoomCommandId.current = zoomToLayerCommand.requestId;
-    const wmLayer = getWMLayerById(zoomToLayerCommand.layerId);
+    const wmLayer = getWMLayer(zoomToLayerCommand.layerId);
     const extent =
       wmLayer &&
       getLayerExtentForProjection(wmLayer, view.getProjection().getCode());

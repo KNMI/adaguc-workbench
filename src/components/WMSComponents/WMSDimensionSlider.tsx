@@ -4,7 +4,7 @@ import { Box, IconButton, Slider, Tooltip, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-import { getWMLayerById } from '@opengeoweb/webmap';
+import { getWMLayer } from '../../utils/getWMLayer';
 import Checkbox from '@mui/material/Checkbox';
 import { debounce } from 'lodash';
 
@@ -43,7 +43,7 @@ const WMSDimensionSlider = ({
   linked,
   onToggleLinked,
 }: WMSDimensionSliderProps): React.ReactElement<WMSDimensionSliderProps> | null => {
-  const wmLayer = getWMLayerById(layerId);
+  const wmLayer = getWMLayer(layerId);
   const layerDim = wmLayer?.getDimension(dimensionName);
   // All hooks run before the "no layer / no dimension" early returns
   // below, so every render calls the same hooks in the same order - the

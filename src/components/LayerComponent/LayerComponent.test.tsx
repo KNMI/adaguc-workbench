@@ -108,7 +108,6 @@ const requiredProps = {
   removeLayer: jest.fn(),
   layerToggleAnimation: jest.fn(),
   zoomToLayer: jest.fn(),
-  update: jest.fn(),
   onMoveUp: jest.fn(),
   onMoveDown: jest.fn(),
   canMoveUp: true,
@@ -319,24 +318,54 @@ describe('LayerComponent', () => {
     ).toBeDisabled();
   });
 
-  it('reloads capabilities and refreshes the view when the refresh button is clicked', async () => {
-    const update = jest.fn();
-    const onRefreshLayer = jest.fn().mockResolvedValue(undefined);
+  it('reloads capabilities and shows the refreshed ones once done', async () => {
+    const wmLayer = {
+      title: 'Old title',
+      dimensions: [],
+    } as unknown as WMLayer;
+    mockGetWMLayerById.mockReturnValue(wmLayer);
+    const onRefreshLayer = jest.fn(() => {
+      // What a re-parse does: updates the registry WMLayer in place.
+      wmLayer.title = 'New title';
+      return Promise.resolve();
+    });
     render(
       <LayerComponent
         {...requiredProps}
         layer={baseLayer}
-        update={update}
         onRefreshLayer={onRefreshLayer}
       />,
     );
+    expect(screen.getAllByText(/Old title/).length).toBeGreaterThan(0);
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Reload layer capabilities' }),
     );
 
     expect(onRefreshLayer).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(update).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getAllByText(/New title/).length).toBeGreaterThan(0),
+    );
+  });
+
+  it('shows and reports an opacity of 0 as 0, not as fully opaque', () => {
+    // Regression guard: this used to read `opacity || 1`, so a layer at 0%
+    // showed (and was drawn) as 100%.
+    const onChangeOpacity = jest.fn();
+    render(
+      <LayerComponent
+        {...requiredProps}
+        layer={{ ...baseLayer, opacity: 0 }}
+        onChangeOpacity={onChangeOpacity}
+      />,
+    );
+    const slider = screen.getByRole('slider', { name: 'Layer opacity' });
+
+    expect(slider).toHaveAttribute('aria-valuenow', '0');
+
+    fireEvent.change(slider, { target: { value: '40' } });
+
+    expect(onChangeOpacity).toHaveBeenCalledWith(0.4);
   });
 
   it('disables the refresh button while a refresh is in flight', async () => {
