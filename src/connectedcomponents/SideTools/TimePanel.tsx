@@ -275,9 +275,12 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
       return;
     }
     dispatch(
+      // The map-wide Play: every layer follows, not just the reference
+      // layer's linked group.
       actions.layerToggleAnimation({
         mapId,
         layerIndex: referenceEntry.layerIndex,
+        scope: 'all',
       }),
     );
   };

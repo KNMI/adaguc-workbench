@@ -1,5 +1,6 @@
 import { produce } from 'immer';
 import { reducers } from './reducers';
+import { isLayerInAnimation } from './animation';
 import { AdagucMapsState } from './types';
 
 jest.mock('@opengeoweb/webmap', () => ({
@@ -477,10 +478,54 @@ describe('reducers.changeLayerDimension', () => {
     },
   });
 
-  it('propagates the new value to other layers whose matching dimension is linked, but not unlinked ones', () => {
-    // Regression guard: this mimics the webmap's old map-level dimension
-    // linking (see WMSDimensionSlider's "link" checkbox) - a redux-tracked
-    // flag, not the live WMLayer's own (non-reactive) dimension object.
+  it('propagates a change to a linked dimension to the other linked layers, but not unlinked ones', () => {
+    const state = buildState();
+
+    // layer-2 is linked: layer-1 isn't, layer-3 isn't.
+    reducers.changeLayerDimension(state, {
+      payload: {
+        mapId,
+        layerIndex: 1,
+        dimensionName: 'time',
+        dimensionValue: '2025-01-01T05:00:00Z',
+      },
+    });
+
+    expect(
+      state.maps[mapId].layers.map((l) => l.dimensions[0].currentValue),
+    ).toEqual([
+      '2025-01-01T00:00:00Z',
+      '2025-01-01T05:00:00Z',
+      '2025-01-01T00:00:00Z',
+    ]);
+  });
+
+  it('reaches every other linked layer from a linked one', () => {
+    const state = buildState();
+    state.maps[mapId].layers[0].dimensions[0].linked = true;
+
+    reducers.changeLayerDimension(state, {
+      payload: {
+        mapId,
+        layerIndex: 0,
+        dimensionName: 'time',
+        dimensionValue: '2025-01-01T05:00:00Z',
+      },
+    });
+
+    expect(
+      state.maps[mapId].layers.map((l) => l.dimensions[0].currentValue),
+    ).toEqual([
+      '2025-01-01T05:00:00Z',
+      '2025-01-01T05:00:00Z',
+      '2025-01-01T00:00:00Z',
+    ]);
+  });
+
+  it('changes nothing else when the changed dimension is not linked', () => {
+    // Regression guard: an unlinked slider used to still push its value to
+    // every linked layer - unticking the checkbox should keep a layer out
+    // of the sync group in both directions.
     const state = buildState();
 
     reducers.changeLayerDimension(state, {
@@ -492,15 +537,13 @@ describe('reducers.changeLayerDimension', () => {
       },
     });
 
-    expect(state.maps[mapId].layers[0].dimensions[0].currentValue).toBe(
+    expect(
+      state.maps[mapId].layers.map((l) => l.dimensions[0].currentValue),
+    ).toEqual([
       '2025-01-01T05:00:00Z',
-    );
-    expect(state.maps[mapId].layers[1].dimensions[0].currentValue).toBe(
-      '2025-01-01T05:00:00Z',
-    );
-    expect(state.maps[mapId].layers[2].dimensions[0].currentValue).toBe(
       '2025-01-01T00:00:00Z',
-    );
+      '2025-01-01T00:00:00Z',
+    ]);
   });
 
   it('turns animation off', () => {
@@ -658,5 +701,187 @@ describe('reducers: layers that are missing or unknown', () => {
       }),
     ).not.toThrow();
     expect(state.maps[mapId].layers[0].name).toBe('name-a');
+  });
+});
+
+describe('reducers.initializeLayer', () => {
+  const mapId = 'map1';
+
+  it("keeps a dimension's linked flag when the layer's dimensions are refreshed", () => {
+    // Regression guard: starting an animation remounts every map layer,
+    // which reports its freshly parsed dimensions here again - replacing
+    // them wholesale dropped `linked`, so the link checkboxes unticked
+    // themselves and linked sliders stopped following each other.
+    const state: AdagucMapsState = {
+      services: {},
+      baseLayers: [],
+      maps: {
+        [mapId]: {
+          isAnimating: false,
+          isGetFeatureInfoActive: false,
+          isHistogramBoxSelectActive: false,
+          layers: [
+            {
+              id: 'layer-1',
+              name: 'RAD_NL25_PCP_CM',
+              serviceUrl: 'https://example.com/wms?',
+              style: 'default',
+              dimensions: [
+                {
+                  name: 'time',
+                  currentValue: '2025-01-01T00:00:00Z',
+                  linked: true,
+                },
+              ],
+              enabled: true,
+              opacity: 1,
+            },
+          ],
+          view: {
+            srs: 'EPSG:3857',
+            bbox: { left: -1, bottom: -1, right: 1, top: 1 },
+          },
+        },
+      },
+    };
+
+    reducers.initializeLayer(state, {
+      payload: {
+        mapId,
+        layerId: 'layer-1',
+        dimensions: [
+          { name: 'time', currentValue: '2025-01-01T00:05:00Z' },
+          { name: 'elevation', currentValue: '0' },
+        ],
+      },
+    });
+
+    expect(state.maps[mapId].layers[0].dimensions).toEqual([
+      { name: 'time', currentValue: '2025-01-01T00:05:00Z', linked: true },
+      { name: 'elevation', currentValue: '0' },
+    ]);
+  });
+});
+
+describe('animation (layerToggleAnimation, and what it means for each layer)', () => {
+  const mapId = 'map1';
+  const timeLayer = (
+    id: string,
+    linked = false,
+  ): AdagucMapsState['maps'][string]['layers'][number] => ({
+    id,
+    name: id,
+    serviceUrl: 'https://example.com/wms?',
+    style: 'default',
+    dimensions: [
+      { name: 'time', currentValue: '2025-01-01T00:00:00Z', linked },
+    ],
+    enabled: true,
+    opacity: 1,
+  });
+  const buildState = (
+    layers: AdagucMapsState['maps'][string]['layers'],
+  ): AdagucMapsState => ({
+    services: {},
+    baseLayers: [],
+    maps: {
+      [mapId]: {
+        isAnimating: false,
+        isGetFeatureInfoActive: false,
+        isHistogramBoxSelectActive: false,
+        layers,
+        view: {
+          srs: 'EPSG:3857',
+          bbox: { left: -1, bottom: -1, right: 1, top: 1 },
+        },
+      },
+    },
+  });
+  const animatingLayerIds = (state: AdagucMapsState): string[] =>
+    state.maps[mapId].layers
+      .filter((layer) => isLayerInAnimation(state.maps[mapId], layer.id))
+      .map((layer) => layer.id);
+
+  it("animates the layer whose Play was pressed - not the first one - through that layer's own time values", () => {
+    // Regression guard: Play used to toggle one map-wide flag, with the
+    // animation always stepping through the topmost layer's time values.
+    const state = buildState([timeLayer('a'), timeLayer('b')]);
+
+    reducers.layerToggleAnimation(state, { payload: { mapId, layerIndex: 1 } });
+
+    expect(state.maps[mapId].animation).toEqual({
+      layerId: 'b',
+      scope: 'group',
+    });
+    expect(animatingLayerIds(state)).toEqual(['b']);
+  });
+
+  it('takes along the layers linked with it, but not unlinked ones', () => {
+    const state = buildState([
+      timeLayer('a', true),
+      timeLayer('b', true),
+      timeLayer('c'),
+    ]);
+
+    reducers.layerToggleAnimation(state, { payload: { mapId, layerIndex: 1 } });
+
+    expect(animatingLayerIds(state)).toEqual(['a', 'b']);
+  });
+
+  it('stops when Play/Stop is pressed again on an animating layer, and switches to a non-animating one', () => {
+    const state = buildState([timeLayer('a'), timeLayer('b')]);
+    reducers.layerToggleAnimation(state, { payload: { mapId, layerIndex: 0 } });
+
+    reducers.layerToggleAnimation(state, { payload: { mapId, layerIndex: 1 } });
+    expect(state.maps[mapId].animation?.layerId).toBe('b');
+    expect(animatingLayerIds(state)).toEqual(['b']);
+
+    reducers.layerToggleAnimation(state, { payload: { mapId, layerIndex: 1 } });
+    expect(state.maps[mapId].isAnimating).toBe(false);
+    expect(animatingLayerIds(state)).toEqual([]);
+  });
+
+  it("animates every layer for the TIME panel's map-wide Play", () => {
+    const state = buildState([timeLayer('a'), timeLayer('b')]);
+
+    reducers.layerToggleAnimation(state, {
+      payload: { mapId, layerIndex: 0, scope: 'all' },
+    });
+    expect(animatingLayerIds(state)).toEqual(['a', 'b']);
+
+    reducers.layerToggleAnimation(state, {
+      payload: { mapId, layerIndex: 0, scope: 'all' },
+    });
+    expect(state.maps[mapId].isAnimating).toBe(false);
+  });
+
+  it("stops only when a layer that's part of the animation is changed by hand", () => {
+    const state = buildState([timeLayer('a'), timeLayer('b')]);
+    reducers.layerToggleAnimation(state, { payload: { mapId, layerIndex: 0 } });
+    const change = (layerIndex: number) =>
+      reducers.changeLayerDimension(state, {
+        payload: {
+          mapId,
+          layerIndex,
+          dimensionName: 'time',
+          dimensionValue: '2025-01-01T05:00:00Z',
+        },
+      });
+
+    change(1);
+    expect(state.maps[mapId].isAnimating).toBe(true);
+
+    change(0);
+    expect(state.maps[mapId].isAnimating).toBe(false);
+  });
+
+  it('stops when the layer driving the animation is removed', () => {
+    const state = buildState([timeLayer('a'), timeLayer('b')]);
+    reducers.layerToggleAnimation(state, { payload: { mapId, layerIndex: 1 } });
+
+    reducers.removeLayer(state, { payload: { mapId, layerIndex: 1 } });
+
+    expect(state.maps[mapId].isAnimating).toBe(false);
+    expect(state.maps[mapId].animation).toBeUndefined();
   });
 });

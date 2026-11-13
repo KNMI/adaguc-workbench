@@ -64,8 +64,18 @@ export interface AdagucHistogramBox {
   pixelHeight: number;
 }
 
+// What an animation runs over: the layer whose own time steps drive it,
+// and whether every layer follows ('all' - the TIME panel's Play) or just
+// that layer and the layers linked with it ('group' - a layer card's Play).
+export interface AdagucAnimation {
+  layerId: string;
+  scope: 'all' | 'group';
+}
+
 export interface AdagucMap {
   isAnimating: boolean;
+  // Set while isAnimating; see isLayerInAnimation (store/animation.ts).
+  animation?: AdagucAnimation;
   layers: AdagucLayer[];
   view: AdagucMapView;
   viewCommand?: AdagucViewCommand;

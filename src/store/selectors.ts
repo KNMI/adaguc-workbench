@@ -8,6 +8,7 @@ import {
   AdagucService,
   ViewerState,
 } from './types';
+import { isLayerInAnimation } from './animation';
 
 export const selectorMemoizationOptions = {
   memoizeOptions: {
@@ -65,6 +66,18 @@ export const getMapLayerById = createSelector(
   (map: AdagucMap | null, layerId: string): AdagucLayer | undefined => {
     return map?.layers.find((l) => l.id === layerId);
   },
+  selectorMemoizationOptions,
+);
+
+// Whether this layer is part of the map's running animation (see
+// isLayerInAnimation) - not just whether anything on the map animates.
+export const isLayerAnimating = createSelector(
+  [
+    getMapById,
+    (_state: ViewerState, _mapId: string, layerId: string) => layerId,
+  ],
+  (map: AdagucMap | null, layerId: string): boolean =>
+    map ? isLayerInAnimation(map, layerId) : false,
   selectorMemoizationOptions,
 );
 
@@ -126,5 +139,6 @@ const selectors = {
   getMapLayers,
   getStyleListForLayer,
   isMapAnimating,
+  isLayerAnimating,
 };
 export { selectors };

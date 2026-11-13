@@ -94,8 +94,10 @@ export const ReduxLayerComponent = ({
     selectors.getStyleListForLayer(state, layer),
   );
 
+  // Whether this layer itself is part of the animation, not just whether
+  // something on the map animates - its Play button shows Stop only then.
   const isAnimating = useAppSelector((state: ViewerState): boolean =>
-    selectors.isMapAnimating(state, mapId),
+    selectors.isLayerAnimating(state, mapId, layerId),
   );
 
   const changeLayerDimension = (

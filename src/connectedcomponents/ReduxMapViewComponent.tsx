@@ -16,6 +16,7 @@ import {
 import { actions, useAppDispatch, useAppSelector } from '../store/store';
 import { selectors } from '../store/selectors';
 import {
+  AdagucMap,
   AdagucBaseLayer,
   AdagucLayer,
   AdagucMapView,
@@ -27,6 +28,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary/ErrorBoundary';
 import OpenLayersHistogramBoxSelect from './OpenLayersHistogramBoxSelect';
 import { registerExtraProjections } from '../utils/registerExtraProjections';
 import { fitViewToBbox } from '../utils/fitViewToBbox';
+import { isLayerInAnimation } from '../store/animation';
 
 registerExtraProjections();
 
@@ -107,6 +109,9 @@ export const ReduxMapViewComponent = ({
   const isAnimating = useAppSelector(
     (state: ViewerState): boolean => state?.viewer?.maps[mapId]?.isAnimating,
   );
+  const map = useAppSelector(
+    (state: ViewerState): AdagucMap | undefined => state?.viewer?.maps[mapId],
+  );
   const mapPinLocation = useAppSelector(
     (state: ViewerState): MapLocation | undefined =>
       state?.viewer?.maps[mapId]?.mapPinLocation,
@@ -119,12 +124,13 @@ export const ReduxMapViewComponent = ({
   // Each animated layer used to run its own independent useAnimationForLayer
   // timer; since those aren't synchronised with each other, layers visibly
   // updated at slightly different moments. Driving every animated layer
-  // from a single shared tick (produced by one AnimationClock, for
-  // whichever layer is topmost with a time dimension) keeps them in
+  // from a single shared tick (produced by one AnimationClock) keeps them in
   // lockstep, since they all then re-render from the same state update.
-  const animationClockLayer = mapLayers.find((layer) =>
-    getWMLayer(layer.id)?.getDimension('time'),
-  );
+  // The clock steps through the time values of the layer whose Play was
+  // pressed (falling back to the topmost layer with a time dimension).
+  const animationClockLayer =
+    mapLayers.find((layer) => layer.id === map?.animation?.layerId) ??
+    mapLayers.find((layer) => getWMLayer(layer.id)?.getDimension('time'));
   const [animationTick, setAnimationTick] =
     React.useState<AnimationTick | null>(null);
 
@@ -307,7 +313,9 @@ export const ReduxMapViewComponent = ({
               // mapLayers[0] is the top of the layer list, so it gets the
               // highest zIndex among the data layers.
               zIndex={DATA_LAYER_BASE_ZINDEX + mapLayers.length - 1 - index}
-              isAnimating={isAnimating}
+              // Only the layers that are part of the animation follow its
+              // tick - see isLayerInAnimation.
+              isAnimating={!!map && isLayerInAnimation(map, layer.id)}
               animationTick={animationTick}
               onInitializeLayer={({ layerId, style, dimensions }) => {
                 dispatch(

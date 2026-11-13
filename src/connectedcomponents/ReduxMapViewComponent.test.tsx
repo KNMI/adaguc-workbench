@@ -673,4 +673,64 @@ describe('ReduxMapViewComponent', () => {
       { name: 'time', currentValue: '2025-01-01T00:00:00Z' },
     ]);
   });
+
+  it("clocks the animation from the layer whose Play was pressed, animating only that layer when it isn't linked", () => {
+    // Regression guard: the clock always used the first layer with a time
+    // dimension, so pressing Play on another layer stepped through the
+    // first layer's time values instead of its own.
+    const timeLayer = (id: string): AdagucLayer => ({
+      id,
+      name: id,
+      serviceUrl: 'http://example.com/wms',
+      style: 'default',
+      dimensions: [{ name: 'time', currentValue: '2024-06-01T00:00:00Z' }],
+      enabled: true,
+      opacity: 1,
+    });
+    mockState.viewer.maps[mapId].layers = [
+      timeLayer('layer-a'),
+      timeLayer('layer-b'),
+    ];
+    mockState.viewer.maps[mapId].isAnimating = true;
+    mockState.viewer.maps[mapId].animation = {
+      layerId: 'layer-b',
+      scope: 'group',
+    };
+    mockGetWMLayerById.mockReturnValue({
+      getDimension: (name: string) =>
+        name === 'time'
+          ? {
+              getClosestValue: jest.fn((value: string) => value),
+              // The clock's own starting point - "unknown" is fine here.
+              getIndexForValue: jest.fn(() => -1),
+            }
+          : undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    mockUseAnimationForLayer.mockReturnValue({
+      dimensions: [{ name: 'time', currentValue: '2025-01-01T00:00:00Z' }],
+      timeContext: { isAnimating: true, prefetchList: [] },
+    });
+
+    act(() => {
+      render(<ReduxMapViewComponent mapId={mapId} />);
+    });
+
+    const clockedLayerIds = new Set(
+      mockUseAnimationForLayer.mock.calls.map(
+        (call) => (call[0] as { id?: string }).id,
+      ),
+    );
+    expect(clockedLayerIds).toEqual(new Set(['layer-b']));
+    const dimensionsById = new Map(
+      mockOpenLayersLayerCalls.map((call) => [call.id, call.dimensions]),
+    );
+    // layer-b follows the animation; layer-a (not linked) keeps its own time.
+    expect(dimensionsById.get('layer-b')).toEqual([
+      { name: 'time', currentValue: '2025-01-01T00:00:00Z' },
+    ]);
+    expect(dimensionsById.get('layer-a')).toEqual([
+      { name: 'time', currentValue: '2024-06-01T00:00:00Z' },
+    ]);
+  });
 });

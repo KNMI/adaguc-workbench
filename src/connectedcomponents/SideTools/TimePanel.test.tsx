@@ -444,7 +444,7 @@ describe('TimePanel', () => {
     expect(mockDispatch).toHaveBeenCalledTimes(2);
   });
 
-  it('toggles play/stop for the reference layer', () => {
+  it('toggles map-wide play/stop, driven by the reference layer', () => {
     const dimension = makeTimeDimension([
       '2025-01-01T00:00:00Z',
       '2025-01-01T01:00:00Z',
@@ -462,9 +462,11 @@ describe('TimePanel', () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Play animation' }));
 
+    // The TIME panel's Play animates every layer, not just the reference
+    // layer's own linked group (which a layer card's Play does).
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'wmsservices/layerToggleAnimation',
-      payload: { mapId, layerIndex: 0 },
+      payload: { mapId, layerIndex: 0, scope: 'all' },
     });
   });
 

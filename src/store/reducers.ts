@@ -8,6 +8,7 @@ import {
   AdagucMapView,
 } from './types';
 import { AddLayerInterfaceFulFilled } from './thunks';
+import { isLayerInAnimation } from './animation';
 
 // Commands (view, zoom-to-layer, AutoWMS) are applied by components that
 // remember the last requestId they handled, so every new command needs an
@@ -236,15 +237,32 @@ export const reducers = {
     });
     map.layers = newLayerListOrder;
   },
+  // Play/Stop for one layer's animation (a layer card's own button), or -
+  // with scope 'all' - for every layer at once (the TIME panel's button).
+  // Either way the animation steps through that layer's own time values.
+  // Pressing it on a layer that's already animating stops the animation;
+  // on any other layer, it starts animating that one instead.
   layerToggleAnimation: (
     draftState: AdagucMapsState,
-    action: { payload: { mapId: string; layerIndex: number } },
+    action: {
+      payload: { mapId: string; layerIndex: number; scope?: 'all' | 'group' };
+    },
   ): void => {
-    const { mapId } = action.payload;
-    if (!draftState.maps[mapId]?.layers) {
+    const { mapId, layerIndex, scope = 'group' } = action.payload;
+    const map = draftState.maps[mapId];
+    const layer = map?.layers[layerIndex];
+    if (!map || !layer) {
       return;
     }
-    draftState.maps[mapId].isAnimating = !draftState.maps[mapId].isAnimating;
+    const stops =
+      scope === 'all' ? map.isAnimating : isLayerInAnimation(map, layer.id);
+    if (stops) {
+      map.isAnimating = false;
+      map.animation = undefined;
+      return;
+    }
+    map.isAnimating = true;
+    map.animation = { layerId: layer.id, scope };
   },
   removeLayer: (
     draftState: AdagucMapsState,
@@ -255,7 +273,14 @@ export const reducers = {
       return;
     }
 
-    draftState.maps[mapId].layers.splice(layerIndex, 1);
+    const map = draftState.maps[mapId];
+    // An animation driven by this layer's time values has nothing left to
+    // step through.
+    if (map.animation?.layerId === map.layers[layerIndex]?.id) {
+      map.isAnimating = false;
+      map.animation = undefined;
+    }
+    map.layers.splice(layerIndex, 1);
   },
   removeAllLayers: (
     draftState: AdagucMapsState,
@@ -351,13 +376,26 @@ export const reducers = {
     if (!draftLayer) {
       return;
     }
-    draftState.maps[mapId].isAnimating = false;
+    // Picking a value by hand stops the animation that layer is part of -
+    // an animation of other layers carries on.
+    const map = draftState.maps[mapId];
+    if (isLayerInAnimation(map, draftLayer.id)) {
+      map.isAnimating = false;
+      map.animation = undefined;
+    }
 
     setDimensionForReduxLayer(draftLayer, dimensionName, dimensionValue);
 
-    // Mimic the webmap's old map-level dimension linking: propagate the new
-    // value to other layers that have opted in to sync this dimension name
-    // (see setLayerDimensionLinked).
+    // Linked dimensions (the checkbox in front of each slider, see
+    // setLayerDimensionLinked) form one sync group: a change to a linked
+    // one goes to every other linked one. An unlinked dimension is outside
+    // that group in both directions - changing it moves nothing else.
+    const changedDimension = draftLayer.dimensions.find(
+      (dim) => dim.name === dimensionName,
+    );
+    if (!changedDimension?.linked) {
+      return;
+    }
     draftState.maps[mapId].layers.forEach((otherLayer) => {
       if (otherLayer.id === draftLayer.id) {
         return;
@@ -497,7 +535,16 @@ export const reducers = {
     }
     draftLayer.isReady = true;
     if (dimensions?.length) {
-      draftLayer.dimensions = dimensions;
+      // `linked` is the user's own choice (the link checkbox in front of
+      // each slider), which the layer itself knows nothing about - keep it.
+      // This also runs again whenever a map layer is remounted, e.g. when
+      // an animation starts.
+      draftLayer.dimensions = dimensions.map((dimension) => {
+        const linked = draftLayer.dimensions.find(
+          (existing) => existing.name === dimension.name,
+        )?.linked;
+        return linked === undefined ? dimension : { ...dimension, linked };
+      });
     }
     if (style) {
       draftLayer.style = style;
