@@ -885,3 +885,31 @@ describe('animation (layerToggleAnimation, and what it means for each layer)', (
     expect(state.maps[mapId].animation).toBeUndefined();
   });
 });
+
+describe('reducers.setEnabledBaseLayers', () => {
+  it('switches on exactly the given base maps/overlays, and every other one off', () => {
+    const baseLayer = (id: string, enabled: boolean) => ({
+      id,
+      name: id,
+      layerType: 'baseLayer',
+      enabled,
+    });
+    const state = {
+      services: {},
+      maps: {},
+      baseLayers: [
+        baseLayer('a', true),
+        baseLayer('b', false),
+        baseLayer('c', true),
+      ],
+    } as unknown as AdagucMapsState;
+
+    reducers.setEnabledBaseLayers(state, { payload: { ids: ['b', 'c'] } });
+
+    expect(state.baseLayers.map((l) => [l.id, l.enabled])).toEqual([
+      ['a', false],
+      ['b', true],
+      ['c', true],
+    ]);
+  });
+});

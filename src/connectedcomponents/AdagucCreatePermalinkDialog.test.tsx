@@ -9,7 +9,8 @@ import { emptyMap, renderWithStore } from '../testUtils/renderWithStore';
 const map = emptyMap({
   view: { srs: 'EPSG:4326', bbox: { left: 1, bottom: 2, right: 3, top: 4 } },
 });
-const PERMALINK = makePermaLink(map);
+// The test store has no base maps/overlays (see renderWithStore).
+const PERMALINK = makePermaLink(map, []);
 
 const renderDialog = () =>
   renderWithStore(

@@ -22,7 +22,7 @@ import { makePermaLink } from './handleWindowLocationQueryString';
 import { CopyToClipBoard } from './CopyToClipBoard';
 import { useAppSelector } from '../store/store';
 import { MAP_ID } from '../store/mapId';
-import { ViewerState, AdagucMap } from '../store/types';
+import { ViewerState, AdagucBaseLayer, AdagucMap } from '../store/types';
 
 const SHARE_TITLE = 'Adaguc Workbench';
 
@@ -37,7 +37,10 @@ const AdagucCreatePermalinkDialog = ({
   const map = useAppSelector(
     (state: ViewerState): AdagucMap => state?.viewer?.maps[MAP_ID],
   );
-  const link = makePermaLink(map);
+  const baseLayers = useAppSelector(
+    (state: ViewerState): AdagucBaseLayer[] => state?.viewer?.baseLayers,
+  );
+  const link = makePermaLink(map, baseLayers);
 
   // Anchors the fallback share menu (Email/WhatsApp/X) below - only shown
   // on browsers without the native Web Share API, which most desktop

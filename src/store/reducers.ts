@@ -220,6 +220,18 @@ export const reducers = {
     }
     return draftState;
   },
+  // Switches on exactly these base maps/overlays (by id), and every other
+  // one off - e.g. as restored from a permalink.
+  setEnabledBaseLayers: (
+    draftState: AdagucMapsState,
+    action: { payload: { ids: string[] } },
+  ): AdagucMapsState => {
+    const { ids } = action.payload;
+    draftState.baseLayers.forEach((draftBaseLayer) => {
+      draftBaseLayer.enabled = ids.includes(draftBaseLayer.id);
+    });
+    return draftState;
+  },
   setLayerOrderByIds: (
     draftState: AdagucMapsState,
     action: { payload: { mapId: string; layerListIds: string[] } },

@@ -22,6 +22,17 @@ export const DEFAULT_BASE_LAYERS: AdagucBaseLayer[] = [
     title: 'KNMI Basemap',
     type: 'twms',
     layerType: LayerType.baseLayer,
+    enabled: false,
+  },
+  {
+    // https://geoweb-maps-assets.pmc.knmi.cloud/WorldMap_Light_Grey_Canvas/
+    // EPSG3857/{z}/{x}/{y}.png - EPSG:3857 only.
+    id: 'baselayer-worldmap-light-grey-canvas',
+    name: 'WorldMap_Light_Grey_Canvas',
+    title: 'KNMI Basemap Light Grey Canvas',
+    type: 'twms',
+    layerType: LayerType.baseLayer,
+    // The default base map.
     enabled: true,
   },
   {

@@ -2,7 +2,16 @@ import { Bbox } from '@opengeoweb/webmap';
 import { getWMLayer } from '../utils/getWMLayer';
 import { AppThunkDispatch, actions } from '../store/store';
 import { thunks } from '../store/thunks';
-import { AdagucMap } from '../store/types';
+import { AdagucBaseLayer, AdagucMap } from '../store/types';
+import { DEFAULT_BASE_LAYERS } from '../utils/baseLayerPresets';
+import {
+  formatAnimation,
+  formatBaseLayers,
+  formatLayerDimensions,
+  parseAnimation,
+  parseBaseLayers,
+  parseLayerDimensions,
+} from './permalinkLayerState';
 
 const URLEncode = (value: string): string => encodeURIComponent(value);
 
@@ -69,13 +78,25 @@ export const handleWindowLocationQueryString = (
     dispatch(actions.requestSetProjection({ mapId, srs, bbox: parsedBbox }));
   }
 
+  const baseLayerIds = parseBaseLayers(
+    lowerCaseUrlParams.get('baselayers'),
+    DEFAULT_BASE_LAYERS.map((baseLayer) => baseLayer.id),
+  );
+  if (baseLayerIds) {
+    dispatch(actions.setEnabledBaseLayers({ ids: baseLayerIds }));
+  }
+
   const services = lowerCaseUrlParams.get('service')?.split(',');
   const layers = lowerCaseUrlParams.get('layer')?.split(',');
 
   if (layers && services && layers.length > 0) {
     // A malformed entry is skipped rather than passed on as null, which
     // used to make addLayers throw and stop adding any of the others.
-    const layerList = layers.flatMap((layer) => {
+    // Which `layer` entry each added layer came from, in map order - the
+    // layerdims/animate parameters refer to layers by that entry's
+    // position, which a skipped entry shifts.
+    const urlIndexes: number[] = [];
+    const layerList = layers.flatMap((layer, urlIndex) => {
       const layerProps = layer?.split('$');
       if (layerProps && layerProps.length === 6) {
         const layerName = layerProps[0];
@@ -88,6 +109,7 @@ export const handleWindowLocationQueryString = (
         const layerOpacity = Number.isFinite(parsedOpacity) ? parsedOpacity : 1;
         const layerServiceIndex = parseInt(`${layerProps[5]}`, 10);
         if (layerServiceIndex < services.length) {
+          urlIndexes.push(urlIndex);
           return [
             {
               name: layerName,
@@ -102,30 +124,91 @@ export const handleWindowLocationQueryString = (
       }
       return [];
     });
+    const toLayerIndex = (urlIndex: number): number | undefined => {
+      const layerIndex = urlIndexes.indexOf(urlIndex);
+      return layerIndex === -1 ? undefined : layerIndex;
+    };
     void addLayers(layerList, mapId, dispatch).then(() => {
-      const dims = lowerCaseUrlParams.get('dims')?.split(',');
-      if (dims && dims.length > 0 && layerList.length > 0) {
-        dims.forEach((dim) => {
-          const time = dim.split('$');
-          if (time && time.length === 2) {
-            const dimensionName = time[0];
-            const dimensionValue = time[1];
+      const layerDimensions = parseLayerDimensions(
+        lowerCaseUrlParams.get('layerdims'),
+      );
+      if (layerDimensions.length > 0) {
+        // Every layer's own values first - nothing is linked yet at this
+        // point, so each of these only changes its own layer.
+        layerDimensions.forEach(({ layerIndex, name, value }) => {
+          const mapLayerIndex = toLayerIndex(layerIndex);
+          if (mapLayerIndex !== undefined) {
             dispatch(
               actions.changeLayerDimension({
                 mapId,
-                layerIndex: 0,
-                dimensionName,
-                dimensionValue,
+                layerIndex: mapLayerIndex,
+                dimensionName: name,
+                dimensionValue: value,
               }),
             );
           }
         });
+        layerDimensions
+          .filter(({ linked }) => linked)
+          .forEach(({ layerIndex, name }) => {
+            const mapLayerIndex = toLayerIndex(layerIndex);
+            if (mapLayerIndex !== undefined) {
+              dispatch(
+                actions.setLayerDimensionLinked({
+                  mapId,
+                  layerIndex: mapLayerIndex,
+                  dimensionName: name,
+                  linked: true,
+                }),
+              );
+            }
+          });
+      } else {
+        // An older permalink, without layerdims: its `dims` values, for the
+        // first layer.
+        const dims = lowerCaseUrlParams.get('dims')?.split(',');
+        if (dims && dims.length > 0 && layerList.length > 0) {
+          dims.forEach((dim) => {
+            const time = dim.split('$');
+            if (time && time.length === 2) {
+              const dimensionName = time[0];
+              const dimensionValue = time[1];
+              dispatch(
+                actions.changeLayerDimension({
+                  mapId,
+                  layerIndex: 0,
+                  dimensionName,
+                  dimensionValue,
+                }),
+              );
+            }
+          });
+        }
+      }
+
+      const animation = parseAnimation(lowerCaseUrlParams.get('animate'));
+      const animatedLayerIndex = animation
+        ? toLayerIndex(animation.layerIndex)
+        : undefined;
+      if (animation && animatedLayerIndex !== undefined) {
+        dispatch(
+          actions.layerToggleAnimation({
+            mapId,
+            layerIndex: animatedLayerIndex,
+            scope: animation.scope,
+          }),
+        );
       }
     });
   }
 };
 
-export const makePermaLink = (map: AdagucMap): string => {
+export const makePermaLink = (
+  map: AdagucMap,
+  // The Baselayers tab's base maps/overlays - left out of the link when not
+  // given.
+  baseLayers?: AdagucBaseLayer[],
+): string => {
   if (!map) return '';
   // origin alone drops the path the app is actually served under - fine on
   // a site served from the domain root, but this app is also deployed as a
@@ -156,14 +239,20 @@ export const makePermaLink = (map: AdagucMap): string => {
     })
     .join(',');
 
-  const dimsMap = new Map<string, string>();
-  layers.forEach((layer) => {
-    layer.dimensions.forEach((dim) => {
-      dimsMap.set(dim.name, dim.currentValue);
-    });
-  });
-  const dimsLink = Array.from(dimsMap.entries())
-    .map(([name, currentValue]) => `${name}$${currentValue}`)
+  // Still written for older versions of the app, which apply `dims` to
+  // the first layer only - so it holds the first layer's own values.
+  const dimsLink = (layers[0]?.dimensions ?? [])
+    .map((dim) => `${dim.name}$${dim.currentValue}`)
     .join(',');
-  return `${currentOrigin}?${projectionLink}&${serviceLink}&layer=${layersLink}&selected=0&dims=${dimsLink}`;
+  // Every layer's own values and link checkboxes, and a running animation
+  // (see permalinkLayerState.ts) - what this version restores instead.
+  const layerDimensions = formatLayerDimensions(layers);
+  const animation = formatAnimation(map);
+  const layerStateLink =
+    (layerDimensions ? `&layerdims=${URLEncode(layerDimensions)}` : '') +
+    (animation ? `&animate=${URLEncode(animation)}` : '') +
+    (baseLayers
+      ? `&baselayers=${URLEncode(formatBaseLayers(baseLayers))}`
+      : '');
+  return `${currentOrigin}?${projectionLink}&${serviceLink}&layer=${layersLink}&selected=0&dims=${dimsLink}${layerStateLink}`;
 };
