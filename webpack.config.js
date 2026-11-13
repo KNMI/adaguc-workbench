@@ -10,7 +10,7 @@ module.exports = {
   mode: 'development',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'adaguc-data-explorer.js',
+    filename: 'adaguc-workbench.js',
     hashFunction: 'sha256',
   },
   devtool: 'eval-cheap-module-source-map',

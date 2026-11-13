@@ -7,14 +7,14 @@ describe('AdagucAboutDialog', () => {
     render(<AdagucAboutDialog isDialogOpen={false} onDialogOpen={jest.fn()} />);
 
     expect(
-      screen.queryByText('About Adaguc Data Explorer'),
+      screen.queryByText('About Adaguc Workbench'),
     ).not.toBeInTheDocument();
   });
 
   it('shows the target audience and a link to the GitHub repo when open', () => {
     render(<AdagucAboutDialog isDialogOpen onDialogOpen={jest.fn()} />);
 
-    expect(screen.getByText('About Adaguc Data Explorer')).toBeInTheDocument();
+    expect(screen.getByText('About Adaguc Workbench')).toBeInTheDocument();
     expect(
       screen.getByText(/meant to use with Adaguc-Server WMS services/),
     ).toBeInTheDocument();
@@ -25,11 +25,11 @@ describe('AdagucAboutDialog', () => {
     ).toBeInTheDocument();
 
     const link = screen.getByRole('link', {
-      name: /github.com\/KNMI\/adaguc-data-explorer/,
+      name: /github.com\/KNMI\/adaguc-workbench/,
     });
     expect(link).toHaveAttribute(
       'href',
-      'https://github.com/KNMI/adaguc-data-explorer',
+      'https://github.com/KNMI/adaguc-workbench',
     );
     expect(link).toHaveAttribute('target', '_blank');
 

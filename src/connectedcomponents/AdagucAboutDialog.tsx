@@ -11,7 +11,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import GitHubIcon from '@mui/icons-material/GitHub';
 
-const REPO_URL = 'https://github.com/KNMI/adaguc-data-explorer';
+const REPO_URL = 'https://github.com/KNMI/adaguc-workbench';
 const SERVER_REPO_URL = 'https://github.com/KNMI/adaguc-server';
 
 export interface AdagucAboutDialogProps {
@@ -32,7 +32,7 @@ const AdagucAboutDialog = ({
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>About Adaguc Data Explorer</DialogTitle>
+      <DialogTitle>About Adaguc Workbench</DialogTitle>
       <IconButton
         aria-label="close"
         onClick={() => {
@@ -50,7 +50,7 @@ const AdagucAboutDialog = ({
       <DialogContent>
         <Stack spacing={2}>
           <Typography variant="body1">
-            Adaguc Data Explorer (ADE) is a browser-based viewer for WMS and WCS
+            Adaguc Workbench (AWB) is a browser-based viewer for WMS and WCS
             geospatial data, meant to use with Adaguc-Server WMS services.
             It&apos;s aimed at:
           </Typography>

@@ -1,5 +1,5 @@
 {
-  "name": "adaguc-data-explorer",
+  "name": "adaguc-workbench",
   "version": "1.0.0",
   "_main": "./dist/index.js",
   "module": "./src/js/index.js",

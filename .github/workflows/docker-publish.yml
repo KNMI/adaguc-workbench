@@ -8,7 +8,7 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+'
 
 env:
-  REGISTRY_IMAGE: knmiadaguc/adaguc-data-explorer
+  REGISTRY_IMAGE: knmiadaguc/adaguc-workbench
 
 jobs:
   build:
@@ -39,7 +39,7 @@ jobs:
             network=host
 
       - name: Log in to Docker Hub
-        if: github.repository == 'KNMI/adaguc-data-explorer'
+        if: github.repository == 'KNMI/adaguc-workbench'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -90,7 +90,7 @@ jobs:
           merge-multiple: true
 
       - name: Log in to Docker Hub
-        if: github.repository == 'KNMI/adaguc-data-explorer'
+        if: github.repository == 'KNMI/adaguc-workbench'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}

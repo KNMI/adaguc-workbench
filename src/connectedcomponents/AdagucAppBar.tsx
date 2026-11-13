@@ -90,11 +90,11 @@ const AdagucAppBar = (): React.ReactElement => {
               <SharePermalinkIcon sx={{ fontSize: 28 }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title="About Adaguc Data Explorer (ADE)">
+          <Tooltip title="About Adaguc Workbench (AWB)">
             <IconButton
               size="large"
               color="inherit"
-              aria-label="About Adaguc Data Explorer"
+              aria-label="About Adaguc Workbench"
               onClick={() => {
                 setAboutDialogOpen(true);
               }}

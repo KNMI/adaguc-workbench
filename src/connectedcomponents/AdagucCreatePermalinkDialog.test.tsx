@@ -36,7 +36,7 @@ describe('AdagucCreatePermalinkDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'share' }));
 
     expect(mockShare).toHaveBeenCalledWith({
-      title: 'Adaguc Data Explorer',
+      title: 'Adaguc Workbench',
       url: PERMALINK,
     });
     expect(screen.queryByText('Email')).not.toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('AdagucCreatePermalinkDialog', () => {
     expect(emailLink).toHaveAttribute(
       'href',
       `mailto:?subject=${encodeURIComponent(
-        'Adaguc Data Explorer',
+        'Adaguc Workbench',
       )}&body=${encodeURIComponent(PERMALINK)}`,
     );
 

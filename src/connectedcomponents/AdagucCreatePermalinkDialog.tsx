@@ -23,7 +23,7 @@ import { CopyToClipBoard } from './CopyToClipBoard';
 import { useAppSelector } from '../store/store';
 import { ViewerState, AdagucMap } from '../store/types';
 
-const SHARE_TITLE = 'Adaguc Data Explorer';
+const SHARE_TITLE = 'Adaguc Workbench';
 
 interface AdagucCreatePermalinkDialogProps {
   isDialogOpen: boolean;

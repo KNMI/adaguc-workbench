@@ -76,13 +76,13 @@ describe('makePermaLink', () => {
 
   it('includes the path the app is served under, not just the origin', () => {
     // Regression guard: this app is also deployed as a GitHub Pages
-    // *project* site (e.g. https://knmi.github.io/adaguc-data-explorer/) -
+    // *project* site (e.g. https://knmi.github.io/adaguc-workbench/) -
     // using window.location.origin alone dropped that path, producing a
     // permalink that pointed at the bare domain root instead.
     window.history.pushState(
       {},
       '',
-      'http://localhost/adaguc-data-explorer/?autowms=https://example.com/autowms',
+      'http://localhost/adaguc-workbench/?autowms=https://example.com/autowms',
     );
     const map: AdagucMap = {
       isAnimating: false,
@@ -97,8 +97,6 @@ describe('makePermaLink', () => {
 
     const link = makePermaLink('map1', map);
 
-    expect(link.startsWith('http://localhost/adaguc-data-explorer/?')).toBe(
-      true,
-    );
+    expect(link.startsWith('http://localhost/adaguc-workbench/?')).toBe(true);
   });
 });

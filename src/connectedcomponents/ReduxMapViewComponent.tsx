@@ -64,7 +64,7 @@ const Watermark = (): React.ReactElement => (
       userSelect: 'none',
     }}
   >
-    <Tooltip title="Adaguc Data Explorer (ADE)">
+    <Tooltip title="Adaguc Workbench (AWB)">
       <img
         src="./adaguc-globe.png"
         alt=""
@@ -74,7 +74,7 @@ const Watermark = (): React.ReactElement => (
         style={{ width: 14, height: 14, pointerEvents: 'auto' }}
       />
     </Tooltip>
-    KNMI Adaguc Data Explorer
+    KNMI Adaguc Workbench
   </div>
 );
 

@@ -62,19 +62,19 @@ describe('AdagucAppBar', () => {
     render(<AdagucAppBar />);
 
     expect(
-      screen.queryByText('About Adaguc Data Explorer'),
+      screen.queryByText('About Adaguc Workbench'),
     ).not.toBeInTheDocument();
 
     const toolbarButtons = screen.getAllByRole('button');
     // The logo button is the last toolbar control, after the permalink one.
     expect(toolbarButtons[toolbarButtons.length - 1]).toHaveAccessibleName(
-      'About Adaguc Data Explorer',
+      'About Adaguc Workbench',
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'About Adaguc Data Explorer' }),
+      screen.getByRole('button', { name: 'About Adaguc Workbench' }),
     );
 
-    expect(screen.getByText('About Adaguc Data Explorer')).toBeInTheDocument();
+    expect(screen.getByText('About Adaguc Workbench')).toBeInTheDocument();
   });
 });
