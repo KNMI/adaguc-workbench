@@ -193,12 +193,7 @@ const AutoWMSLayerList = ({
                   <Typography variant="subtitle2" noWrap>
                     {layer.title}
                   </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    noWrap
-                    sx={{ fontFamily: 'monospace' }}
-                  >
+                  <Typography variant="caption" color="text.secondary" noWrap>
                     {layer.name}
                   </Typography>
                 </Stack>

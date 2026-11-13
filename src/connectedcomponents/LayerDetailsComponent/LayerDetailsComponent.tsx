@@ -152,7 +152,7 @@ const LayerDetailsComponent = ({
               margin: '5px',
               padding: '5px',
               fontSize: '10px',
-              fontFamily: 'courier',
+              fontFamily: 'var(--awb-font-mono)',
               background: 'white',
             }}
           >

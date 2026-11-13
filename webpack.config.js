@@ -27,6 +27,11 @@ module.exports = {
         test: /\.css$/i,
         use: ['style-loader', 'css-loader'],
       },
+      // The bundled fonts (see src/application/index.tsx).
+      {
+        test: /\.(woff2?|ttf|eot)$/i,
+        type: 'asset/resource',
+      },
       {
         test: /\.m?js$/,
         resolve: {

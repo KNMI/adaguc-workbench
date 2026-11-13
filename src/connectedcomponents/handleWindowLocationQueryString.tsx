@@ -7,9 +7,12 @@ import { DEFAULT_BASE_LAYERS } from '../utils/baseLayerPresets';
 import {
   formatAnimation,
   formatBaseLayers,
+  formatCollapsedPanels,
   formatLayerDimensions,
+  PanelsExpanded,
   parseAnimation,
   parseBaseLayers,
+  parseCollapsedPanels,
   parseLayerDimensions,
 } from './permalinkLayerState';
 
@@ -85,6 +88,10 @@ export const handleWindowLocationQueryString = (
   if (baseLayerIds) {
     dispatch(actions.setEnabledBaseLayers({ ids: baseLayerIds }));
   }
+
+  parseCollapsedPanels(lowerCaseUrlParams.get('collapsed')).forEach((panel) => {
+    dispatch(actions.setPanelExpanded({ panel, expanded: false }));
+  });
 
   const services = lowerCaseUrlParams.get('service')?.split(',');
   const layers = lowerCaseUrlParams.get('layer')?.split(',');
@@ -208,6 +215,8 @@ export const makePermaLink = (
   // The Baselayers tab's base maps/overlays - left out of the link when not
   // given.
   baseLayers?: AdagucBaseLayer[],
+  // Which side panels are open - only collapsed ones go into the link.
+  panels?: PanelsExpanded,
 ): string => {
   if (!map) return '';
   // origin alone drops the path the app is actually served under - fine on
@@ -253,6 +262,9 @@ export const makePermaLink = (
     (animation ? `&animate=${URLEncode(animation)}` : '') +
     (baseLayers
       ? `&baselayers=${URLEncode(formatBaseLayers(baseLayers))}`
+      : '') +
+    (panels && formatCollapsedPanels(panels)
+      ? `&collapsed=${URLEncode(formatCollapsedPanels(panels))}`
       : '');
   return `${currentOrigin}?${projectionLink}&${serviceLink}&layer=${layersLink}&selected=0&dims=${dimsLink}${layerStateLink}`;
 };

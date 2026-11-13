@@ -184,6 +184,25 @@ describe('handleWindowLocationQueryString', () => {
     );
   });
 
+  it('collapses the side panels a permalink lists, and none without it', async () => {
+    setUrl(`${TWO_LAYERS}&collapsed=layers,tools`);
+    const collapsed = await dispatchedActionsFor();
+
+    expect(collapsed).toContainEqual(
+      actions.setPanelExpanded({ panel: 'layers', expanded: false }),
+    );
+    expect(collapsed).toContainEqual(
+      actions.setPanelExpanded({ panel: 'tools', expanded: false }),
+    );
+
+    setUrl(TWO_LAYERS);
+    const defaults = await dispatchedActionsFor();
+
+    expect(defaults.map((action) => action.type)).not.toContain(
+      actions.setPanelExpanded({ panel: 'layers', expanded: false }).type,
+    );
+  });
+
   it('keeps the default base maps for a permalink without baselayers', async () => {
     setUrl(TWO_LAYERS);
 
@@ -333,5 +352,26 @@ describe('makePermaLink', () => {
     expect(params.get('baselayers')).toBe(
       'baselayer-worldmap-light-grey-canvas,overlay-countryborders',
     );
+  });
+
+  it('writes collapsed only while a side panel is collapsed', () => {
+    const map: AdagucMap = {
+      isAnimating: false,
+      isGetFeatureInfoActive: false,
+      isHistogramBoxSelectActive: false,
+      layers: [],
+      view: {
+        srs: 'EPSG:3857',
+        bbox: { left: -1, bottom: -2, right: 3, top: 4 },
+      },
+    };
+    const collapsedParam = (layers: boolean, tools: boolean) =>
+      new URL(makePermaLink(map, [], { layers, tools })).searchParams.get(
+        'collapsed',
+      );
+
+    expect(collapsedParam(false, true)).toBe('layers');
+    expect(collapsedParam(true, false)).toBe('tools');
+    expect(collapsedParam(true, true)).toBeNull();
   });
 });

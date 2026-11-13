@@ -913,3 +913,28 @@ describe('reducers.setEnabledBaseLayers', () => {
     ]);
   });
 });
+
+describe('reducers.setPanelExpanded', () => {
+  it('collapses and expands each side panel on its own', () => {
+    const state = {
+      services: {},
+      maps: {},
+      baseLayers: [],
+    } as AdagucMapsState;
+
+    reducers.setPanelExpanded(state, {
+      payload: { panel: 'layers', expanded: false },
+    });
+    expect(state.layerPanelIsExpanded).toBe(false);
+    expect(state.toolsPanelIsExpanded).toBeUndefined();
+
+    reducers.setPanelExpanded(state, {
+      payload: { panel: 'tools', expanded: false },
+    });
+    reducers.setPanelExpanded(state, {
+      payload: { panel: 'layers', expanded: true },
+    });
+    expect(state.layerPanelIsExpanded).toBe(true);
+    expect(state.toolsPanelIsExpanded).toBe(false);
+  });
+});

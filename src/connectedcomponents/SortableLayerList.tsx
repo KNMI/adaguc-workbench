@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { awbColors } from '../application/appTheme';
 import { ReactSortable } from 'react-sortablejs';
 import { actions, useAppDispatch, useAppSelector } from '../store/store';
 import { selectors } from '../store/selectors';
@@ -31,8 +32,7 @@ export const SortableLayerList = ({
         overflowY: 'scroll',
         width: 'inherit',
         height: '100%',
-        background:
-          'repeating-linear-gradient(-35deg,#D3CDE8,#D3CDE8 8px,#D1CBE6 8px, #D1CBE6 16px)',
+        background: awbColors.panel,
       }}
     >
       {layerDetailsForLayerId !== null && (

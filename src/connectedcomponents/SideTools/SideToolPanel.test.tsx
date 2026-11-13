@@ -86,7 +86,7 @@ describe('SideToolPanel', () => {
     });
 
     act(() => {
-      fireEvent.click(screen.getByText('Query'));
+      fireEvent.click(screen.getByText('Queries'));
     });
     expect(pinModeDispatches().at(-1)).toEqual({
       mapId: 'map1',
@@ -115,7 +115,7 @@ describe('SideToolPanel', () => {
     });
 
     act(() => {
-      fireEvent.click(screen.getByText('Query'));
+      fireEvent.click(screen.getByText('Queries'));
     });
     expect(mockQueryPanelRenders.at(-1)).toEqual({
       mapId: 'map1',
@@ -145,9 +145,9 @@ describe('SideToolPanel', () => {
     );
 
     act(() => {
-      fireEvent.click(screen.getByText('Query'));
+      fireEvent.click(screen.getByText('Queries'));
     });
-    expect(screen.getByText('Query').getAttribute('class')).toContain(
+    expect(screen.getByText('Queries').getAttribute('class')).toContain(
       'MuiButton-contained',
     );
 

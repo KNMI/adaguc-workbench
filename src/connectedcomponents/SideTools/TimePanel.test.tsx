@@ -5,6 +5,7 @@ import type { WMLayer } from '@opengeoweb/webmap';
 import { useAppDispatch, useAppSelector } from '../../store/store';
 import { AdagucLayer } from '../../store/types';
 import TimePanel from './TimePanel';
+import { awbColors } from '../../application/appTheme';
 
 jest.mock('@opengeoweb/webmap', () => ({
   getWMLayerById: jest.fn(),
@@ -193,7 +194,7 @@ describe('TimePanel', () => {
     });
   });
 
-  it('marks the most recent value across all enabled layers as the latest timestep, with a star, in blue, and a tooltip', async () => {
+  it('marks the most recent value across all enabled layers as the latest timestep, with a star, its own colour, and a tooltip', async () => {
     const dimension = makeTimeDimension([
       '2025-01-01T00:00:00Z',
       '2025-01-01T01:00:00Z',
@@ -211,10 +212,10 @@ describe('TimePanel', () => {
     const latestCell = screen.getByText('02:00z*');
     const latestRow = latestCell.closest('tr');
     expect(latestRow).not.toBeNull();
-    expect(latestRow).toHaveStyle({ backgroundColor: 'rgb(128, 179, 255)' });
+    expect(latestRow).toHaveStyle({ backgroundColor: awbColors.water });
 
     const earlierRow = screen.getByText('00:00z').closest('tr');
-    expect(earlierRow).toHaveStyle({ backgroundColor: 'rgb(170, 255, 170)' });
+    expect(earlierRow).toHaveStyle({ backgroundColor: awbColors.surface });
 
     fireEvent.mouseOver(latestCell);
     expect(await screen.findByRole('tooltip')).toHaveTextContent(

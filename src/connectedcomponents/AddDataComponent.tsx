@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ThemeWrapper } from '@opengeoweb/theme';
+import { appTheme } from '../application/appTheme';
 import 'react-mosaic-component/react-mosaic-component.css';
 import '../assets/styles.css';
 
@@ -262,7 +263,7 @@ const AddDataComponent = ({
   ];
 
   return (
-    <ThemeWrapper>
+    <ThemeWrapper theme={appTheme}>
       <Grid container style={{ display: 'flex' }}>
         <Grid
           style={{

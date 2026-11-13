@@ -1,3 +1,7 @@
+/* Colours come from the CSS variables set in src/application/appTheme.tsx
+   (--awb-surface, --awb-panel, --awb-water, --awb-water-dark, --awb-line,
+   --awb-accent) - the palette of the default base map. */
+
 :focus {
   outline: none;
 }
@@ -18,6 +22,13 @@
 
 .mosaic-tile {
   margin: 1.5px;
+  /* Shows wherever a panel's own content doesn't reach (e.g. a collapsed
+     side panel's strip) - instead of react-mosaic's own darker grey. */
+  background: var(--awb-panel);
+}
+
+.mosaic {
+  background: var(--awb-water);
 }
 
 .autowms_app_container {
@@ -28,30 +39,18 @@
   font-size: 12px;
   width: 100%;
   height: 100%;
-  background: repeating-linear-gradient(
-    -35deg,
-    rgb(211, 205, 232),
-    rgb(211, 205, 232) 8px,
-    rgb(209, 203, 230) 8px,
-    rgb(209, 203, 230) 16px
-  );
+  background: var(--awb-panel);
 }
 
 .getfeatureinfo_result_contents {
   font-size: 12px;
-  background: white;
+  background: var(--awb-surface);
 }
 
 .legend_panel {
   width: 100%;
   height: 100%;
-  background: repeating-linear-gradient(
-    -35deg,
-    rgb(211, 205, 232),
-    rgb(211, 205, 232) 8px,
-    rgb(209, 203, 230) 8px,
-    rgb(209, 203, 230) 16px
-  );
+  background: var(--awb-panel);
 }
 
 .legend_panel_toolbar {
@@ -60,25 +59,23 @@
 
 .legend_panel_item {
   margin: 3px;
-  border: 1px solid gray;
+  border: 1px solid var(--awb-water-dark);
   border-radius: 2px;
   padding: 0px;
-  background: white;
-  box-shadow:
-    rgba(0, 0, 0, 0.02) 0px 1px 3px 0px,
-    rgba(27, 31, 35, 0.15) 0px 0px 0px 1px;
+  background: var(--awb-surface);
+  box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 2px 0px;
 }
 
 .legend_panel_item_header {
   padding: 5px;
   font-size: 12px;
   margin: 0 0 5px 0;
-  background: #ddddff;
+  background: var(--awb-water);
 }
 
 .legend_panel_item_image_container {
   padding: 5px;
-  background: white;
+  background: var(--awb-surface);
 }
 
 .legend_panel_item_image {
@@ -88,13 +85,7 @@
 .query_panel {
   width: 100%;
   height: 100%;
-  background: repeating-linear-gradient(
-    -35deg,
-    rgb(211, 205, 232),
-    rgb(211, 205, 232) 8px,
-    rgb(209, 203, 230) 8px,
-    rgb(209, 203, 230) 16px
-  );
+  background: var(--awb-panel);
 }
 
 .query_panel_header {
@@ -104,38 +95,30 @@
 
 .query_panel_item {
   margin: 3px;
-  border: 1px solid gray;
+  border: 1px solid var(--awb-water-dark);
   border-radius: 2px;
   padding: 0px;
-  background: white;
-  box-shadow:
-    rgba(0, 0, 0, 0.02) 0px 1px 3px 0px,
-    rgba(27, 31, 35, 0.15) 0px 0px 0px 1px;
+  background: var(--awb-surface);
+  box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 2px 0px;
 }
 
 .query_panel_item_header {
   padding: 5px;
   font-size: 12px;
   margin: 0 0 5px 0;
-  background: #ddddff;
+  background: var(--awb-water);
 }
 
 .query_panel_item_body {
   padding: 5px;
   font-size: 12px;
-  background: white;
+  background: var(--awb-surface);
 }
 
 .baselayers_panel {
   width: 100%;
   height: 100%;
-  background: repeating-linear-gradient(
-    -35deg,
-    rgb(211, 205, 232),
-    rgb(211, 205, 232) 8px,
-    rgb(209, 203, 230) 8px,
-    rgb(209, 203, 230) 16px
-  );
+  background: var(--awb-panel);
 }
 
 .baselayers_panel_header {
@@ -152,12 +135,10 @@
 
 .baselayers_panel_item {
   margin: 3px;
-  border: 1px solid gray;
+  border: 1px solid var(--awb-water-dark);
   border-radius: 2px;
-  background: white;
-  box-shadow:
-    rgba(0, 0, 0, 0.02) 0px 1px 3px 0px,
-    rgba(27, 31, 35, 0.15) 0px 0px 0px 1px;
+  background: var(--awb-surface);
+  box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 2px 0px;
 }
 
 .layercomponent_item {
@@ -176,30 +157,30 @@ th {
   font-size: 12px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: black;
+  color: var(--awb-line);
   table-layout: fixed;
   overflow: hidden;
 }
 
 th {
-  border: 1px solid #9c9c9c;
-  background-color: #bad0ef;
+  border: 1px solid var(--awb-water-dark);
+  background-color: var(--awb-water);
 }
 
 td {
-  border-bottom: 1px solid #ededed;
+  border-bottom: 1px solid var(--awb-panel);
 }
 
 tr {
-  background-color: white;
+  background-color: var(--awb-surface);
 }
 tr:hover {
-  background-color: lightblue;
+  background-color: var(--awb-panel);
   cursor: pointer;
 }
 
 .selected {
-  background-color: #e4ebf2;
+  background-color: var(--awb-water);
 }
 
 tr.unavailable td {
@@ -207,7 +188,7 @@ tr.unavailable td {
 }
 
 tr.unavailable:hover {
-  background-color: white;
+  background-color: var(--awb-surface);
   cursor: not-allowed;
 }
 

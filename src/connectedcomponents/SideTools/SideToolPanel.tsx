@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import * as React from 'react';
+import { awbColors } from '../../application/appTheme';
 import { Button, IconButton, Tooltip } from '@mui/material';
 import { ArrowForwardIos, ArrowBackIos } from '@mui/icons-material';
 import { actions, useAppDispatch, useAppSelector } from '../../store/store';
@@ -71,7 +72,7 @@ const SideToolPanel = ({
           // (e.g. QueryPanel's own sub-tabs) instead of pushing it down.
           minHeight: '40px',
           marginBottom: '0px',
-          background: '#BAD0EF',
+          background: awbColors.water,
         }}
       >
         <Tooltip
@@ -83,7 +84,12 @@ const SideToolPanel = ({
             size="small"
             edge="end"
             color="inherit"
-            aria-label="menu"
+            // Its own name, not "menu" - the top bar's Add data button
+            // already uses that.
+            aria-label={
+              toolsPanelIsExpanded ? 'Collapse tool panel' : 'Expand tool panel'
+            }
+            aria-expanded={toolsPanelIsExpanded}
             onClick={() => {
               toggleExpandToolsPanel(!toolsPanelIsExpanded);
             }}
@@ -109,7 +115,7 @@ const SideToolPanel = ({
                 setTabPage('Query');
               }}
             >
-              Query
+              Queries
             </Button>
             <Button
               size="small"

@@ -341,11 +341,7 @@ const AutoWMS = ({
             bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
           }}
         >
-          <Typography
-            variant="body2"
-            noWrap
-            sx={{ fontFamily: 'monospace', minWidth: 0 }}
-          >
+          <Typography variant="body2" noWrap sx={{ minWidth: 0 }}>
             {/* currentLeaf (like path) is always a full path from the
                 root, not a bare filename to append to path - showing both
                 together would double up the parent segments. */}

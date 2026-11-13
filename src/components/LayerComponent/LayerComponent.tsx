@@ -320,19 +320,20 @@ export const LayerComponent = ({
         subheader={cardSubTitle}
         action={cardActions}
         slotProps={{
+          // Sizes go in sx: MUI 7's Typography no longer takes them as plain
+          // props (as such they only became stray HTML attributes, leaving
+          // the title at the much larger default h5 size).
           title: {
-            fontSize: '0.95rem',
-            fontWeight: 600,
             // cardTitle now carries its own copy icon + truncation (see
             // its own definition above) rather than being plain text, so
             // Typography's own noWrap (meant for a single text node)
             // would otherwise just add conflicting overflow/white-space
             // rules on top of that.
-            sx: { minWidth: 0 },
+            sx: { minWidth: 0, fontSize: '0.95rem', fontWeight: 600 },
           },
           subheader: {
-            fontSize: '0.8rem',
             component: 'div',
+            sx: { fontSize: '0.8rem' },
           },
         }}
         sx={{

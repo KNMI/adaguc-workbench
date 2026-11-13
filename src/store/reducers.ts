@@ -6,6 +6,7 @@ import {
   AdagucMapsState,
   AdagucService,
   AdagucMapView,
+  AdagucPanel,
 } from './types';
 import { AddLayerInterfaceFulFilled } from './thunks';
 import { isLayerInAnimation } from './animation';
@@ -217,6 +218,18 @@ export const reducers = {
     const baseLayer = draftState.baseLayers.find((l) => l.id === id);
     if (baseLayer) {
       baseLayer.enabled = enabled;
+    }
+    return draftState;
+  },
+  setPanelExpanded: (
+    draftState: AdagucMapsState,
+    action: { payload: { panel: AdagucPanel; expanded: boolean } },
+  ): AdagucMapsState => {
+    const { panel, expanded } = action.payload;
+    if (panel === 'layers') {
+      draftState.layerPanelIsExpanded = expanded;
+    } else {
+      draftState.toolsPanelIsExpanded = expanded;
     }
     return draftState;
   },

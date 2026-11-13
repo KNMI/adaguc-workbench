@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { awbColors } from '../../application/appTheme';
 import {
   Box,
   Button,
@@ -58,19 +59,21 @@ const formatLocalTime = (value: string): string =>
 
 // The row's own background colour: selected (the layer's current value)
 // takes priority over latest, since that's what's actually being shown -
-// see the isLatest tooltip for that case instead.
+// see the isLatest tooltip for that case instead. Selected is the accent
+// colour (with white text, see below), latest the base map's water colour,
+// and every other available time a plain surface.
 const rowColor = (
   isSelected: boolean,
   isLatest: boolean,
   variant: 'default' | 'hover',
 ): string => {
   if (isSelected) {
-    return '#ff8080';
+    return variant === 'hover' ? awbColors.accentDark : awbColors.accent;
   }
   if (isLatest) {
-    return variant === 'hover' ? '#5f96f5' : '#80b3ff';
+    return variant === 'hover' ? awbColors.waterDark : awbColors.water;
   }
-  return variant === 'hover' ? '#90e090' : '#aaffaa';
+  return variant === 'hover' ? awbColors.panel : awbColors.surface;
 };
 
 interface SpinnerFieldProps {
@@ -514,7 +517,7 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
         flexDirection: 'column',
         height: '100%',
         minHeight: 0,
-        bgcolor: '#ccccee',
+        bgcolor: awbColors.panel,
       }}
     >
       <Box sx={{ p: 1, textAlign: 'center' }}>
@@ -649,6 +652,7 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
                   // row other than the current one gets its "available"
                   // colour instead, unless it's the latest timestep.
                   bgcolor: rowColor(isSelected, isLatest, 'default'),
+                  color: isSelected ? '#ffffff' : awbColors.line,
                   '&:hover': {
                     bgcolor: rowColor(isSelected, isLatest, 'hover'),
                   },
@@ -657,11 +661,14 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
                 <Box
                   component="td"
                   sx={{
-                    borderTop: '1px solid black',
-                    borderBottom: '1px solid black',
+                    borderTop: `1px solid ${awbColors.waterDark}`,
+                    borderBottom: `1px solid ${awbColors.waterDark}`,
                     width: '50%',
                     fontSize: 14,
                     fontWeight: 'bold',
+                    // The row's own colour (white on the selected row) -
+                    // not the stylesheet's colour for every table cell.
+                    color: 'inherit',
                     textAlign: 'center',
                     py: 0.25,
                   }}
@@ -671,11 +678,14 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
                 <Box
                   component="td"
                   sx={{
-                    borderTop: '1px solid black',
-                    borderBottom: '1px solid black',
+                    borderTop: `1px solid ${awbColors.waterDark}`,
+                    borderBottom: `1px solid ${awbColors.waterDark}`,
                     width: '50%',
                     fontSize: 14,
                     fontWeight: 'bold',
+                    // The row's own colour (white on the selected row) -
+                    // not the stylesheet's colour for every table cell.
+                    color: 'inherit',
                     textAlign: 'center',
                     py: 0.25,
                   }}

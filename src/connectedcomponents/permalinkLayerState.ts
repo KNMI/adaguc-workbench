@@ -3,6 +3,7 @@ import {
   AdagucBaseLayer,
   AdagucLayer,
   AdagucMap,
+  AdagucPanel,
 } from '../store/types';
 
 // Permalink parameters on top of the original `layer`/`dims` ones, for
@@ -19,6 +20,9 @@ import {
 //   The base maps and overlays (the Baselayers tab) that are switched on,
 //   by their fixed ids (see utils/baseLayerPresets.ts). Present but empty
 //   means all of them are off.
+// collapsed=<panel>,...
+//   The side panels that are collapsed: 'layers' (left), 'tools' (right).
+//   Left out while both are open.
 // animate=<layer>$<scope>
 //   A running animation: the layer whose time values it steps through, and
 //   'group' (that layer's own Play, taking along its linked layers) or
@@ -136,3 +140,22 @@ export const parseBaseLayers = (
   }
   return known;
 };
+
+export interface PanelsExpanded {
+  layers: boolean;
+  tools: boolean;
+}
+
+export const formatCollapsedPanels = (panels: PanelsExpanded): string =>
+  (['layers', 'tools'] as AdagucPanel[])
+    .filter((panel) => !panels[panel])
+    .join(',');
+
+// The panels to collapse - none for a missing parameter (an older
+// permalink), and anything it doesn't recognise is ignored.
+export const parseCollapsedPanels = (param: string | null): AdagucPanel[] =>
+  (param ?? '')
+    .split(',')
+    .filter(
+      (panel): panel is AdagucPanel => panel === 'layers' || panel === 'tools',
+    );

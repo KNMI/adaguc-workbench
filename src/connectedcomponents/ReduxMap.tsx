@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { ThemeWrapper } from '@opengeoweb/theme';
+import { appTheme } from '../application/appTheme';
 
 import { actions, useAppDispatch, useAppSelector } from '../store/store';
 import { MAP_ID } from '../store/mapId';
@@ -8,7 +9,7 @@ import { AdagucLayer, ViewerState } from '../store/types';
 import { ReduxMapViewComponent } from './ReduxMapViewComponent';
 import 'react-mosaic-component/react-mosaic-component.css';
 import '../assets/styles.css';
-import { SortableLayerList } from './SortableLayerList';
+import LayerPanel from './LayerPanel';
 import AdagucAppBar from './AdagucAppBar';
 import { handleWindowLocationQueryString } from './handleWindowLocationQueryString';
 import { handleAddLayerHash } from './handleAddLayerHashTag';
@@ -19,7 +20,27 @@ const ReduxMap = (): React.ReactElement => {
   const dispatch = useAppDispatch();
   const mapId = MAP_ID;
 
-  const [toolsPanelIsExpanded, toggleExpandToolsPanel] = React.useState(true);
+  // In the store (rather than local state) so a permalink can carry them.
+  const layerPanelIsExpanded = useAppSelector(
+    (state: ViewerState): boolean =>
+      state?.viewer?.layerPanelIsExpanded ?? true,
+  );
+  const toolsPanelIsExpanded = useAppSelector(
+    (state: ViewerState): boolean =>
+      state?.viewer?.toolsPanelIsExpanded ?? true,
+  );
+  const setLayerPanelIsExpanded = React.useCallback(
+    (expanded: boolean) => {
+      dispatch(actions.setPanelExpanded({ panel: 'layers', expanded }));
+    },
+    [dispatch],
+  );
+  const toggleExpandToolsPanel = React.useCallback(
+    (expanded: boolean) => {
+      dispatch(actions.setPanelExpanded({ panel: 'tools', expanded }));
+    },
+    [dispatch],
+  );
 
   // handleAddLayerHash needs the layers currently on the map (to dedupe
   // against) every time the hash changes, not just once on mount - a ref
@@ -71,7 +92,11 @@ const ReduxMap = (): React.ReactElement => {
     (): { [viewId: string]: React.ReactElement } => ({
       b: (
         <div>
-          <SortableLayerList mapId={mapId} />
+          <LayerPanel
+            mapId={mapId}
+            isExpanded={layerPanelIsExpanded}
+            onToggleExpanded={setLayerPanelIsExpanded}
+          />
         </div>
       ),
       c: (
@@ -88,11 +113,17 @@ const ReduxMap = (): React.ReactElement => {
         </div>
       ),
     }),
-    [mapId, toolsPanelIsExpanded],
+    [
+      mapId,
+      layerPanelIsExpanded,
+      toolsPanelIsExpanded,
+      setLayerPanelIsExpanded,
+      toggleExpandToolsPanel,
+    ],
   );
 
   return (
-    <ThemeWrapper>
+    <ThemeWrapper theme={appTheme}>
       <div
         style={{
           width: '100vw',
@@ -116,7 +147,8 @@ const ReduxMap = (): React.ReactElement => {
         <div style={{ flex: 1 }}>
           <AdagucMosaic
             mosaicItems={mosaicItems}
-            collapseAutoWMS={toolsPanelIsExpanded}
+            layerPanelIsExpanded={layerPanelIsExpanded}
+            toolsPanelIsExpanded={toolsPanelIsExpanded}
           />
         </div>
       </div>

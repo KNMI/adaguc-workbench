@@ -121,7 +121,13 @@ export interface AdagucMapsState {
   // AutoWMS command. Kept here rather than in a module-level variable so
   // reducers stay pure: each store (and each test) has its own count.
   lastCommandRequestId?: number;
+  // Whether the layer panel (left) and the tool panel (right) are open, or
+  // collapsed into a narrow strip - both open when unset.
+  layerPanelIsExpanded?: boolean;
+  toolsPanelIsExpanded?: boolean;
 }
+
+export type AdagucPanel = 'layers' | 'tools';
 
 export interface ViewerState {
   viewer: AdagucMapsState;

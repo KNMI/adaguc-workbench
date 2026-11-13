@@ -2,9 +2,11 @@ import { AdagucLayer, AdagucMap } from '../store/types';
 import {
   formatAnimation,
   formatBaseLayers,
+  formatCollapsedPanels,
   formatLayerDimensions,
   parseAnimation,
   parseBaseLayers,
+  parseCollapsedPanels,
   parseLayerDimensions,
 } from './permalinkLayerState';
 
@@ -140,5 +142,22 @@ describe('baselayers', () => {
   it('leaves the defaults alone without the parameter, or with only unknown ids', () => {
     expect(parseBaseLayers(null, known)).toBeUndefined();
     expect(parseBaseLayers('renamed-preset', known)).toBeUndefined();
+  });
+});
+
+describe('collapsed', () => {
+  it('lists only the collapsed panels', () => {
+    expect(formatCollapsedPanels({ layers: false, tools: true })).toBe(
+      'layers',
+    );
+    expect(formatCollapsedPanels({ layers: false, tools: false })).toBe(
+      'layers,tools',
+    );
+    expect(formatCollapsedPanels({ layers: true, tools: true })).toBe('');
+  });
+
+  it('reads them back, ignoring anything it does not recognise', () => {
+    expect(parseCollapsedPanels('tools,sidebar')).toEqual(['tools']);
+    expect(parseCollapsedPanels(null)).toEqual([]);
   });
 });

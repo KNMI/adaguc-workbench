@@ -40,7 +40,18 @@ const AdagucCreatePermalinkDialog = ({
   const baseLayers = useAppSelector(
     (state: ViewerState): AdagucBaseLayer[] => state?.viewer?.baseLayers,
   );
-  const link = makePermaLink(map, baseLayers);
+  const layerPanelIsExpanded = useAppSelector(
+    (state: ViewerState): boolean =>
+      state?.viewer?.layerPanelIsExpanded ?? true,
+  );
+  const toolsPanelIsExpanded = useAppSelector(
+    (state: ViewerState): boolean =>
+      state?.viewer?.toolsPanelIsExpanded ?? true,
+  );
+  const link = makePermaLink(map, baseLayers, {
+    layers: layerPanelIsExpanded,
+    tools: toolsPanelIsExpanded,
+  });
 
   // Anchors the fallback share menu (Email/WhatsApp/X) below - only shown
   // on browsers without the native Web Share API, which most desktop
