@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { GlobalStyles, useMediaQuery } from '@mui/material';
+import { GlobalStyles } from '@mui/material';
 import { createTheme, Theme } from '@mui/material/styles';
 import { darkTheme, lightTheme, ThemeWrapper } from '@opengeoweb/theme';
 
@@ -193,14 +193,15 @@ const AppColorVariables = ({
 
 const STORAGE_KEY = 'awb-color-scheme';
 
-// The choice is this browser's own (it isn't part of a permalink). Until one
-// is made - or when storage is blocked - the system setting decides.
-const readStoredScheme = (): ColorScheme | null => {
+// The choice is this browser's own (it isn't part of a permalink). Light
+// until one is made, or when storage is blocked.
+const readStoredScheme = (): ColorScheme => {
   try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored === 'light' || stored === 'dark' ? stored : null;
+    return window.localStorage.getItem(STORAGE_KEY) === 'dark'
+      ? 'dark'
+      : 'light';
   } catch {
-    return null;
+    return 'light';
   }
 };
 
@@ -213,7 +214,7 @@ const storeScheme = (scheme: ColorScheme): void => {
 };
 
 interface ColorSchemeContextValue {
-  // The scheme in use: the user's choice, or else the system's.
+  // The scheme in use: the user's choice, or else light.
   scheme: ColorScheme;
   setScheme: (scheme: ColorScheme) => void;
 }
@@ -231,18 +232,12 @@ export const AppThemeProvider = ({
 }: {
   children: React.ReactNode;
 }): React.ReactElement => {
-  const [chosenScheme, setChosenScheme] = React.useState<ColorScheme | null>(
-    readStoredScheme,
-  );
-  const systemPrefersDark = useMediaQuery('(prefers-color-scheme: dark)', {
-    noSsr: true,
-  });
-  const scheme: ColorScheme =
-    chosenScheme ?? (systemPrefersDark ? 'dark' : 'light');
+  const [scheme, setSchemeState] =
+    React.useState<ColorScheme>(readStoredScheme);
   const theme = React.useMemo(() => createAppTheme(scheme), [scheme]);
 
   const setScheme = React.useCallback((next: ColorScheme): void => {
-    setChosenScheme(next);
+    setSchemeState(next);
     storeScheme(next);
   }, []);
   const value = React.useMemo(

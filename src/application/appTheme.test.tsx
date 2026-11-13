@@ -15,7 +15,8 @@ const surfaceVariable = (): string =>
     .getPropertyValue('--awb-surface')
     .trim();
 
-// jsdom has no matchMedia; this one answers for the system's dark setting.
+// jsdom has no matchMedia; this one answers for the system's dark setting -
+// which the app should not follow.
 const mockSystemPrefersDark = (dark: boolean): void => {
   window.matchMedia = vi.fn((query: string) => ({
     matches: query === '(prefers-color-scheme: dark)' && dark,
@@ -42,28 +43,26 @@ describe('AppThemeProvider', () => {
     window.localStorage.clear();
   });
 
-  it('follows the system setting by default', () => {
+  it('starts light, even when the system prefers dark', () => {
     mockSystemPrefersDark(true);
-    renderApp();
-
-    expect(screen.getByTestId('mode')).toHaveTextContent('dark');
-    expect(surfaceVariable()).toBe('#22282c');
-    expect(
-      screen.getByRole('button', { name: 'Switch to light theme' }),
-    ).toBeInTheDocument();
-  });
-
-  it('uses a stored choice over the system setting', () => {
-    mockSystemPrefersDark(true);
-    window.localStorage.setItem('awb-color-scheme', 'light');
     renderApp();
 
     expect(screen.getByTestId('mode')).toHaveTextContent('light');
     expect(surfaceVariable()).toBe('#fafaf9');
+    expect(
+      screen.getByRole('button', { name: 'Switch to dark theme' }),
+    ).toBeInTheDocument();
+  });
+
+  it('starts dark when that was chosen before', () => {
+    window.localStorage.setItem('awb-color-scheme', 'dark');
+    renderApp();
+
+    expect(screen.getByTestId('mode')).toHaveTextContent('dark');
+    expect(surfaceVariable()).toBe('#22282c');
   });
 
   it('switches between light and dark, remembering the choice', () => {
-    mockSystemPrefersDark(false);
     renderApp();
     expect(screen.getByTestId('mode')).toHaveTextContent('light');
     expect(screen.getByTestId('LightModeIcon')).toBeInTheDocument();
