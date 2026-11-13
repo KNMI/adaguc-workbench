@@ -3,6 +3,7 @@ import * as React from 'react';
 import { Button, IconButton, Tooltip } from '@mui/material';
 import { ArrowForwardIos, ArrowBackIos } from '@mui/icons-material';
 import { actions, useAppDispatch, useAppSelector } from '../../store/store';
+import { MAP_ID } from '../../store/mapId';
 import { ViewerState } from '../../store/types';
 import AutoWMS from './AutoWMS';
 import { thunks } from '../../store/thunks';
@@ -20,7 +21,7 @@ const SideToolPanel = ({
   toolsPanelIsExpanded,
 }: ToolPanelInterface): React.ReactElement => {
   const dispatch = useAppDispatch();
-  const mapId = 'map1';
+  const mapId = MAP_ID;
   const [tabPage, setTabPageState] = React.useState('AUTOWMS');
 
   const setTabPage = (value: string): void => {

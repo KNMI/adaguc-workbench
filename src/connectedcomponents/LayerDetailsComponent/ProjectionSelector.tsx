@@ -3,7 +3,7 @@ import { get as getOlProjection } from 'ol/proj';
 import { WMLayer } from '@opengeoweb/webmap';
 import { actions, useAppDispatch, useAppSelector } from '../../store/store';
 import { AdagucMapView, ViewerState } from '../../store/types';
-import ProjectionNameMappings from './ProjectionNameMappings';
+import { getProjectionName } from '../../utils/projections';
 
 interface ProjectionSelectorProps {
   mapId: string;
@@ -85,7 +85,7 @@ const ProjectionSelector = ({
                 }}
               >
                 <td>{p.srs}</td>
-                <td>{ProjectionNameMappings[p.srs] || '--'}</td>
+                <td>{getProjectionName(p.srs) || '--'}</td>
                 <td>{p.bbox.left}</td>
                 <td>{p.bbox.bottom}</td>
                 <td>{p.bbox.right}</td>

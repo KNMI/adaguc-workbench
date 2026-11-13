@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AddDataComponent, { DataElementType } from './AddDataComponent';
 import { useAppDispatch } from '../store/store';
+import { MAP_ID } from '../store/mapId';
 import { thunks } from '../store/thunks';
 
 interface AdagucAddDataDialogProps {
@@ -14,7 +15,7 @@ const AdagucAddDataDialog = ({
   onDialogOpen,
 }: AdagucAddDataDialogProps): React.ReactElement => {
   const dispatch = useAppDispatch();
-  const mapId = 'map1';
+  const mapId = MAP_ID;
 
   const handleAddData = (args: DataElementType) => {
     onDialogOpen(false);

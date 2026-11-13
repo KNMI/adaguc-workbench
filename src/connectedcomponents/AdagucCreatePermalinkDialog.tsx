@@ -21,6 +21,7 @@ import TwitterIcon from '@mui/icons-material/Twitter';
 import { makePermaLink } from './handleWindowLocationQueryString';
 import { CopyToClipBoard } from './CopyToClipBoard';
 import { useAppSelector } from '../store/store';
+import { MAP_ID } from '../store/mapId';
 import { ViewerState, AdagucMap } from '../store/types';
 
 const SHARE_TITLE = 'Adaguc Workbench';
@@ -34,7 +35,7 @@ const AdagucCreatePermalinkDialog = ({
   onDialogOpen,
 }: AdagucCreatePermalinkDialogProps): React.ReactElement => {
   const map = useAppSelector(
-    (state: ViewerState): AdagucMap => state?.viewer?.maps.map1,
+    (state: ViewerState): AdagucMap => state?.viewer?.maps[MAP_ID],
   );
   const link = makePermaLink(map);
 

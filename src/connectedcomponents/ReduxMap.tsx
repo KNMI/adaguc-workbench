@@ -2,6 +2,7 @@ import * as React from 'react';
 import { ThemeWrapper } from '@opengeoweb/theme';
 
 import { actions, useAppDispatch, useAppSelector } from '../store/store';
+import { MAP_ID } from '../store/mapId';
 import { selectors } from '../store/selectors';
 import { AdagucLayer, ViewerState } from '../store/types';
 import { ReduxMapViewComponent } from './ReduxMapViewComponent';
@@ -16,7 +17,7 @@ import SideToolPanel from './SideTools/SideToolPanel';
 
 const ReduxMap = (): React.ReactElement => {
   const dispatch = useAppDispatch();
-  const mapId = 'map1';
+  const mapId = MAP_ID;
 
   const [count, setCount] = React.useState(0);
   const update = () => {

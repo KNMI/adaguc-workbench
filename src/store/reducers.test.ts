@@ -54,6 +54,56 @@ describe('reducers.setGetFeatureInfoActive', () => {
   });
 });
 
+describe('command requestIds (requestSetProjection / requestZoomToLayer / requestAutoWMSService)', () => {
+  const mapId = 'map1';
+  const bbox = { left: 0, bottom: 0, right: 1, top: 1 };
+
+  const buildState = (): AdagucMapsState => ({
+    services: {},
+    baseLayers: [],
+    maps: {
+      [mapId]: {
+        layers: [],
+        isAnimating: false,
+        isGetFeatureInfoActive: false,
+        isHistogramBoxSelectActive: false,
+        view: { srs: 'EPSG:3857', bbox },
+      },
+    },
+  });
+
+  it('gives every command a new requestId, even one repeating the previous payload', () => {
+    const state = buildState();
+
+    reducers.requestZoomToLayer(state, { payload: { mapId, layerId: 'a' } });
+    const firstZoom = state.maps[mapId].zoomToLayerCommand?.requestId;
+    reducers.requestSetProjection(state, {
+      payload: { mapId, srs: 'EPSG:4326', bbox },
+    });
+    const projection = state.maps[mapId].viewCommand?.requestId;
+    reducers.requestAutoWMSService(state, { payload: { service: 'x' } });
+    const autoWMS = state.autoWMSServiceCommand?.requestId;
+    // Zooming to the same layer again must still be seen as a new command.
+    reducers.requestZoomToLayer(state, { payload: { mapId, layerId: 'a' } });
+    const secondZoom = state.maps[mapId].zoomToLayerCommand?.requestId;
+
+    expect([firstZoom, projection, autoWMS, secondZoom]).toEqual([1, 2, 3, 4]);
+  });
+
+  it('counts per store state rather than in module-level state shared by all of them', () => {
+    // Regression guard: the counter used to be a module-level variable,
+    // so these ids depended on whatever other states had done before.
+    const first = buildState();
+    reducers.requestZoomToLayer(first, { payload: { mapId, layerId: 'a' } });
+    reducers.requestZoomToLayer(first, { payload: { mapId, layerId: 'b' } });
+
+    const second = buildState();
+    reducers.requestZoomToLayer(second, { payload: { mapId, layerId: 'a' } });
+
+    expect(second.maps[mapId].zoomToLayerCommand?.requestId).toBe(1);
+  });
+});
+
 describe('reducers.setHistogramBoxSelectActive / setHistogramBox', () => {
   const mapId = 'map1';
 

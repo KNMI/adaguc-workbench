@@ -9,7 +9,14 @@ import {
 } from './types';
 import { AddLayerInterfaceFulFilled } from './thunks';
 
-let viewCommandRequestCounter = 0;
+// Commands (view, zoom-to-layer, AutoWMS) are applied by components that
+// remember the last requestId they handled, so every new command needs an
+// id different from the previous one - even when it repeats the same
+// payload (e.g. zooming to the same layer twice).
+const nextCommandRequestId = (draftState: AdagucMapsState): number => {
+  draftState.lastCommandRequestId = (draftState.lastCommandRequestId ?? 0) + 1;
+  return draftState.lastCommandRequestId;
+};
 
 const getReduxLayer = (
   draftState: AdagucMapsState,
@@ -118,11 +125,10 @@ export const reducers = {
     if (!draftState.maps[mapId]) {
       return draftState;
     }
-    viewCommandRequestCounter += 1;
     draftState.maps[mapId].viewCommand = {
       srs,
       bbox,
-      requestId: viewCommandRequestCounter,
+      requestId: nextCommandRequestId(draftState),
     };
     return draftState;
   },
@@ -131,10 +137,9 @@ export const reducers = {
     action: { payload: { service: string } },
   ): AdagucMapsState => {
     const { service } = action.payload;
-    viewCommandRequestCounter += 1;
     draftState.autoWMSServiceCommand = {
       service,
-      requestId: viewCommandRequestCounter,
+      requestId: nextCommandRequestId(draftState),
     };
     return draftState;
   },
@@ -146,10 +151,9 @@ export const reducers = {
     if (!draftState.maps[mapId]) {
       return draftState;
     }
-    viewCommandRequestCounter += 1;
     draftState.maps[mapId].zoomToLayerCommand = {
       layerId,
-      requestId: viewCommandRequestCounter,
+      requestId: nextCommandRequestId(draftState),
     };
     return draftState;
   },

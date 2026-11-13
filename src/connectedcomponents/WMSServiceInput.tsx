@@ -4,6 +4,7 @@ import { Autocomplete, IconButton, TextField } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { actions, useAppDispatch } from '../store/store';
+import { MAP_ID } from '../store/mapId';
 import { thunks } from '../store/thunks';
 import {
   forgetRecentService,
@@ -41,7 +42,7 @@ const WMSServiceInput = ({
   onHandled,
 }: WMSServiceInputProps): React.ReactElement => {
   const dispatch = useAppDispatch();
-  const mapId = 'map1';
+  const mapId = MAP_ID;
 
   const [value, setValue] = React.useState<string>('');
   const [recentServices, setRecentServices] = React.useState<string[]>(() =>

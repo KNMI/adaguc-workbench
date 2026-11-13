@@ -107,6 +107,10 @@ export interface AdagucMapsState {
   // Also not tied to a specific map, for the same reason as above - this
   // app only ever has the one map.
   baseLayers: AdagucBaseLayer[];
+  // The requestId handed out to the most recent view / zoom-to-layer /
+  // AutoWMS command. Kept here rather than in a module-level variable so
+  // reducers stay pure: each store (and each test) has its own count.
+  lastCommandRequestId?: number;
 }
 
 export interface ViewerState {

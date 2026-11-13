@@ -11,6 +11,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { get as getOlProjection } from 'ol/proj';
 import { actions, useAppDispatch } from '../store/store';
+import { MAP_ID } from '../store/mapId';
 import {
   PredefinedArea,
   getPredefinedAreaThumbnailUrl,
@@ -35,7 +36,7 @@ const PredefinedAreasDialog = ({
   onDialogOpen,
 }: PredefinedAreasDialogProps): React.ReactElement => {
   const dispatch = useAppDispatch();
-  const mapId = 'map1';
+  const mapId = MAP_ID;
 
   const handleSelectArea = (area: PredefinedArea): void => {
     dispatch(

@@ -69,6 +69,7 @@ describe('ProjectionSelector', () => {
 
     const [, firstRow, secondRow] = screen.getAllByRole('row');
     expect(within(firstRow).getByText('EPSG:3857')).toBeInTheDocument();
+    expect(within(firstRow).getByText(/Pseudo-Mercator/)).toBeInTheDocument();
     expect(firstRow).toHaveClass('selected');
     expect(within(secondRow).getByText('EPSG:4326')).toBeInTheDocument();
 
