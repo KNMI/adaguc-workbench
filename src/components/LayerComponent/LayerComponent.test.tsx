@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { getWMLayerById } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import { openLayersGetMapImageStore } from '@opengeoweb/webmap-react';
 import { LayerComponent } from './LayerComponent';
 import { AdagucLayer } from '../../store/types';
@@ -68,7 +69,11 @@ jest.mock('../WMSComponents/WMSStyleSelector', () => ({
   default: () => null,
 }));
 
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 const mockGetLoadDurationForId = jest.mocked(
   // eslint-disable-next-line @typescript-eslint/unbound-method
   openLayersGetMapImageStore.loadDuration.getLoadDurationForId,
@@ -251,6 +256,30 @@ describe('LayerComponent', () => {
     });
 
     expect(screen.queryByTestId('WarningAmberIcon')).not.toBeInTheDocument();
+  });
+
+  it('shows and toggles the enabled state redux has, even when the registry WMLayer says otherwise', () => {
+    // Regression guard: the icon used to read the registry WMLayer, which
+    // webmap-react can replace with a fresh, always-enabled one - so a
+    // layer restored as disabled from a permalink (and so not drawn on the
+    // map) still showed as visible, and the first click did nothing.
+    mockGetWMLayerById.mockReturnValue({
+      enabled: true,
+      dimensions: [],
+    } as unknown as WMLayer);
+    const onChangeLayerEnabled = jest.fn();
+
+    render(
+      <LayerComponent
+        {...requiredProps}
+        layer={{ ...baseLayer, enabled: false }}
+        onChangeLayerEnabled={onChangeLayerEnabled}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enable layer' }));
+
+    expect(onChangeLayerEnabled).toHaveBeenCalledWith(true);
   });
 
   it('calls onMoveUp/onMoveDown when their buttons are clicked', () => {

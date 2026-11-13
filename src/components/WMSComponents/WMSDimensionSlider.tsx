@@ -42,7 +42,7 @@ const WMSDimensionSlider = ({
   dimensionName = 'time',
   linked,
   onToggleLinked,
-}: WMSDimensionSliderProps): React.ReactElement<WMSDimensionSliderProps> => {
+}: WMSDimensionSliderProps): React.ReactElement<WMSDimensionSliderProps> | null => {
   const wmLayer = getWMLayerById(layerId);
   const layerDim = wmLayer?.getDimension(dimensionName);
   // All hooks run before the "no layer / no dimension" early returns
@@ -98,7 +98,7 @@ const WMSDimensionSlider = ({
     return null;
   }
 
-  const handleChange = (event: Event, value: number) => {
+  const handleChange = (_event: Event | null, value: number) => {
     let dimIndex = value;
     if (dimIndex < 0) dimIndex = 0;
     if (dimIndex > layerDim.size() - 1) dimIndex = layerDim.size() - 1;
@@ -136,7 +136,10 @@ const WMSDimensionSlider = ({
         <CustomSlider
           value={stateDimIndex}
           style={{ margin: '10px 0 0 5px', padding: 0 }}
-          onChange={handleChange}
+          // A single-thumb slider always reports a single number.
+          onChange={(event, value) => {
+            handleChange(event, Array.isArray(value) ? value[0] : value);
+          }}
           size="small"
           min={0}
           // The last valid index, not size() itself (an off-by-one past

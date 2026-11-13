@@ -408,7 +408,7 @@ const QueryPanel = ({
     selectors.getMapLayers(state, mapId),
   );
   const mapPinLocation = useAppSelector(
-    (state: ViewerState): MapLocation =>
+    (state: ViewerState): MapLocation | undefined =>
       state?.viewer?.maps[mapId]?.mapPinLocation,
   );
   const isBoxSelectActive = useAppSelector(
@@ -883,9 +883,13 @@ const QueryPanel = ({
             }
           />
           <Tooltip
-            labelFormatter={(value: string) => formatTimeTick(value)}
-            formatter={(value: number, name: string) => [
-              `${value} ${result.units ?? ''}`.trim(),
+            labelFormatter={(label) =>
+              typeof label === 'string' ? formatTimeTick(label) : label
+            }
+            formatter={(value, name) => [
+              typeof value === 'number'
+                ? `${value} ${result.units ?? ''}`.trim()
+                : value,
               name,
             ]}
             itemSorter={itemSorter}
@@ -1016,8 +1020,10 @@ const QueryPanel = ({
             }}
           />
           <Tooltip
-            labelFormatter={(value: number) =>
-              `${formatHistogramTick(value)} ${result.units ?? ''}`.trim()
+            labelFormatter={(label) =>
+              typeof label === 'number'
+                ? `${formatHistogramTick(label)} ${result.units ?? ''}`.trim()
+                : label
             }
           />
           <Bar

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 import { getWMLayerById } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import { useAnimationForLayer } from '@opengeoweb/webmap-react';
 import { AdagucLayer } from '../store/types';
 import { AnimationClock, getNumStepsFromCurrentTime } from './AnimationClock';
@@ -15,7 +16,11 @@ jest.mock('@opengeoweb/webmap-react', () => ({
 }));
 
 const mockUseAnimationForLayer = jest.mocked(useAnimationForLayer);
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 
 const layer: AdagucLayer = {
   id: 'layer-1',

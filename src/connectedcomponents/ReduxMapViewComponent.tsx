@@ -107,7 +107,7 @@ export const ReduxMapViewComponent = ({
     (state: ViewerState): boolean => state?.viewer?.maps[mapId]?.isAnimating,
   );
   const mapPinLocation = useAppSelector(
-    (state: ViewerState): MapLocation =>
+    (state: ViewerState): MapLocation | undefined =>
       state?.viewer?.maps[mapId]?.mapPinLocation,
   );
   const isHistogramBoxSelectActive = useAppSelector(
@@ -314,12 +314,16 @@ export const ReduxMapViewComponent = ({
                     mapId,
                     layerId,
                     style,
-                    dimensions: dimensions
-                      ?.filter((dimension) => dimension.name)
-                      .map((dimension) => ({
-                        name: dimension.name,
-                        currentValue: dimension.currentValue,
-                      })),
+                    dimensions: dimensions?.flatMap((dimension) =>
+                      dimension.name
+                        ? [
+                            {
+                              name: dimension.name,
+                              currentValue: dimension.currentValue,
+                            },
+                          ]
+                        : [],
+                    ),
                   }),
                 );
               }}

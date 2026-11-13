@@ -35,14 +35,16 @@ export const SortableLayerList = ({
           'repeating-linear-gradient(-35deg,#D3CDE8,#D3CDE8 8px,#D1CBE6 8px, #D1CBE6 16px)',
       }}
     >
-      <LayerDetailDialog
-        mapId={mapId}
-        isDialogOpen={layerDetailsForLayerId !== null}
-        layerId={layerDetailsForLayerId}
-        onClose={() => {
-          openlayerDetails(null);
-        }}
-      />
+      {layerDetailsForLayerId !== null && (
+        <LayerDetailDialog
+          mapId={mapId}
+          isDialogOpen
+          layerId={layerDetailsForLayerId}
+          onClose={() => {
+            openlayerDetails(null);
+          }}
+        />
+      )}
       <ReactSortable
         setList={(newList) => {
           if (layersInMap.join() === newList.map((it) => it.id).join()) {

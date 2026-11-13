@@ -72,7 +72,9 @@ export const handleWindowLocationQueryString = (
   const layers = lowerCaseUrlParams.get('layer')?.split(',');
 
   if (layers && services && layers.length > 0) {
-    const layerList = layers.map((layer) => {
+    // A malformed entry is skipped rather than passed on as null, which
+    // used to make addLayers throw and stop adding any of the others.
+    const layerList = layers.flatMap((layer) => {
       const layerProps = layer?.split('$');
       if (layerProps && layerProps.length === 6) {
         const layerName = layerProps[0];
@@ -82,17 +84,19 @@ export const handleWindowLocationQueryString = (
         const layerOpacity = parseFloat(layerProps[4]);
         const layerServiceIndex = parseInt(`${layerProps[5]}`, 10);
         if (layerServiceIndex < services.length) {
-          return {
-            name: layerName,
-            service: services[layerServiceIndex],
-            enabled: layerEnabled,
-            style: layerStyle,
-            opacity: layerOpacity,
-            format: layerFormat,
-          };
+          return [
+            {
+              name: layerName,
+              service: services[layerServiceIndex],
+              enabled: layerEnabled,
+              style: layerStyle,
+              opacity: layerOpacity,
+              format: layerFormat,
+            },
+          ];
         }
       }
-      return null;
+      return [];
     });
     void addLayers(layerList, mapId, dispatch).then(() => {
       const dims = lowerCaseUrlParams.get('dims')?.split(',');

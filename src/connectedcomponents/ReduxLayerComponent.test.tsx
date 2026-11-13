@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { render, waitFor } from '@testing-library/react';
 import { getWMLayerById } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import { clearImageCacheForAllMaps } from '@opengeoweb/webmap-react';
 import { useAppDispatch, useAppSelector } from '../store/store';
 import { thunks } from '../store/thunks';
@@ -32,11 +33,23 @@ jest.mock('../store/store', () => ({
   useAppSelector: jest.fn(),
 }));
 
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 const mockFetchWMSService = jest.mocked(thunks.fetchWMSService);
 const mockClearImageCacheForAllMaps = jest.mocked(clearImageCacheForAllMaps);
 
 let lastLayerComponentProps: LayerComponentProps | undefined;
+// The props LayerComponent was last rendered with - failing loudly if it
+// wasn't rendered at all.
+const latestProps = (): LayerComponentProps => {
+  if (!lastLayerComponentProps) {
+    throw new Error('LayerComponent was not rendered');
+  }
+  return lastLayerComponentProps;
+};
 jest.mock('../components/LayerComponent/LayerComponent', () => ({
   LayerComponent: (props: unknown) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -110,7 +123,7 @@ describe('ReduxLayerComponent move up/down', () => {
       />,
     );
 
-    lastLayerComponentProps.onMoveUp();
+    latestProps().onMoveUp();
 
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'wmsservices/setLayerOrderByIds',
@@ -131,7 +144,7 @@ describe('ReduxLayerComponent move up/down', () => {
       />,
     );
 
-    lastLayerComponentProps.onMoveDown();
+    latestProps().onMoveDown();
 
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'wmsservices/setLayerOrderByIds',
@@ -151,8 +164,8 @@ describe('ReduxLayerComponent move up/down', () => {
         openLayerDetails={jest.fn()}
       />,
     );
-    expect(lastLayerComponentProps.canMoveUp).toBe(false);
-    expect(lastLayerComponentProps.canMoveDown).toBe(true);
+    expect(latestProps().canMoveUp).toBe(false);
+    expect(latestProps().canMoveDown).toBe(true);
 
     render(
       <ReduxLayerComponent
@@ -162,8 +175,8 @@ describe('ReduxLayerComponent move up/down', () => {
         openLayerDetails={jest.fn()}
       />,
     );
-    expect(lastLayerComponentProps.canMoveUp).toBe(true);
-    expect(lastLayerComponentProps.canMoveDown).toBe(false);
+    expect(latestProps().canMoveUp).toBe(true);
+    expect(latestProps().canMoveDown).toBe(false);
   });
 
   it('does nothing when asked to move past either end of the list', () => {
@@ -179,7 +192,7 @@ describe('ReduxLayerComponent move up/down', () => {
       />,
     );
 
-    lastLayerComponentProps.onMoveUp();
+    latestProps().onMoveUp();
 
     expect(mockDispatch).not.toHaveBeenCalled();
   });
@@ -225,7 +238,7 @@ describe('ReduxLayerComponent refresh', () => {
       />,
     );
 
-    await lastLayerComponentProps.onRefreshLayer();
+    await latestProps().onRefreshLayer();
 
     expect(mockParseLayer).toHaveBeenCalledWith(true);
     // Regression guard: re-parsing only refreshes capabilities - the map
@@ -255,7 +268,7 @@ describe('ReduxLayerComponent refresh', () => {
       />,
     );
 
-    await lastLayerComponentProps.onRefreshLayer();
+    await latestProps().onRefreshLayer();
 
     expect(mockClearImageCacheForAllMaps).not.toHaveBeenCalled();
   });
@@ -274,7 +287,7 @@ describe('ReduxLayerComponent refresh', () => {
       />,
     );
 
-    await lastLayerComponentProps.onRefreshLayer();
+    await latestProps().onRefreshLayer();
 
     await waitFor(() => {
       expect(mockDispatch).toHaveBeenCalledWith({

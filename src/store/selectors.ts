@@ -19,7 +19,7 @@ export const selectorMemoizationOptions = {
 export const getAvailableLayers = createSelector(
   [
     (state: ViewerState) => state?.viewer,
-    (_state, serviceUrl: string) => serviceUrl,
+    (_state: ViewerState, serviceUrl: string) => serviceUrl,
   ],
   (viewer: AdagucMapsState, serviceUrl: string): LayerProps[] => {
     const service = Object.values(viewer.services).find(
@@ -33,10 +33,10 @@ export const getAvailableLayers = createSelector(
 export const getMapById = createSelector(
   [
     (state: ViewerState): AdagucMapsState => state?.viewer,
-    (_state, mapId: string) => mapId,
+    (_state: ViewerState, mapId: string) => mapId,
   ],
   (viewer: AdagucMapsState, mapId: string): AdagucMap | null => {
-    return viewer.maps[mapId];
+    return viewer.maps[mapId] ?? null;
   },
   selectorMemoizationOptions,
 );
@@ -58,8 +58,11 @@ export const getMapLayers = createSelector(
 );
 
 export const getMapLayerById = createSelector(
-  [getMapById, (_1, _2, layerId: string) => layerId],
-  (map: AdagucMap, layerId): AdagucLayer | null => {
+  [
+    getMapById,
+    (_state: ViewerState, _mapId: string, layerId: string) => layerId,
+  ],
+  (map: AdagucMap | null, layerId: string): AdagucLayer | undefined => {
     return map?.layers.find((l) => l.id === layerId);
   },
   selectorMemoizationOptions,
@@ -67,8 +70,8 @@ export const getMapLayerById = createSelector(
 
 export const isMapAnimating = createSelector(
   [getMapById],
-  (map: AdagucMap): boolean | null => {
-    return map?.isAnimating;
+  (map: AdagucMap | null): boolean => {
+    return map?.isAnimating ?? false;
   },
   selectorMemoizationOptions,
 );
@@ -76,9 +79,12 @@ export const isMapAnimating = createSelector(
 const getServiceForLayer = createSelector(
   [
     (state: ViewerState): AdagucMapsState => state?.viewer,
-    (_state, layer: AdagucLayer) => layer,
+    (_state, layer: AdagucLayer | undefined) => layer,
   ],
-  (viewer: AdagucMapsState, layer: AdagucLayer): AdagucService | null => {
+  (
+    viewer: AdagucMapsState,
+    layer: AdagucLayer | undefined,
+  ): AdagucService | null => {
     if (!viewer) return null;
     const service = Object.values(viewer.services).find(
       (_service: AdagucService) => {
@@ -97,9 +103,9 @@ const getServiceForLayer = createSelector(
 );
 
 const getStyleListForLayer = createSelector(
-  [getServiceForLayer, (_state, layer: AdagucLayer) => layer],
-  (service: AdagucService | null, layer: AdagucLayer): Style[] => {
-    if (!service || !service.layers || !service.layers.length) {
+  [getServiceForLayer, (_state, layer: AdagucLayer | undefined) => layer],
+  (service: AdagucService | null, layer: AdagucLayer | undefined): Style[] => {
+    if (!layer || !service || !service.layers || !service.layers.length) {
       return [];
     }
     const serviceLayer = service.layers.find((l) => {

@@ -1,4 +1,5 @@
 import { getWMLayerById } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import { MapLocation } from '@opengeoweb/webmap-react';
 import {
   buildTimeDimensionValue,
@@ -20,7 +21,19 @@ jest.mock('ol/source', () => ({
   })),
 }));
 
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+// Fails loudly if no url was built at all.
+const requireUrl = (url: string | undefined): string => {
+  if (!url) {
+    throw new Error('getTimeSeriesUrl returned no url');
+  }
+  return url;
+};
+
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 
 const layer: AdagucLayer = {
   id: 'layer-1',
@@ -205,7 +218,7 @@ describe('getTimeSeriesUrl', () => {
     } as any);
 
     const url = getTimeSeriesUrl(layer, mapPinLocation);
-    const timeParam = new URL(url).searchParams.get('TIME');
+    const timeParam = new URL(requireUrl(url)).searchParams.get('TIME');
     // 100 values, defaulting to the most recent DEFAULT_MAX_TIME_STEPS.
     expect(timeParam).toBe(`t${values.length - DEFAULT_MAX_TIME_STEPS}/t99`);
   });
@@ -223,7 +236,7 @@ describe('getTimeSeriesUrl', () => {
     } as any);
 
     const url = getTimeSeriesUrl(layer, mapPinLocation, { time: 5 });
-    const timeParam = new URL(url).searchParams.get('TIME');
+    const timeParam = new URL(requireUrl(url)).searchParams.get('TIME');
     expect(timeParam).toBe('t95/t99');
   });
 
@@ -247,7 +260,7 @@ describe('getTimeSeriesUrl', () => {
       start: '2024-01-01T00:00:00Z',
       end: '2024-01-02T00:00:00Z',
     });
-    const timeParam = new URL(url).searchParams.get('TIME');
+    const timeParam = new URL(requireUrl(url)).searchParams.get('TIME');
     expect(timeParam).toBe('2024-01-01T00:00:00Z/2024-01-02T00:00:00Z');
   });
 

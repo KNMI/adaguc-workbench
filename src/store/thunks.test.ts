@@ -31,7 +31,7 @@ const serviceUrl = 'http://localhost:8080/adagucserver?dataset=test&';
 // as-is, since nothing here needs those applied to real reducer state.
 const runThunk = async <T>(
   thunkAction: (
-    dispatch: unknown,
+    dispatch: never,
     getState: () => ViewerState,
     extra: unknown,
   ) => Promise<T>,
@@ -47,7 +47,7 @@ const runThunk = async <T>(
           undefined,
         )
       : action;
-  return thunkAction(dispatch, getState, undefined);
+  return thunkAction(dispatch as never, getState, undefined);
 };
 
 const emptyState: ViewerState = {
@@ -95,6 +95,30 @@ describe('thunks.addLayer', () => {
       dimensions: [],
       hasError: false,
     });
+  });
+
+  it('keeps a layer requested as disabled (e.g. from a permalink) disabled', async () => {
+    // Regression guard: this used to be `enabled || true`, which turned the
+    // layer back on in redux while the WMLayer itself stayed disabled.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockWMLayer.mockImplementation(function MockWMLayer(this: any) {
+      this.dimensions = [];
+      this.parseLayer = jest.fn().mockResolvedValue(undefined);
+      this.setStyle = jest.fn();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+
+    const disabled = await runThunk(
+      thunks.addLayer({ mapId, serviceUrl, name: 'a', enabled: false }),
+      emptyState,
+    );
+    const unspecified = await runThunk(
+      thunks.addLayer({ mapId, serviceUrl, name: 'a' }),
+      emptyState,
+    );
+
+    expect(disabled.payload.enabled).toBe(false);
+    expect(unspecified.payload.enabled).toBe(true);
   });
 
   it('still adds the layer, with empty dimensions, when it cannot be parsed', async () => {

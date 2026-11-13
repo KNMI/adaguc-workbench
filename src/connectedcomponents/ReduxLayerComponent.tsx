@@ -66,7 +66,7 @@ export const ReduxLayerComponent = ({
     );
   };
 
-  const layer = useAppSelector((state: ViewerState): AdagucLayer =>
+  const layer = useAppSelector((state: ViewerState): AdagucLayer | undefined =>
     selectors.getMapLayerById(state, mapId, layerId),
   );
 
@@ -200,6 +200,11 @@ export const ReduxLayerComponent = ({
     }
   };
 
+  // Briefly true while a removed layer's row is still being unmounted.
+  if (!layer) {
+    return null;
+  }
+
   return (
     <LayerComponent
       layer={layer}
@@ -222,7 +227,7 @@ export const ReduxLayerComponent = ({
       onChangeLayerEnabled={(enabled) => {
         changeLayerEnabled(enabled);
       }}
-      getDimensionValue={(dimensionName: string): string => {
+      getDimensionValue={(dimensionName: string): string | undefined => {
         const foundDim = layer?.dimensions?.find(
           (dim) => dim.name === dimensionName,
         );

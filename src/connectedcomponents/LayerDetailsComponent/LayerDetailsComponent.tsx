@@ -140,7 +140,7 @@ const LayerDetailsComponent = ({
           </a>
           <hr />
           Layer name
-          <CopyToClipBoard info="WMS Layer name" text={wmLayer.name} />
+          <CopyToClipBoard info="WMS Layer name" text={wmLayer.name ?? ''} />
           <a target="_blank" rel="noreferrer" href={wmLayer.name}>
             {wmLayer.name}
           </a>

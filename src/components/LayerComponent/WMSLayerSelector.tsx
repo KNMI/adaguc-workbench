@@ -25,11 +25,11 @@ interface WMSLayerSelectorProps {
 }
 
 interface MakeTreeProps {
-  tree: LayerTree;
+  tree: LayerTree | null;
 }
 const MakeTree = ({
   tree,
-}: MakeTreeProps): React.ReactElement<MakeTreeProps> => {
+}: MakeTreeProps): React.ReactElement<MakeTreeProps> | null => {
   if (!tree) return null;
   const { children, name: layerName, title } = tree;
   if (children && children.length > 0) {
@@ -63,14 +63,16 @@ const WMSLayerSelector = ({
   layerName,
   serviceUrl,
   onSelectLayer,
-}: WMSLayerSelectorProps): React.ReactElement<WMSLayerSelectorProps> => {
+}: WMSLayerSelectorProps): React.ReactElement<WMSLayerSelectorProps> | null => {
   const tree = useQueryGetWMSLayersTree(serviceUrl);
   const layers = useQueryGetWMSLayers(serviceUrl);
   const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
   const [menuOpen, setMenuOpen] = React.useState<boolean>(false);
 
-  const handleSelectedItemsChange = (e, ids) => {
-    const selected = ids as unknown as string;
+  const handleSelectedItemsChange = (
+    _event: React.SyntheticEvent | null,
+    selected: string | null,
+  ) => {
     const selectedLayer = layers.find((lins) => lins.name === selected);
     if (selectedLayer && selectedLayer.name) {
       setMenuOpen(false);
@@ -79,7 +81,7 @@ const WMSLayerSelector = ({
   };
 
   const handleExpandedItemsChange = (
-    event: React.SyntheticEvent,
+    _event: React.SyntheticEvent | null,
     itemIds: string[],
   ) => {
     setExpandedItems(itemIds);
@@ -151,7 +153,7 @@ const WMSLayerSelector = ({
             {selectedLayer?.title}
           </MenuItem>
           <SimpleTreeView
-            selectedItems={[layerName]}
+            selectedItems={layerName}
             expandedItems={expandedItems}
             onSelectedItemsChange={handleSelectedItemsChange}
             onExpandedItemsChange={handleExpandedItemsChange}

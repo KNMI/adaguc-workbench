@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { getWMLayerById } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import { useAppDispatch, useAppSelector } from '../../store/store';
 import { AdagucLayer, ViewerState } from '../../store/types';
 import { getFeatureInfoUrl } from '../../utils/getFeatureInfoUrl';
@@ -106,7 +107,11 @@ jest.mock('recharts', () => {
      @typescript-eslint/no-explicit-any */
 });
 
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 const mockGetFeatureInfoUrl = jest.mocked(getFeatureInfoUrl);
 const mockGetTimeSeriesUrl = jest.mocked(getTimeSeriesUrl);
 const mockGetTimeDimensionRange = jest.mocked(getTimeDimensionRange);

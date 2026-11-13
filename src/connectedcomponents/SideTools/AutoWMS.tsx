@@ -610,7 +610,8 @@ const AutoWMS = ({
                 changeLeaf('');
                 changePath(p.path);
               } else {
-                setOGCWMSService(p.adaguc);
+                // A leaf without an ADAGUC WMS url has no layers to list.
+                setOGCWMSService(p.adaguc ?? '');
                 changeLeaf(p.path);
                 // Re-clicking the same already-loaded dataset wouldn't
                 // otherwise change ogcWMSService's value, so the effect
@@ -751,7 +752,9 @@ const AutoWMS = ({
           >
             <Box
               onClick={() => {
-                addLayer(ogcWMSService, layer.name);
+                if (layer.name) {
+                  addLayer(ogcWMSService, layer.name);
+                }
               }}
               onKeyDown={() => {}}
               role="button"

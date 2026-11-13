@@ -29,7 +29,7 @@ const threeLayers = [
 
 describe('WMSLayerSelector', () => {
   beforeEach(() => {
-    mockUseQueryGetWMSLayersTree.mockReturnValue(undefined);
+    mockUseQueryGetWMSLayersTree.mockReturnValue(null);
   });
 
   afterEach(() => {

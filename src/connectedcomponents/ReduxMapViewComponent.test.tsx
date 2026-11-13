@@ -7,6 +7,7 @@ import {
   useAnimationForLayer,
 } from '@opengeoweb/webmap-react';
 import { getWMLayerById } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import { get as getOlProjection } from 'ol/proj';
 import { useAppDispatch, useAppSelector } from '../store/store';
 import { AdagucLayer, ViewerState } from '../store/types';
@@ -111,7 +112,11 @@ const mockGetLayerExtentForProjection = jest.mocked(
   getLayerExtentForProjection,
 );
 const mockUseAnimationForLayer = jest.mocked(useAnimationForLayer);
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 const mockGetOlProjection = jest.mocked(getOlProjection);
 const mockUseAppDispatch = jest.mocked(useAppDispatch);
 const mockUseAppSelector = jest.mocked(useAppSelector);
@@ -506,11 +511,11 @@ describe('ReduxMapViewComponent', () => {
     const zIndexById = new Map(
       mockOpenLayersLayerCalls.map((call) => [call.id, call.zIndex]),
     );
-    expect(zIndexById.get('baselayer-worldmap')).toBeLessThan(
-      zIndexById.get('layer-data'),
+    expect(zIndexById.get('baselayer-worldmap') ?? NaN).toBeLessThan(
+      zIndexById.get('layer-data') ?? NaN,
     );
-    expect(zIndexById.get('layer-data')).toBeLessThan(
-      zIndexById.get('overlay-countryborders'),
+    expect(zIndexById.get('layer-data') ?? NaN).toBeLessThan(
+      zIndexById.get('overlay-countryborders') ?? NaN,
     );
   });
 
@@ -543,8 +548,8 @@ describe('ReduxMapViewComponent', () => {
       mockOpenLayersLayerCalls.map((call) => [call.id, call.zIndex]),
     );
 
-    expect(zIndexById.get('layer-top')).toBeGreaterThan(
-      zIndexById.get('layer-bottom'),
+    expect(zIndexById.get('layer-top') ?? NaN).toBeGreaterThan(
+      zIndexById.get('layer-bottom') ?? NaN,
     );
   });
 
@@ -573,8 +578,8 @@ describe('ReduxMapViewComponent', () => {
     const initialZIndexById = new Map(
       mockOpenLayersLayerCalls.map((call) => [call.id, call.zIndex]),
     );
-    expect(initialZIndexById.get('layer-a')).toBeGreaterThan(
-      initialZIndexById.get('layer-b'),
+    expect(initialZIndexById.get('layer-a') ?? NaN).toBeGreaterThan(
+      initialZIndexById.get('layer-b') ?? NaN,
     );
 
     // Drag layer-b to the top of the list.
@@ -599,8 +604,8 @@ describe('ReduxMapViewComponent', () => {
     const reorderedZIndexById = new Map(
       mockOpenLayersLayerCalls.map((call) => [call.id, call.zIndex]),
     );
-    expect(reorderedZIndexById.get('layer-b')).toBeGreaterThan(
-      reorderedZIndexById.get('layer-a'),
+    expect(reorderedZIndexById.get('layer-b') ?? NaN).toBeGreaterThan(
+      reorderedZIndexById.get('layer-a') ?? NaN,
     );
   });
 

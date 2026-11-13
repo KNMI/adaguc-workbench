@@ -1,13 +1,18 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { getWMLayerById } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import WMSDimensionSlider from './WMSDimensionSlider';
 
 jest.mock('@opengeoweb/webmap', () => ({
   getWMLayerById: jest.fn(),
 }));
 
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 
 const layerId = 'layer-1';
 

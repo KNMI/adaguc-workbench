@@ -1,4 +1,5 @@
 import { getWMLayerById } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import { getHistogramUrl } from './getHistogramUrl';
 import { AdagucLayer } from '../store/types';
 
@@ -10,7 +11,11 @@ jest.mock('@opengeoweb/webmap', () => ({
       : `DIM_${name.toUpperCase()}`,
 }));
 
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 
 const layer: AdagucLayer = {
   id: 'layer-1',

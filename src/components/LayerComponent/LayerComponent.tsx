@@ -55,7 +55,8 @@ export interface LayerComponentProps {
   onChangeLayerEnabled: (enabled: boolean) => void;
   onChangeOpacity: (opacity: number) => void;
   onDuplicate: () => void;
-  getDimensionValue: (dimensionName: string) => string;
+  // undefined when redux doesn't track this dimension (yet).
+  getDimensionValue: (dimensionName: string) => string | undefined;
   setDimensionValue: (dimensionName: string, dimensionValue: string) => void;
   getDimensionLinked: (dimensionName: string) => boolean;
   setDimensionLinked: (dimensionName: string, linked: boolean) => void;
@@ -400,7 +401,9 @@ export const LayerComponent = ({
             </Box>
           </Stack>
           {getWMLayerById(layer?.id)?.dimensions.map((layerDimension) => {
-            const dimensionValue = getDimensionValue(layerDimension.name);
+            const dimensionValue =
+              getDimensionValue(layerDimension.name) ??
+              layerDimension.currentValue;
             return (
               <Stack
                 key={`${layer.name}${layerDimension.name}${layerIndex}`}
@@ -556,21 +559,22 @@ export const LayerComponent = ({
         <Tooltip title="Enable/disable layer">
           <IconButton
             size="small"
-            aria-label={
-              getWMLayerById(layer?.id)?.enabled
-                ? 'Disable layer'
-                : 'Enable layer'
-            }
+            // Read from redux, which is also what decides whether the map
+            // draws the layer: the WMLayer in opengeoweb's registry can be
+            // replaced by a fresh (always enabled) one, e.g. for a layer a
+            // permalink restores as disabled.
+            aria-label={layer?.enabled ? 'Disable layer' : 'Enable layer'}
             onClick={() => {
+              const enabled = !layer?.enabled;
               const target = getWMLayerById(layer?.id);
               if (target) {
-                target.enabled = !target.enabled;
-                onChangeLayerEnabled(target.enabled);
-                update();
+                target.enabled = enabled;
               }
+              onChangeLayerEnabled(enabled);
+              update();
             }}
           >
-            {getWMLayerById(layer?.id)?.enabled ? (
+            {layer?.enabled ? (
               <VisibilityIcon fontSize="small" />
             ) : (
               <VisibilityOffIcon fontSize="small" />

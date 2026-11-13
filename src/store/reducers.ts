@@ -55,7 +55,7 @@ const setDimensionForReduxLayer = (
 const getServiceByServiceUrl = (
   draftState: AdagucMapsState,
   serviceUrl: string,
-): AdagucService | null => {
+): AdagucService | undefined => {
   const service = Object.values(draftState.services).find(
     (s) => s.serviceUrl === serviceUrl,
   );
@@ -222,24 +222,24 @@ export const reducers = {
   setLayerOrderByIds: (
     draftState: AdagucMapsState,
     action: { payload: { mapId: string; layerListIds: string[] } },
-  ): AdagucMapsState => {
+  ): void => {
     const { mapId, layerListIds } = action.payload;
-    if (!draftState.maps[mapId]?.layers) {
+    const map = draftState.maps[mapId];
+    if (!map?.layers) {
       return;
     }
-    const newLayerListOrder = layerListIds.map(
-      (idToFind: string): AdagucLayer => {
-        return draftState.maps[mapId].layers.find(
-          (layerToFind) => layerToFind.id === idToFind,
-        );
-      },
-    );
-    draftState.maps[mapId].layers = newLayerListOrder;
+    // An id that isn't (or is no longer) on the map is skipped rather than
+    // leaving an undefined hole in the layer list.
+    const newLayerListOrder = layerListIds.flatMap((idToFind) => {
+      const layer = map.layers.find((l) => l.id === idToFind);
+      return layer ? [layer] : [];
+    });
+    map.layers = newLayerListOrder;
   },
   layerToggleAnimation: (
     draftState: AdagucMapsState,
     action: { payload: { mapId: string; layerIndex: number } },
-  ): AdagucMapsState => {
+  ): void => {
     const { mapId } = action.payload;
     if (!draftState.maps[mapId]?.layers) {
       return;
@@ -249,7 +249,7 @@ export const reducers = {
   removeLayer: (
     draftState: AdagucMapsState,
     action: { payload: { mapId: string; layerIndex: number } },
-  ): AdagucMapsState => {
+  ): void => {
     const { mapId, layerIndex } = action.payload;
     if (!draftState.maps[mapId]?.layers) {
       return;
@@ -260,7 +260,7 @@ export const reducers = {
   removeAllLayers: (
     draftState: AdagucMapsState,
     action: { payload: { mapId: string } },
-  ): AdagucMapsState => {
+  ): void => {
     const { mapId } = action.payload;
     if (!draftState.maps[mapId]?.layers) {
       return;
@@ -275,6 +275,9 @@ export const reducers = {
   ): AdagucMapsState => {
     const { mapId, layerIndex, styleName } = action.payload;
     const draftLayer = getReduxLayer(draftState, mapId, layerIndex);
+    if (!draftLayer) {
+      return draftState;
+    }
     const styleList = getStyleListForReduxLayer(draftState, draftLayer);
     const exists = styleList.find((style) => style.name === styleName);
     const newStyleName = styleList.length > 0 ? styleList[0].name : 'default';
@@ -313,16 +316,21 @@ export const reducers = {
     action: {
       payload: { mapId: string; layerIndex: number; layerName: string };
     },
-  ): AdagucMapsState => {
+  ): void => {
     const { mapId, layerIndex, layerName } = action.payload;
     const draftLayer = getReduxLayer(draftState, mapId, layerIndex);
     if (!draftLayer) {
       return;
     }
     const service = getServiceByServiceUrl(draftState, draftLayer.serviceUrl);
-    const newLayer = service.layers.find((l) => l.name === layerName);
+    const newLayer = service?.layers.find((l) => l.name === layerName);
+    if (!newLayer?.name) {
+      // eslint-disable-next-line no-console
+      console.error(`Layer ${layerName} not found in ${draftLayer.serviceUrl}`);
+      return;
+    }
     draftLayer.name = newLayer.name;
-    const newStyle = draftLayer.style || newLayer.styles[0]?.name;
+    const newStyle = draftLayer.style || newLayer.styles?.[0]?.name || '';
     reducers.changeLayerStyle(draftState, {
       payload: { mapId, layerIndex, styleName: newStyle },
     });
@@ -337,7 +345,7 @@ export const reducers = {
         dimensionValue: string;
       };
     },
-  ): AdagucMapsState => {
+  ): void => {
     const { mapId, layerIndex, dimensionName, dimensionValue } = action.payload;
     const draftLayer = getReduxLayer(draftState, mapId, layerIndex);
     if (!draftLayer) {
@@ -375,7 +383,7 @@ export const reducers = {
         linked: boolean;
       };
     },
-  ): AdagucMapsState => {
+  ): void => {
     const { mapId, layerIndex, dimensionName, linked } = action.payload;
     const draftLayer = getReduxLayer(draftState, mapId, layerIndex);
     if (!draftLayer) {
@@ -401,7 +409,7 @@ export const reducers = {
         dimensionValue: string;
       };
     },
-  ): AdagucMapsState => {
+  ): void => {
     const { mapId, layerIndex, dimensionName, dimensionValue } = action.payload;
     const draftLayer = getReduxLayer(draftState, mapId, layerIndex);
     if (!draftLayer) {
@@ -450,7 +458,7 @@ export const reducers = {
       enabled: enabled ?? true,
       serviceUrl,
       id,
-      style: styleName || layer?.styles[0]?.name || '',
+      style: styleName || layer?.styles?.[0]?.name || '',
       dimensions,
       opacity: opacity || 1,
       isReady: false,

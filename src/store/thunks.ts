@@ -2,11 +2,12 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { LayerType, WMLayer, generateLayerId } from '@opengeoweb/webmap';
 import { fetchWMSServiceAsynced } from './promises';
 import { selectors } from './selectors';
-import { AdagucLayerDimension } from './types';
+import { AdagucLayerDimension, ViewerState } from './types';
 
 export interface AddLayerInterface {
   mapId: string;
-  name: string;
+  // Optional: without one, the service's first layer is added.
+  name?: string;
   serviceUrl: string;
   enabled?: boolean;
   opacity?: number;
@@ -50,7 +51,12 @@ const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> => {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 };
 
-export const addLayer = createAsyncThunk(
+// Thunks that read the store through getState() need to know its shape.
+const createAppAsyncThunk = createAsyncThunk.withTypes<{
+  state: ViewerState;
+}>();
+
+export const addLayer = createAppAsyncThunk(
   'maps/addLayer',
   async (payload: AddLayerInterface, thunkAPI) => {
     const { dispatch, getState } = thunkAPI;
@@ -72,7 +78,9 @@ export const addLayer = createAsyncThunk(
     // should still show up in the layer list (if with empty dimensions)
     // rather than vanish silently, so the user can see what was requested.
     const layerToFind = layers.find((layeri) => layeri.name === name);
-    const layerName = layerToFind ? name : (layers[0]?.name ?? name);
+    // '' only when no name was asked for and the service lists no layers -
+    // still added, the same as any other layer it can't resolve.
+    const layerName = (layerToFind ? name : (layers[0]?.name ?? name)) ?? '';
     const id = generateLayerId();
     const wmLayer = new WMLayer({
       id,
@@ -106,7 +114,9 @@ export const addLayer = createAsyncThunk(
 
     return {
       name: layerName,
-      enabled: enabled || true,
+      // Not `enabled || true`, which turned a permalink's disabled layer
+      // back on in redux while the WMLayer itself stayed disabled.
+      enabled: enabled ?? true,
       opacity: opacity || 1,
       styleName,
       serviceUrl,

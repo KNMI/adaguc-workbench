@@ -593,3 +593,70 @@ describe('reducers.setLayerDimensionLinked', () => {
     ).not.toThrow();
   });
 });
+
+describe('reducers: layers that are missing or unknown', () => {
+  const mapId = 'map1';
+  const layer = (id: string): AdagucMapsState['maps'][string]['layers'][0] => ({
+    id,
+    name: `name-${id}`,
+    serviceUrl: 'https://example.com/wms?',
+    enabled: true,
+    style: '',
+    opacity: 1,
+    dimensions: [],
+  });
+  const buildState = (): AdagucMapsState => ({
+    services: {},
+    baseLayers: [],
+    maps: {
+      [mapId]: {
+        layers: [layer('a'), layer('b')],
+        isAnimating: false,
+        isGetFeatureInfoActive: false,
+        isHistogramBoxSelectActive: false,
+        view: {
+          srs: 'EPSG:3857',
+          bbox: { left: -1, bottom: -1, right: 1, top: 1 },
+        },
+      },
+    },
+  });
+
+  beforeEach(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('setLayerOrderByIds skips an id that is not on the map instead of leaving a hole', () => {
+    const state = buildState();
+
+    reducers.setLayerOrderByIds(state, {
+      payload: { mapId, layerListIds: ['b', 'gone', 'a'] },
+    });
+
+    expect(state.maps[mapId].layers.map((l) => l.id)).toEqual(['b', 'a']);
+  });
+
+  it('changeLayerStyle does nothing for a layer index that does not exist', () => {
+    const state = buildState();
+
+    expect(() =>
+      reducers.changeLayerStyle(state, {
+        payload: { mapId, layerIndex: 5, styleName: 'x' },
+      }),
+    ).not.toThrow();
+  });
+
+  it("changeLayerName leaves the layer alone when its service isn't loaded", () => {
+    const state = buildState();
+
+    expect(() =>
+      reducers.changeLayerName(state, {
+        payload: { mapId, layerIndex: 0, layerName: 'other' },
+      }),
+    ).not.toThrow();
+    expect(state.maps[mapId].layers[0].name).toBe('name-a');
+  });
+});

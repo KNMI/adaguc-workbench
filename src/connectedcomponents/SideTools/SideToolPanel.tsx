@@ -13,7 +13,7 @@ import BaseLayersPanel from './BaseLayersPanel';
 import TimePanel from './TimePanel';
 
 export interface ToolPanelInterface {
-  toggleExpandToolsPanel: (boolean) => void;
+  toggleExpandToolsPanel: (expanded: boolean) => void;
   toolsPanelIsExpanded: boolean;
 }
 const SideToolPanel = ({

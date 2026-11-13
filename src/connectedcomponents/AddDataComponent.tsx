@@ -278,7 +278,7 @@ const AddDataComponent = ({
           />
         </Grid>
         <Grid style={{ display: 'block' }}>
-          {elements.map((element: DataElementProps) => {
+          {elements.map((element: DataElementType) => {
             const key = `${element.service}_${element.layer}`;
             return (
               <DataElement

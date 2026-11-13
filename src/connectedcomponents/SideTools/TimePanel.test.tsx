@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { getWMLayerById } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import { useAppDispatch, useAppSelector } from '../../store/store';
 import { AdagucLayer } from '../../store/types';
 import TimePanel from './TimePanel';
@@ -24,7 +25,11 @@ jest.mock('../../store/store', () => ({
   useAppSelector: jest.fn(),
 }));
 
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 const mockUseAppDispatch = jest.mocked(useAppDispatch);
 const mockUseAppSelector = jest.mocked(useAppSelector);
 
@@ -326,7 +331,9 @@ describe('TimePanel', () => {
 
     const { container } = render(<TimePanel mapId={mapId} />);
     const list = container.querySelector('table');
-    expect(list).not.toBeNull();
+    if (!list) {
+      throw new Error('TimePanel rendered no table');
+    }
 
     fireEvent.wheel(list, { deltaY: 100 });
     expect(mockDispatch).toHaveBeenCalledWith(

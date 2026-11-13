@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { getWMLayerById, queryWMSLayers } from '@opengeoweb/webmap';
+import type { WMLayer } from '@opengeoweb/webmap';
 import LayerDetailsComponent from './LayerDetailsComponent';
 
 jest.mock('@opengeoweb/webmap', () => ({
@@ -31,7 +32,11 @@ jest.mock('./WCSPanelDialog', () => ({
   },
 }));
 
-const mockGetWMLayerById = jest.mocked(getWMLayerById);
+// opengeoweb types this as always returning a WMLayer, but it returns
+// undefined for an unknown id - which these tests stub too.
+const mockGetWMLayerById = jest.mocked(getWMLayerById) as jest.MockedFunction<
+  (layerId: string) => WMLayer | undefined
+>;
 const mockQueryWMSLayers = jest.mocked(queryWMSLayers);
 
 describe('LayerDetailsComponent', () => {

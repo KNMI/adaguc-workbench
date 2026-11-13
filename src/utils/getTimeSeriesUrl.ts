@@ -165,9 +165,17 @@ export const getTimeSeriesUrl = (
     params: { LAYERS: wmLayer.getLayerName() },
   });
 
+  const { projectionX, projectionY, resolution } = mapPinLocation;
+  if (
+    projectionX === undefined ||
+    projectionY === undefined ||
+    resolution === undefined
+  ) {
+    return undefined;
+  }
   const url = source.getFeatureInfoUrl(
-    [mapPinLocation.projectionX, mapPinLocation.projectionY],
-    mapPinLocation.resolution,
+    [projectionX, projectionY],
+    resolution,
     mapPinLocation.srs,
     { INFO_FORMAT: 'application/json' },
   );
