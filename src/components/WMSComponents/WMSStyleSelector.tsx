@@ -26,11 +26,6 @@ const WMSStyleSelector = ({
   onSelectStyle,
 }: WMSStyleSelectorProps): React.ReactElement<WMSStyleSelectorProps> => {
   const handleChange = (event: SelectChangeEvent<string>) => {
-    // const newLayer: Layer = { ...layer };
-    // newLayer.style = event.target.value;
-    // const wmLayer = getWMLayerById(layer.id);
-    // wmLayer.setStyle(newLayer.style);
-    // wmLayer.parentMap?.draw();
     onSelectStyle(event.target.value);
   };
 

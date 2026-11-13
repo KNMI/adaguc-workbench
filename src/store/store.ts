@@ -4,7 +4,6 @@
  */
 import {
   AnyAction,
-  Store,
   ThunkDispatch,
   configureStore,
   createSlice,
@@ -45,10 +44,6 @@ export const { actions } = ViewerSlice;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AppThunkDispatch = ThunkDispatch<ViewerState, any, AnyAction>;
-
-export type AppStore = Omit<Store<ViewerState, AnyAction>, 'dispatch'> & {
-  dispatch: AppThunkDispatch;
-};
 
 export const useAppDispatch = () => useDispatch<AppThunkDispatch>();
 export const useAppSelector: TypedUseSelectorHook<ViewerState> = useSelector;

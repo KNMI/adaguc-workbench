@@ -97,10 +97,6 @@ export const ReduxLayerComponent = ({
     selectors.isMapAnimating(state, mapId),
   );
 
-  // const availableLayers = useAppSelector((state: ViewerState): LayerProps[] =>
-  //   selectors.getAvailableLayers(state, layer?.serviceUrl),
-  // );
-
   const changeLayerDimension = (
     dimensionName: string,
     dimensionValue: string,

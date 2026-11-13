@@ -1,20 +1,13 @@
 {
   "name": "adaguc-workbench",
   "version": "1.0.0",
-  "_main": "./dist/index.js",
-  "module": "./src/js/index.js",
-  "types": "./dist/index.d.js",
   "scripts": {
     "start": "webpack-dev-server --mode development --port 4000 --hot",
     "build": "webpack --mode production",
     "lint": "prettier src --check && DEBUG=eslint:cli-engine eslint 'src/**/*.{ts,tsx}' --max-warnings=0 && DEBUG=eslint:cli-engine eslint 'stories/**/*.{ts,tsx}' --max-warnings=0",
     "test": "jest",
-    "eject": "react-scripts eject",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
-  },
-  "_eslintConfig": {
-    "extends": "react-app"
   },
   "engines": {
     "node": ">=22"

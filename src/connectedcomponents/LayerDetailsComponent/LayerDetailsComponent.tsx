@@ -44,28 +44,15 @@ const LayerDetailsComponent = ({
   mapId,
   layerId,
 }: LayerDetailsComponentProps): React.ReactElement<LayerDetailsComponentProps> => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [layerIdState, setLayerId] = React.useState(layerId);
+  const [layerIdState] = React.useState(layerId);
   const [value, setValue] = React.useState(0);
   const [isWCSPanelOpen, setIsWCSPanelOpen] = React.useState(false);
-
-  // For testing purposes
-  // React.useEffect(() => {
-  //   if (layerIdState.length === 0) {
-  //     window.setTimeout(() => {
-  //       const layeriD = getWMJSMapById('map1')?.getLayers()[0].id;
-  //       setLayerId(layeriD);
-  //     }, 1000);
-  //   }
-  // }, []);
 
   const wmLayer = getWMLayerById(layerIdState);
 
   if (!wmLayer) {
     return <div>No layer found</div>;
   }
-
-  // return <ProjectionSelector wmLayer={wmLayer} />;
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);

@@ -24,7 +24,6 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import RefreshIcon from '@mui/icons-material/Refresh';
-// import DetailsIcon from '@mui/icons-material/Info';
 import DuplicateIcon from '@mui/icons-material/AddToPhotos';
 
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
