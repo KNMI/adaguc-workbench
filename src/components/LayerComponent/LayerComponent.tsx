@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { Style } from '@opengeoweb/webmap';
+import { AutoUpdateActive, AutoUpdateInActive } from '@opengeoweb/theme';
 import { getWMLayer } from '../../utils/getWMLayer';
 import { openLayersGetMapImageStore } from '@opengeoweb/webmap-react';
 import {
@@ -31,6 +32,7 @@ import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 import WMSDimensionSlider from '../WMSComponents/WMSDimensionSlider';
 import WMSStyleSelector from '../WMSComponents/WMSStyleSelector';
 import WMSLayerSelector from './WMSLayerSelector';
+import { CountdownRing } from './CountdownRing';
 import { AdagucLayer } from '../../store/types';
 import { CopyToClipBoard } from '../../connectedcomponents/CopyToClipBoard';
 import { getDatasetNameFromServiceUrl } from '../../utils/getDatasetNameFromServiceUrl';
@@ -69,6 +71,12 @@ export interface LayerComponentProps {
   canMoveUp: boolean;
   canMoveDown: boolean;
   onRefreshLayer: () => Promise<void>;
+  // Keeping the layer at its server's default time (see useLayerAutoUpdate).
+  autoUpdate: boolean;
+  onToggleAutoUpdate: () => void;
+  // While auto-update is on: when its current check started, and how long
+  // until the next - shown as a ring counting down behind its icon.
+  autoUpdateCountdown?: { startedAt: number; durationMs: number };
 }
 export const LayerComponent = ({
   serviceUrl,
@@ -95,6 +103,9 @@ export const LayerComponent = ({
   canMoveUp,
   canMoveDown,
   onRefreshLayer,
+  autoUpdate,
+  onToggleAutoUpdate,
+  autoUpdateCountdown,
 }: LayerComponentProps): React.ReactElement<LayerComponentProps> => {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -171,6 +182,7 @@ export const LayerComponent = ({
       });
   };
   const wmLayer = getWMLayer(layer?.id);
+  const hasTimeDimension = !!wmLayer?.getDimension('time');
   const cardTitle = (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
       <CopyToClipBoard
@@ -495,6 +507,39 @@ export const LayerComponent = ({
               onClick={handleRefreshLayer}
             >
               <RefreshIcon fontSize="small" />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip
+          title={
+            autoUpdate
+              ? 'Auto-update is on: following the default time the server advertises, checked every 20 seconds - the pie fills up until the next check. Click to stop.'
+              : hasTimeDimension
+                ? 'Auto-update: jump to the default time the server advertises (usually the latest), and keep following it'
+                : 'Auto-update needs a layer with a time dimension'
+          }
+        >
+          <span>
+            <IconButton
+              size="small"
+              aria-label="Auto-update to the default time"
+              aria-pressed={autoUpdate}
+              disabled={!hasTimeDimension && !autoUpdate}
+              color={autoUpdate ? 'primary' : 'default'}
+              onClick={onToggleAutoUpdate}
+            >
+              {autoUpdate && autoUpdateCountdown && (
+                <CountdownRing
+                  key={autoUpdateCountdown.startedAt}
+                  startedAt={autoUpdateCountdown.startedAt}
+                  durationMs={autoUpdateCountdown.durationMs}
+                />
+              )}
+              {autoUpdate ? (
+                <AutoUpdateActive fontSize="small" />
+              ) : (
+                <AutoUpdateInActive fontSize="small" />
+              )}
             </IconButton>
           </span>
         </Tooltip>

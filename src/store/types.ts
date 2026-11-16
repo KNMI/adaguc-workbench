@@ -30,6 +30,10 @@ export interface AdagucLayer {
   // the service was unreachable, or doesn't have a layer by this name) -
   // see thunks.addLayer. The layer is still added, just with no dimensions.
   hasError?: boolean;
+  // Keeps the layer at the default time its WMS server advertises,
+  // checking for a new one every 20 seconds (see useLayerAutoUpdate) -
+  // until the time is changed by hand.
+  autoUpdate?: boolean;
 }
 
 export interface AdagucService {

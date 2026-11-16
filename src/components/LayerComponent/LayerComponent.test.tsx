@@ -112,6 +112,8 @@ const requiredProps = {
   canMoveUp: true,
   canMoveDown: true,
   onRefreshLayer: vi.fn().mockResolvedValue(undefined),
+  autoUpdate: false,
+  onToggleAutoUpdate: vi.fn(),
 };
 
 describe('LayerComponent', () => {
@@ -120,6 +122,65 @@ describe('LayerComponent', () => {
     mockGetWMLayerById.mockReturnValue(undefined);
     mockGetLoadDurationForId.mockReturnValue(undefined);
     openLayersGetMapImageStore.imagesbysrc.clear();
+  });
+
+  it('offers auto-update only for a layer with a time dimension, and shows when it is on', () => {
+    const autoUpdateButton = () =>
+      screen.getByRole('button', { name: 'Auto-update to the default time' });
+
+    const { rerender } = render(
+      <LayerComponent layer={baseLayer} {...requiredProps} />,
+    );
+    expect(autoUpdateButton()).toBeDisabled();
+
+    mockGetWMLayerById.mockReturnValue({
+      dimensions: [],
+      getDimension: (name: string) => (name === 'time' ? {} : undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    const onToggleAutoUpdate = vi.fn();
+    rerender(
+      <LayerComponent
+        layer={{ ...baseLayer }}
+        {...requiredProps}
+        onToggleAutoUpdate={onToggleAutoUpdate}
+      />,
+    );
+    expect(autoUpdateButton()).toBeEnabled();
+    expect(autoUpdateButton()).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(autoUpdateButton());
+    expect(onToggleAutoUpdate).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <LayerComponent
+        layer={{ ...baseLayer }}
+        {...requiredProps}
+        autoUpdate
+        onToggleAutoUpdate={onToggleAutoUpdate}
+      />,
+    );
+    expect(autoUpdateButton()).toHaveAttribute('aria-pressed', 'true');
+    // No countdown known yet - no ring.
+    expect(screen.queryByTestId('countdown-ring')).not.toBeInTheDocument();
+
+    rerender(
+      <LayerComponent
+        layer={{ ...baseLayer }}
+        {...requiredProps}
+        autoUpdate
+        autoUpdateCountdown={{ startedAt: Date.now(), durationMs: 60_000 }}
+      />,
+    );
+    expect(screen.getByTestId('countdown-ring')).toBeInTheDocument();
+
+    rerender(
+      <LayerComponent
+        layer={{ ...baseLayer }}
+        {...requiredProps}
+        autoUpdateCountdown={{ startedAt: Date.now(), durationMs: 60_000 }}
+      />,
+    );
+    expect(screen.queryByTestId('countdown-ring')).not.toBeInTheDocument();
   });
 
   it('shows the error icon with a tooltip when the layer has an error', () => {
@@ -264,6 +325,7 @@ describe('LayerComponent', () => {
     mockGetWMLayerById.mockReturnValue({
       enabled: true,
       dimensions: [],
+      getDimension: () => undefined,
     } as unknown as WMLayer);
     const onChangeLayerEnabled = vi.fn();
 
@@ -321,6 +383,7 @@ describe('LayerComponent', () => {
     const wmLayer = {
       title: 'Old title',
       dimensions: [],
+      getDimension: () => undefined,
     } as unknown as WMLayer;
     mockGetWMLayerById.mockReturnValue(wmLayer);
     const onRefreshLayer = vi.fn(() => {

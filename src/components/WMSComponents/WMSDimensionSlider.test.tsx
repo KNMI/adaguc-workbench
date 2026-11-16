@@ -65,6 +65,16 @@ describe('WMSDimensionSlider', () => {
     expect(slider).toHaveAttribute('aria-valuemax', String(values.length - 1));
   });
 
+  it('shows the selected time in local time and UTC on hover', async () => {
+    renderSlider(makeDimension());
+
+    fireEvent.mouseOver(screen.getByText(values[10]));
+
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent(/Local: .*\d\d:\d\d:\d\d/);
+    expect(tooltip).toHaveTextContent(/UTC: .*10:00:00.*UTC/);
+  });
+
   it('debounces rapid drag updates into a single committed value', () => {
     vi.useFakeTimers();
     try {

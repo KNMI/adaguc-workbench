@@ -8,9 +8,12 @@ interface AwbPalette {
   surface: string;
   // Panel backgrounds.
   panel: string;
+  // A pattern drawn over the panel background (a CSS background image), or
+  // 'none'.
+  panelTexture: string;
   // Header strips and other quiet fills.
   water: string;
-  // Hover on those fills, and table/divider lines.
+  // Hover on those fills, card borders, and table/divider lines.
   waterDark: string;
   // Text and strong lines.
   line: string;
@@ -22,19 +25,24 @@ interface AwbPalette {
   onAccent: string;
 }
 
-export type ColorScheme = 'light' | 'dark';
+export type ColorScheme = 'light' | 'dark' | 'classic';
 
-// The viewer's colours, taken from its default base map ("KNMI Basemap
-// Light Grey Canvas"): its warm off-white land, its blue-grey water, and
-// the dark grey of its borders - with a muted slate blue, a darker shade
+const COLOR_SCHEMES: ColorScheme[] = ['light', 'dark', 'classic'];
+
+// The viewer's colours. Light is taken from its default base map ("KNMI
+// Basemap Light Grey Canvas"): its warm off-white land, its blue-grey water,
+// and the dark grey of its borders - with a muted slate blue, a darker shade
 // of that same water, as the one accent colour for anything interactive.
-// Dark mode keeps the same slate family, with the light and dark ends
-// swapped. Data colours (chart series, layer styles) are deliberately left
-// alone, and so is the map itself: the base map is whatever the user picks.
+// Dark keeps the same slate family, with the light and dark ends swapped.
+// Classic is the look of the original ADAGUC viewer: striped lavender panels,
+// white cards with a periwinkle border, and blue-violet controls. Data
+// colours (chart series, layer styles) are deliberately left alone, and so is
+// the map itself: the base map is whatever the user picks.
 const palettes: Record<ColorScheme, AwbPalette> = {
   light: {
     surface: '#fafaf9',
     panel: '#eef0f1',
+    panelTexture: 'none',
     water: '#d4d9dc',
     waterDark: '#c3cacf',
     line: '#33393d',
@@ -46,6 +54,7 @@ const palettes: Record<ColorScheme, AwbPalette> = {
   dark: {
     surface: '#22282c',
     panel: '#1a1f22',
+    panelTexture: 'none',
     water: '#2e363b',
     waterDark: '#3d474d',
     line: '#e2e6e8',
@@ -53,6 +62,19 @@ const palettes: Record<ColorScheme, AwbPalette> = {
     accentDark: '#b2c4d1',
     accentLight: '#5e7484',
     onAccent: '#11161a',
+  },
+  classic: {
+    surface: '#ffffff',
+    panel: '#d5d3ea',
+    panelTexture:
+      'repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0 2px, transparent 2px 6px)',
+    water: '#e6e6f4',
+    waterDark: '#8a8ee8',
+    line: '#1a1a33',
+    accent: '#3c4bbf',
+    accentDark: '#2a3590',
+    accentLight: '#8a8ee8',
+    onAccent: '#ffffff',
   },
 };
 
@@ -68,11 +90,37 @@ export const awbColors = Object.fromEntries(
   ]),
 ) as unknown as AwbPalette;
 
-// One typeface for the whole app; the monospaced one only for raw text
-// dumps (JSON, ncdump output).
-export const awbFonts = {
-  sans: '"Roboto", "Helvetica", "Arial", sans-serif',
-  mono: '"Roboto Mono", "Menlo", "Consolas", monospace',
+// A panel's background: its texture (if any) over its colour.
+export const awbPanelBackground = `${awbColors.panelTexture}, ${awbColors.panel}`;
+
+// One typeface for the whole app - Roboto, or Arial for the classic look -
+// and a monospaced one only for raw text dumps (JSON, ncdump output).
+const sansFonts: Record<ColorScheme, string> = {
+  light: '"Roboto", "Helvetica", "Arial", sans-serif',
+  dark: '"Roboto", "Helvetica", "Arial", sans-serif',
+  classic: '"Arial", "Liberation Sans", "Helvetica", sans-serif',
+};
+const monoFont = '"Roboto Mono", "Menlo", "Consolas", monospace';
+
+// The classic viewer's smaller, denser Arial text. opengeoweb's theme gives
+// every text style (body1, caption, h6, ...) its own font and size, so
+// setting the theme-wide ones alone changes nothing - each style is
+// rewritten here, at 12/14 of its size (MUI's default base size is 14).
+const classicTypography = (): Record<string, unknown> => {
+  const fontFamily = sansFonts.classic;
+  const styles = Object.entries(
+    lightTheme.typography as unknown as Record<string, unknown>,
+  ).flatMap(
+    ([name, style]): [string, { fontFamily: string; fontSize: string }][] => {
+      const fontSize = (style as { fontSize?: unknown } | null)?.fontSize;
+      if (typeof fontSize !== 'string' || !fontSize.endsWith('rem')) {
+        return [];
+      }
+      const scaled = Math.round(parseFloat(fontSize) * (12 / 14) * 1000) / 1000;
+      return [[name, { fontFamily, fontSize: `${scaled}rem` }]];
+    },
+  );
+  return { fontFamily, fontSize: 12, ...Object.fromEntries(styles) };
 };
 
 // opengeoweb's light or dark theme (which the rest of its components are
@@ -81,6 +129,7 @@ export const awbFonts = {
 // MUI's default bright blue.
 export const createAppTheme = (scheme: ColorScheme): Theme => {
   const colors = palettes[scheme];
+  const isClassic = scheme === 'classic';
   return createTheme(scheme === 'dark' ? darkTheme : lightTheme, {
     palette: {
       primary: {
@@ -95,9 +144,11 @@ export const createAppTheme = (scheme: ColorScheme): Theme => {
       },
       divider: colors.waterDark,
     },
-    typography: {
-      fontFamily: awbFonts.sans,
-    },
+    typography: isClassic
+      ? classicTypography()
+      : { fontFamily: sansFonts[scheme] },
+    // And its squarer corners.
+    ...(isClassic && { shape: { borderRadius: 2 } }),
     components: {
       // MUI tooltips are "interactive" by default: the pointer can rest on
       // them and they stay open, covering whatever controls are underneath.
@@ -155,6 +206,15 @@ export const createAppTheme = (scheme: ColorScheme): Theme => {
           },
         },
       },
+      // The classic viewer's cards: a periwinkle frame, a little heavier
+      // than the other themes' hairline.
+      ...(isClassic && {
+        MuiCard: {
+          styleOverrides: {
+            root: { borderWidth: '2px !important' },
+          },
+        },
+      }),
     },
   });
 };
@@ -175,10 +235,10 @@ const AppColorVariables = ({
             value,
           ]),
         ),
-        '--awb-font-sans': awbFonts.sans,
-        '--awb-font-mono': awbFonts.mono,
+        '--awb-font-sans': sansFonts[scheme],
+        '--awb-font-mono': monoFont,
         // Native scrollbars and form controls to match.
-        colorScheme: scheme,
+        colorScheme: scheme === 'dark' ? 'dark' : 'light',
       },
       // <code> marks identifiers (layer names, datasets, urls) - shown in
       // the app's own typeface rather than the browser's default
@@ -193,15 +253,14 @@ const AppColorVariables = ({
 
 const STORAGE_KEY = 'awb-color-scheme';
 
-// The choice is this browser's own (it isn't part of a permalink). Light
-// until one is made, or when storage is blocked.
+// The choice is this browser's own (it isn't part of a permalink). Classic,
+// the original viewer's look, on a first visit - or when storage is blocked.
 const readStoredScheme = (): ColorScheme => {
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === 'dark'
-      ? 'dark'
-      : 'light';
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return COLOR_SCHEMES.find((scheme) => scheme === stored) ?? 'classic';
   } catch {
-    return 'light';
+    return 'classic';
   }
 };
 
@@ -214,13 +273,13 @@ const storeScheme = (scheme: ColorScheme): void => {
 };
 
 interface ColorSchemeContextValue {
-  // The scheme in use: the user's choice, or else light.
+  // The scheme in use: the user's choice, or else classic.
   scheme: ColorScheme;
   setScheme: (scheme: ColorScheme) => void;
 }
 
 const ColorSchemeContext = React.createContext<ColorSchemeContextValue>({
-  scheme: 'light',
+  scheme: 'classic',
   setScheme: () => {},
 });
 

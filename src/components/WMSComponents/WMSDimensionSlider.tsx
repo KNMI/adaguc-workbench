@@ -5,6 +5,7 @@ import { styled } from '@mui/material/styles';
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { getWMLayer } from '../../utils/getWMLayer';
+import { formatTimeValue } from '../../utils/formatTimeValue';
 import Checkbox from '@mui/material/Checkbox';
 import { debounce } from 'lodash';
 
@@ -98,6 +99,9 @@ const WMSDimensionSlider = ({
     return null;
   }
 
+  // A date-time value also in local time and UTC, on hover.
+  const timeText = formatTimeValue(selectedDimValue);
+
   const handleChange = (_event: Event | null, value: number) => {
     let dimIndex = value;
     if (dimIndex < 0) dimIndex = 0;
@@ -171,7 +175,23 @@ const WMSDimensionSlider = ({
           <ArrowForwardIosIcon fontSize="inherit" />
         </IconButton>
       </div>
-      <Typography sx={{ fontSize: '12px' }}>{selectedDimValue}</Typography>
+      {timeText ? (
+        <Tooltip
+          title={
+            <>
+              Local: {timeText.local}
+              <br />
+              UTC: {timeText.utc}
+            </>
+          }
+        >
+          <Typography sx={{ fontSize: '12px', width: 'fit-content' }}>
+            {selectedDimValue}
+          </Typography>
+        </Tooltip>
+      ) : (
+        <Typography sx={{ fontSize: '12px' }}>{selectedDimValue}</Typography>
+      )}
     </Box>
   );
 };

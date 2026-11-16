@@ -500,6 +500,77 @@ describe('reducers.changeLayerDimension', () => {
     ]);
   });
 
+  it('switches auto-update off for a time picked by hand - on that layer and the linked ones it moves', () => {
+    const state = buildState();
+    state.maps[mapId].layers.forEach((layer) => {
+      // eslint-disable-next-line no-param-reassign
+      layer.autoUpdate = true;
+    });
+    // layer-1 and layer-2 linked; layer-3 not.
+    state.maps[mapId].layers[0].dimensions[0].linked = true;
+
+    reducers.changeLayerDimension(state, {
+      payload: {
+        mapId,
+        layerIndex: 0,
+        dimensionName: 'time',
+        dimensionValue: '2025-01-01T05:00:00Z',
+      },
+    });
+
+    expect(state.maps[mapId].layers.map((l) => !!l.autoUpdate)).toEqual([
+      false,
+      false,
+      true,
+    ]);
+  });
+
+  it('keeps auto-update on for its own moves to the default time, and for other dimensions', () => {
+    const state = buildState();
+    state.maps[mapId].layers[0].autoUpdate = true;
+    state.maps[mapId].layers[0].dimensions.push({
+      name: 'elevation',
+      currentValue: '850',
+    });
+
+    reducers.changeLayerDimension(state, {
+      payload: {
+        mapId,
+        layerIndex: 0,
+        dimensionName: 'time',
+        dimensionValue: '2025-01-01T06:00:00Z',
+        fromAutoUpdate: true,
+      },
+    });
+    reducers.changeLayerDimension(state, {
+      payload: {
+        mapId,
+        layerIndex: 0,
+        dimensionName: 'elevation',
+        dimensionValue: '500',
+      },
+    });
+
+    expect(state.maps[mapId].layers[0].autoUpdate).toBe(true);
+    expect(state.maps[mapId].layers[0].dimensions[0].currentValue).toBe(
+      '2025-01-01T06:00:00Z',
+    );
+  });
+
+  it('switches auto-update on and off with setLayerAutoUpdate', () => {
+    const state = buildState();
+
+    reducers.setLayerAutoUpdate(state, {
+      payload: { mapId, layerIndex: 2, autoUpdate: true },
+    });
+    expect(state.maps[mapId].layers[2].autoUpdate).toBe(true);
+
+    reducers.setLayerAutoUpdate(state, {
+      payload: { mapId, layerIndex: 2, autoUpdate: false },
+    });
+    expect(state.maps[mapId].layers[2].autoUpdate).toBeUndefined();
+  });
+
   it('reaches every other linked layer from a linked one', () => {
     const state = buildState();
     state.maps[mapId].layers[0].dimensions[0].linked = true;

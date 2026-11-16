@@ -27,6 +27,9 @@ import {
 //   A running animation: the layer whose time values it steps through, and
 //   'group' (that layer's own Play, taking along its linked layers) or
 //   'all' (the TIME panel's Play, animating every layer).
+// autoupdate=<layer>,...
+//   The layers with auto-update on, which then open at their default time.
+//   Left out when there are none.
 
 export interface PermalinkLayerDimension {
   layerIndex: number;
@@ -115,6 +118,19 @@ export const parseAnimation = (
   }
   return { layerIndex, scope: scope === 'all' ? 'all' : 'group' };
 };
+
+export const formatAutoUpdate = (layers: AdagucLayer[]): string =>
+  layers
+    .flatMap((layer, layerIndex) =>
+      layer.autoUpdate ? [String(layerIndex)] : [],
+    )
+    .join(',');
+
+export const parseAutoUpdate = (param: string | null): number[] =>
+  (param ?? '').split(',').flatMap((entry) => {
+    const layerIndex = parseIndex(entry);
+    return layerIndex === undefined ? [] : [layerIndex];
+  });
 
 export const formatBaseLayers = (baseLayers: AdagucBaseLayer[]): string =>
   baseLayers

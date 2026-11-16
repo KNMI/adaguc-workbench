@@ -43,15 +43,23 @@ describe('AppThemeProvider', () => {
     window.localStorage.clear();
   });
 
-  it('starts light, even when the system prefers dark', () => {
+  it('starts classic on a first visit, even when the system prefers dark', () => {
     mockSystemPrefersDark(true);
+    renderApp();
+
+    expect(surfaceVariable()).toBe('#ffffff');
+    expect(screen.getByTestId('AdagucClassicIcon')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Switch to light theme' }),
+    ).toBeInTheDocument();
+  });
+
+  it('starts light when that was chosen before', () => {
+    window.localStorage.setItem('awb-color-scheme', 'light');
     renderApp();
 
     expect(screen.getByTestId('mode')).toHaveTextContent('light');
     expect(surfaceVariable()).toBe('#fafaf9');
-    expect(
-      screen.getByRole('button', { name: 'Switch to dark theme' }),
-    ).toBeInTheDocument();
   });
 
   it('starts dark when that was chosen before', () => {
@@ -62,10 +70,28 @@ describe('AppThemeProvider', () => {
     expect(surfaceVariable()).toBe('#22282c');
   });
 
-  it('switches between light and dark, remembering the choice', () => {
+  it('starts classic when that was chosen before', () => {
+    window.localStorage.setItem('awb-color-scheme', 'classic');
     renderApp();
+
+    expect(screen.getByTestId('mode')).toHaveTextContent('light');
+    expect(surfaceVariable()).toBe('#ffffff');
+    expect(
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--awb-panel-texture')
+        .trim(),
+    ).toMatch(/^repeating-linear-gradient/);
+  });
+
+  it('steps through light, dark and classic, remembering the choice', () => {
+    renderApp();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Switch to light theme' }),
+    );
     expect(screen.getByTestId('mode')).toHaveTextContent('light');
     expect(screen.getByTestId('LightModeIcon')).toBeInTheDocument();
+    expect(window.localStorage.getItem('awb-color-scheme')).toBe('light');
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Switch to dark theme' }),
@@ -75,9 +101,10 @@ describe('AppThemeProvider', () => {
     expect(window.localStorage.getItem('awb-color-scheme')).toBe('dark');
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Switch to light theme' }),
+      screen.getByRole('button', { name: 'Switch to classic theme' }),
     );
-    expect(screen.getByTestId('mode')).toHaveTextContent('light');
-    expect(window.localStorage.getItem('awb-color-scheme')).toBe('light');
+    expect(surfaceVariable()).toBe('#ffffff');
+    expect(screen.getByTestId('AdagucClassicIcon')).toBeInTheDocument();
+    expect(window.localStorage.getItem('awb-color-scheme')).toBe('classic');
   });
 });

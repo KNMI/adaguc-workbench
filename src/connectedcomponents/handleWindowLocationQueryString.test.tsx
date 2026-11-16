@@ -249,6 +249,25 @@ describe('handleWindowLocationQueryString', () => {
     ]);
   });
 
+  it('switches auto-update on for the layers listed in autoupdate, after their times', async () => {
+    setUrl(
+      `${TWO_LAYERS}&layerdims=1$time$2026-11-13T12:00:00Z$0&autoupdate=1`,
+    );
+
+    const dispatched = await dispatchedActionsFor();
+
+    // Last, so the time set before it doesn't switch it off again.
+    expect(dispatched).toEqual([
+      actions.changeLayerDimension({
+        mapId,
+        layerIndex: 1,
+        dimensionName: 'time',
+        dimensionValue: '2026-11-13T12:00:00Z',
+      }),
+      actions.setLayerAutoUpdate({ mapId, layerIndex: 1, autoUpdate: true }),
+    ]);
+  });
+
   it('does not dispatch requestSetProjection when srs or bbox is missing', () => {
     setUrl('?bbox=-1,-2,3,4');
     const dispatch = vi.fn();
@@ -324,6 +343,16 @@ describe('makePermaLink', () => {
       '0$time$2026-11-13T12:10:00Z$1,1$time$2026-11-13T12:00:00Z$0',
     );
     expect(params.get('animate')).toBe('1$group');
+    // No layer auto-updates - left out.
+    expect(params.has('autoupdate')).toBe(false);
+    expect(
+      new URL(
+        makePermaLink({
+          ...map,
+          layers: [map.layers[0], { ...map.layers[1], autoUpdate: true }],
+        }),
+      ).searchParams.get('autoupdate'),
+    ).toBe('1');
     // No base layers given - left out.
     expect(params.has('baselayers')).toBe(false);
     // The original six-field layer entries are unchanged, so older versions

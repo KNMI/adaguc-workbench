@@ -393,10 +393,13 @@ export const reducers = {
         layerIndex: number;
         dimensionName: string;
         dimensionValue: string;
+        // Set when auto-update itself moves the layer to its default time.
+        fromAutoUpdate?: boolean;
       };
     },
   ): void => {
-    const { mapId, layerIndex, dimensionName, dimensionValue } = action.payload;
+    const { mapId, layerIndex, dimensionName, dimensionValue, fromAutoUpdate } =
+      action.payload;
     const draftLayer = getReduxLayer(draftState, mapId, layerIndex);
     if (!draftLayer) {
       return;
@@ -407,6 +410,12 @@ export const reducers = {
     if (isLayerInAnimation(map, draftLayer.id)) {
       map.isAnimating = false;
       map.animation = undefined;
+    }
+    // And a time picked by hand (here, or through a linked layer below)
+    // ends auto-update, rather than it jumping back to the default time.
+    const stopsAutoUpdate = dimensionName === 'time' && !fromAutoUpdate;
+    if (stopsAutoUpdate) {
+      draftLayer.autoUpdate = undefined;
     }
 
     setDimensionForReduxLayer(draftLayer, dimensionName, dimensionValue);
@@ -430,8 +439,24 @@ export const reducers = {
       );
       if (otherDim?.linked) {
         setDimensionForReduxLayer(otherLayer, dimensionName, dimensionValue);
+        if (stopsAutoUpdate) {
+          // eslint-disable-next-line no-param-reassign
+          otherLayer.autoUpdate = undefined;
+        }
       }
     });
+  },
+  setLayerAutoUpdate: (
+    draftState: AdagucMapsState,
+    action: {
+      payload: { mapId: string; layerIndex: number; autoUpdate: boolean };
+    },
+  ): void => {
+    const { mapId, layerIndex, autoUpdate } = action.payload;
+    const draftLayer = getReduxLayer(draftState, mapId, layerIndex);
+    if (draftLayer) {
+      draftLayer.autoUpdate = autoUpdate || undefined;
+    }
   },
   // Toggles whether a layer's dimension is "linked": changing it on any
   // other linked layer then also updates this one, and vice versa - see

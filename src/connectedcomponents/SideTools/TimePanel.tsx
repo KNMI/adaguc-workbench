@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { awbColors } from '../../application/appTheme';
+import { awbColors, awbPanelBackground } from '../../application/appTheme';
 import {
   Box,
   Button,
@@ -517,7 +517,7 @@ const TimePanel = ({ mapId }: TimePanelProps): React.ReactElement => {
         flexDirection: 'column',
         height: '100%',
         minHeight: 0,
-        bgcolor: awbColors.panel,
+        background: awbPanelBackground,
       }}
     >
       <Box sx={{ p: 1, textAlign: 'center' }}>

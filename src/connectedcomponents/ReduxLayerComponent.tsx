@@ -7,6 +7,10 @@ import { selectors } from '../store/selectors';
 import { thunks } from '../store/thunks';
 import { AdagucLayer, ViewerState } from '../store/types';
 import { LayerComponent } from '../components/LayerComponent/LayerComponent';
+import {
+  AUTO_UPDATE_INTERVAL_MS,
+  useLayerAutoUpdate,
+} from './useLayerAutoUpdate';
 
 // webmap-react assigns the live OL source onto the WMLayer instance at
 // `olSource` (for its own internal "metronome" use), but that isn't part
@@ -99,6 +103,23 @@ export const ReduxLayerComponent = ({
   const isAnimating = useAppSelector((state: ViewerState): boolean =>
     selectors.isLayerAnimating(state, mapId, layerId),
   );
+
+  const autoUpdateCheckStartedAt = useLayerAutoUpdate({
+    mapId,
+    layerIndex,
+    layer,
+    isAnimating,
+  });
+
+  const toggleAutoUpdate = () => {
+    dispatch(
+      actions.setLayerAutoUpdate({
+        mapId,
+        layerIndex,
+        autoUpdate: !layer?.autoUpdate,
+      }),
+    );
+  };
 
   const changeLayerDimension = (
     dimensionName: string,
@@ -274,6 +295,16 @@ export const ReduxLayerComponent = ({
       canMoveUp={layerIndex > 0}
       canMoveDown={layerIndex < layerIds.length - 1}
       onRefreshLayer={refreshLayerCapabilities}
+      autoUpdate={!!layer.autoUpdate}
+      onToggleAutoUpdate={toggleAutoUpdate}
+      autoUpdateCountdown={
+        autoUpdateCheckStartedAt === undefined
+          ? undefined
+          : {
+              startedAt: autoUpdateCheckStartedAt,
+              durationMs: AUTO_UPDATE_INTERVAL_MS,
+            }
+      }
     />
   );
 };

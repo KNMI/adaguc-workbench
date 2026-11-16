@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { awbColors } from '../application/appTheme';
+import { awbPanelBackground } from '../application/appTheme';
 import { ReactSortable } from 'react-sortablejs';
 import { actions, useAppDispatch, useAppSelector } from '../store/store';
 import { selectors } from '../store/selectors';
@@ -32,7 +32,7 @@ export const SortableLayerList = ({
         overflowY: 'scroll',
         width: 'inherit',
         height: '100%',
-        background: awbColors.panel,
+        background: awbPanelBackground,
       }}
     >
       {layerDetailsForLayerId !== null && (

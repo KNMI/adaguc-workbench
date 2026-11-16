@@ -1,6 +1,8 @@
 /* Colours come from the CSS variables set in src/application/appTheme.tsx
    (--awb-surface, --awb-panel, --awb-water, --awb-water-dark, --awb-line,
-   --awb-accent, ...) - for the current light or dark colour scheme. */
+   --awb-accent, ...) - for the current light, dark or classic theme. Panel
+   backgrounds draw --awb-panel-texture (the classic theme's stripes, or
+   none) over --awb-panel. */
 
 :focus {
   outline: none;
@@ -24,7 +26,7 @@
   margin: 1.5px;
   /* Shows wherever a panel's own content doesn't reach (e.g. a collapsed
      side panel's strip) - instead of react-mosaic's own darker grey. */
-  background: var(--awb-panel);
+  background: var(--awb-panel-texture), var(--awb-panel);
 }
 
 .mosaic {
@@ -39,7 +41,7 @@
   font-size: 12px;
   width: 100%;
   height: 100%;
-  background: var(--awb-panel);
+  background: var(--awb-panel-texture), var(--awb-panel);
 }
 
 .getfeatureinfo_result_contents {
@@ -50,7 +52,7 @@
 .legend_panel {
   width: 100%;
   height: 100%;
-  background: var(--awb-panel);
+  background: var(--awb-panel-texture), var(--awb-panel);
 }
 
 .legend_panel_toolbar {
@@ -85,7 +87,7 @@
 .query_panel {
   width: 100%;
   height: 100%;
-  background: var(--awb-panel);
+  background: var(--awb-panel-texture), var(--awb-panel);
 }
 
 .query_panel_header {
@@ -118,7 +120,7 @@
 .baselayers_panel {
   width: 100%;
   height: 100%;
-  background: var(--awb-panel);
+  background: var(--awb-panel-texture), var(--awb-panel);
 }
 
 .baselayers_panel_header {

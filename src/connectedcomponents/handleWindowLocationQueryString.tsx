@@ -6,11 +6,13 @@ import { AdagucBaseLayer, AdagucMap } from '../store/types';
 import { DEFAULT_BASE_LAYERS } from '../utils/baseLayerPresets';
 import {
   formatAnimation,
+  formatAutoUpdate,
   formatBaseLayers,
   formatCollapsedPanels,
   formatLayerDimensions,
   PanelsExpanded,
   parseAnimation,
+  parseAutoUpdate,
   parseBaseLayers,
   parseCollapsedPanels,
   parseLayerDimensions,
@@ -206,6 +208,22 @@ export const handleWindowLocationQueryString = (
           }),
         );
       }
+
+      // Last: any time set above would otherwise switch it off again.
+      parseAutoUpdate(lowerCaseUrlParams.get('autoupdate')).forEach(
+        (urlIndex) => {
+          const mapLayerIndex = toLayerIndex(urlIndex);
+          if (mapLayerIndex !== undefined) {
+            dispatch(
+              actions.setLayerAutoUpdate({
+                mapId,
+                layerIndex: mapLayerIndex,
+                autoUpdate: true,
+              }),
+            );
+          }
+        },
+      );
     });
   }
 };
@@ -257,9 +275,11 @@ export const makePermaLink = (
   // (see permalinkLayerState.ts) - what this version restores instead.
   const layerDimensions = formatLayerDimensions(layers);
   const animation = formatAnimation(map);
+  const autoUpdate = formatAutoUpdate(layers);
   const layerStateLink =
     (layerDimensions ? `&layerdims=${URLEncode(layerDimensions)}` : '') +
     (animation ? `&animate=${URLEncode(animation)}` : '') +
+    (autoUpdate ? `&autoupdate=${URLEncode(autoUpdate)}` : '') +
     (baseLayers
       ? `&baselayers=${URLEncode(formatBaseLayers(baseLayers))}`
       : '') +

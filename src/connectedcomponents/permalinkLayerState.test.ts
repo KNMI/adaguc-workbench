@@ -8,6 +8,8 @@ import {
   parseBaseLayers,
   parseCollapsedPanels,
   parseLayerDimensions,
+  formatAutoUpdate,
+  parseAutoUpdate,
 } from './permalinkLayerState';
 
 const layer = (
@@ -159,5 +161,24 @@ describe('collapsed', () => {
   it('reads them back, ignoring anything it does not recognise', () => {
     expect(parseCollapsedPanels('tools,sidebar')).toEqual(['tools']);
     expect(parseCollapsedPanels(null)).toEqual([]);
+  });
+});
+
+describe('autoupdate', () => {
+  it('lists the auto-updating layers by position, and reads them back', () => {
+    const layers = [
+      { ...layer('a', []), autoUpdate: true },
+      layer('b', []),
+      { ...layer('c', []), autoUpdate: true },
+    ];
+
+    expect(formatAutoUpdate(layers)).toBe('0,2');
+    expect(formatAutoUpdate([layer('a', [])])).toBe('');
+    expect(parseAutoUpdate('0,2')).toEqual([0, 2]);
+  });
+
+  it('ignores entries it cannot read, and a missing parameter', () => {
+    expect(parseAutoUpdate('1,x,-2,')).toEqual([1]);
+    expect(parseAutoUpdate(null)).toEqual([]);
   });
 });
