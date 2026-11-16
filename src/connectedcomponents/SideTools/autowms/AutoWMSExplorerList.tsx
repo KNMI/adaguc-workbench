@@ -126,7 +126,7 @@ const AutoWMSExplorerList = ({
       )}
       <List dense disablePadding>
         {error && !isLoading && <FetchErrorMessage message={error} />}
-        {!error && items.length === 0 && (
+        {!error && !isLoading && items.length === 0 && (
           <Typography
             variant="body2"
             color="text.secondary"

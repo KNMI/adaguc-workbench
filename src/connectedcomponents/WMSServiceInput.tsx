@@ -2,6 +2,8 @@ import * as React from 'react';
 import {
   Alert,
   Autocomplete,
+  Box,
+  CircularProgress,
   IconButton,
   Snackbar,
   TextField,
@@ -49,6 +51,10 @@ const WMSServiceInput = ({
   const [value, setValue] = React.useState<string>('');
   // Why the last submitted service couldn't be added, if it couldn't.
   const [error, setError] = React.useState<string | null>(null);
+  // A submitted url being checked for an AutoWMS service, if any.
+  const [checkingService, setCheckingService] = React.useState<string | null>(
+    null,
+  );
   const [recentServices, setRecentServices] = React.useState<string[]>(() =>
     getRecentServices(),
   );
@@ -101,7 +107,14 @@ const WMSServiceInput = ({
       onHandled?.();
     };
     const addAsLayer = (): Promise<void> =>
-      dispatch(thunks.addLayer({ mapId, serviceUrl: service, name: undefined }))
+      dispatch(
+        thunks.addLayer({
+          mapId,
+          serviceUrl: service,
+          name: undefined,
+          announce: true,
+        }),
+      )
         .unwrap()
         .then(() => finish());
 
@@ -119,8 +132,12 @@ const WMSServiceInput = ({
     // than assume, try the likely AutoWMS urls (see resolveAutoWMSUrl)
     // first, and only fall back to adding the originally typed url as a
     // WMS layer if none of those look like valid AutoWMS explorer data.
+    // The field shows that check is going on; adding a layer after it shows
+    // in the layers panel instead.
+    setCheckingService(service);
     resolveAutoWMSUrl(service)
       .then((autoWMSUrl) => {
+        setCheckingService(null);
         if (autoWMSUrl) {
           dispatch(actions.requestAutoWMSService({ service: autoWMSUrl }));
           finish(autoWMSUrl);
@@ -128,7 +145,10 @@ const WMSServiceInput = ({
         }
         return addAsLayer();
       })
-      .catch(showError);
+      .catch((e: unknown) => {
+        setCheckingService(null);
+        showError(e);
+      });
   };
 
   return (
@@ -218,6 +238,34 @@ const WMSServiceInput = ({
             placeholder={placeholder}
             variant="outlined"
             size="small"
+            slotProps={{
+              ...params.slotProps,
+              input: {
+                ...params.slotProps.input,
+                endAdornment: (
+                  <>
+                    {checkingService !== null && (
+                      <Box
+                        role="status"
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          mr: 1,
+                          color: 'text.secondary',
+                          fontSize: '0.8rem',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <CircularProgress size={16} color="inherit" />
+                        Checking for an AutoWMS service…
+                      </Box>
+                    )}
+                    {params.slotProps.input.endAdornment}
+                  </>
+                ),
+              },
+            }}
           />
         )}
       />

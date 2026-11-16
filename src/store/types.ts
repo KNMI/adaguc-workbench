@@ -107,6 +107,30 @@ export interface AdagucBaseLayer {
   type?: string;
   format?: string;
   service?: string;
+  // A WMS style other than the layer's default, e.g. one of several outline
+  // colours for the same borders layer.
+  style?: string;
+}
+
+// A layer that is being added: shown in the layers panel straight away,
+// while its service's capabilities are still being fetched. Not a layer of
+// the map (yet) - only the panel shows it.
+export interface AdagucPendingLayer {
+  // The add-layer request it stands for (its thunk's requestId).
+  requestId: string;
+  mapId: string;
+  // Missing when the service's first layer is going to be added.
+  name?: string;
+  serviceUrl: string;
+}
+
+export interface AdagucLayerAddedNotice {
+  // The add-layer request it's about - a new one shows anew.
+  requestId: string;
+  layerName: string;
+  layerTitle?: string;
+  // The layer was added, but its service couldn't be (fully) read.
+  hasError?: boolean;
 }
 
 export interface AdagucMapsState {
@@ -129,6 +153,11 @@ export interface AdagucMapsState {
   // collapsed into a narrow strip - both open when unset.
   layerPanelIsExpanded?: boolean;
   toolsPanelIsExpanded?: boolean;
+  // Layers being added, newest first (see AdagucPendingLayer).
+  pendingLayers?: AdagucPendingLayer[];
+  // The layer most recently added by the user (an add-layer request with
+  // `announce`), for LayerAddedSnackbar to confirm.
+  layerAddedNotice?: AdagucLayerAddedNotice;
 }
 
 export type AdagucPanel = 'layers' | 'tools';

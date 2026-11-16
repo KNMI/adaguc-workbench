@@ -1,6 +1,7 @@
 import type { MockInstance } from 'vitest';
 import * as React from 'react';
 import {
+  act,
   fireEvent,
   render as renderWithoutStore,
   screen,
@@ -87,6 +88,7 @@ describe('WMSServiceInput', () => {
       mapId: 'map1',
       serviceUrl: 'http://example.com/wms?SERVICE=WMS&',
       name: undefined,
+      announce: true,
     });
     await waitFor(() =>
       expect(screen.getByPlaceholderText(PLACEHOLDER)).toHaveValue(''),
@@ -194,6 +196,39 @@ describe('WMSServiceInput', () => {
     });
   });
 
+  it('shows that it is checking an ambiguous url for AutoWMS, until that check is done', async () => {
+    // Every AutoWMS probe waits until the test lets them fail - from then on
+    // they fail straight away (the urls are tried one after another).
+    const failProbes: Array<() => void> = [];
+    let probesFail = false;
+    globalThis.fetch = vi.fn(() =>
+      probesFail
+        ? Promise.reject(new Error('not json'))
+        : new Promise((_resolve, reject) => {
+            failProbes.push(() => reject(new Error('not json')));
+          }),
+    ) as unknown as typeof fetch;
+
+    render(<WMSServiceInput />);
+    typeAndSubmit('http://example.com/some/service?');
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Checking for an AutoWMS service',
+    );
+    expect(mockAddLayer).not.toHaveBeenCalled();
+
+    await act(async () => {
+      probesFail = true;
+      failProbes.forEach((fail) => fail());
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(mockAddLayer).toHaveBeenCalled();
+    });
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
   it('falls back to adding the layer when the ambiguous url does not look like AutoWMS', async () => {
     const mockFetch = vi.fn().mockRejectedValue(new Error('not json'));
     globalThis.fetch = mockFetch;
@@ -206,6 +241,7 @@ describe('WMSServiceInput', () => {
         mapId: 'map1',
         serviceUrl: 'http://example.com/some/service?',
         name: undefined,
+        announce: true,
       });
     });
   });

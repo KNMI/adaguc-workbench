@@ -24,6 +24,7 @@ const AdagucAddDataDialog = ({
         mapId,
         serviceUrl: args.service,
         name: args.layer,
+        announce: true,
       }),
     )
       .unwrap()

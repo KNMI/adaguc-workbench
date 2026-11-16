@@ -13,6 +13,15 @@ import { addLayer, fetchWMSService } from './thunks';
 import { reducers } from './reducers';
 import { DEFAULT_BASE_LAYERS } from '../utils/baseLayerPresets';
 
+const removePendingLayer = (
+  draftState: AdagucMapsState,
+  requestId: string,
+): void => {
+  draftState.pendingLayers = draftState.pendingLayers?.filter(
+    (pending) => pending.requestId !== requestId,
+  );
+};
+
 const initialState: AdagucMapsState = {
   maps: {},
   services: {},
@@ -34,7 +43,30 @@ const ViewerSlice = createSlice({
       fetchWMSService.fulfilled,
       reducers.fullFillfetchWMSService,
     );
-    builder.addCase(addLayer.fulfilled, reducers.fullFillAddLayer);
+    // A layer being added shows in the layers panel straight away, until its
+    // request is done - either way.
+    builder.addCase(addLayer.pending, (draftState, action) => {
+      const { mapId, name, serviceUrl } = action.meta.arg;
+      draftState.pendingLayers = [
+        { requestId: action.meta.requestId, mapId, name, serviceUrl },
+        ...(draftState.pendingLayers ?? []),
+      ];
+    });
+    builder.addCase(addLayer.fulfilled, (draftState, action) => {
+      removePendingLayer(draftState, action.meta.requestId);
+      reducers.fullFillAddLayer(draftState, action);
+      if (action.meta.arg.announce) {
+        draftState.layerAddedNotice = {
+          requestId: action.meta.requestId,
+          layerName: action.payload.name,
+          layerTitle: action.payload.title,
+          hasError: action.payload.hasError,
+        };
+      }
+    });
+    builder.addCase(addLayer.rejected, (draftState, action) => {
+      removePendingLayer(draftState, action.meta.requestId);
+    });
   },
 });
 

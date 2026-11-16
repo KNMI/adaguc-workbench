@@ -164,6 +164,7 @@ const SideToolPanel = ({
                   serviceUrl: service,
                   name,
                   mapId,
+                  announce: true,
                 }),
               );
             }}

@@ -3,8 +3,10 @@ import { awbPanelBackground } from '../application/appTheme';
 import { ReactSortable } from 'react-sortablejs';
 import { actions, useAppDispatch, useAppSelector } from '../store/store';
 import { selectors } from '../store/selectors';
-import { ViewerState } from '../store/types';
+import { shallowEqual } from 'react-redux';
+import { AdagucPendingLayer, ViewerState } from '../store/types';
 import { ReduxLayerComponent } from './ReduxLayerComponent';
+import { PendingLayerCard } from '../components/LayerComponent/PendingLayerCard';
 import LayerDetailDialog from './LayerDetailsComponent/LayerDetailDialog';
 import { ErrorBoundary } from '../components/ErrorBoundary/ErrorBoundary';
 
@@ -26,6 +28,15 @@ export const SortableLayerList = ({
   const layersInMap = useAppSelector((state: ViewerState): string[] =>
     selectors.getMapLayerIds(state, mapId),
   );
+  // Layers still being added - shown above the others, where each will
+  // appear once ready.
+  const pendingLayers = useAppSelector(
+    (state: ViewerState): AdagucPendingLayer[] =>
+      (state.viewer.pendingLayers ?? []).filter(
+        (pending) => pending.mapId === mapId,
+      ),
+    shallowEqual,
+  );
   return (
     <div
       style={{
@@ -45,6 +56,9 @@ export const SortableLayerList = ({
           }}
         />
       )}
+      {pendingLayers.map((pending) => (
+        <PendingLayerCard key={pending.requestId} pendingLayer={pending} />
+      ))}
       <ReactSortable
         setList={(newList) => {
           if (layersInMap.join() === newList.map((it) => it.id).join()) {

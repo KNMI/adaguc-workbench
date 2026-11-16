@@ -1,6 +1,10 @@
 import { LayerType } from '@opengeoweb/webmap';
 import { AdagucBaseLayer } from '../store/types';
 
+// KNMI's WMS for overlays: borders, graticules, ...
+const BASELAYERS_SERVICE =
+  'https://geoservices.knmi.nl/wms?DATASET=baselayers&';
+
 // Ported from adaguc-viewer's config.js `baseLayerConfiguration` list (its
 // "Select basemaps and overlays" tab) - same predefined base maps/overlays,
 // using the equivalent named tile presets this app's webmap library already
@@ -80,8 +84,49 @@ export const DEFAULT_BASE_LAYERS: AdagucBaseLayer[] = [
     name: 'countryborders',
     title: 'World country borders',
     format: 'image/png',
-    service: 'https://geoservices.knmi.nl/wms?DATASET=baselayers&',
+    service: BASELAYERS_SERVICE,
     layerType: LayerType.overLayer,
     enabled: true,
+  },
+  // The same borders in the other outline styles that service offers - a
+  // white or black outline stays visible over dark or light data.
+  {
+    id: 'overlay-countryborders-white',
+    name: 'countryborders',
+    title: 'World country borders (white)',
+    style: 'white-2px/polyline',
+    format: 'image/png',
+    service: BASELAYERS_SERVICE,
+    layerType: LayerType.overLayer,
+    enabled: false,
+  },
+  {
+    id: 'overlay-countryborders-black',
+    name: 'countryborders',
+    title: 'World country borders (black)',
+    style: 'black-2px/polyline',
+    format: 'image/png',
+    service: BASELAYERS_SERVICE,
+    layerType: LayerType.overLayer,
+    enabled: false,
+  },
+  {
+    id: 'overlay-countryborders-blue',
+    name: 'countryborders',
+    title: 'World country borders (blue)',
+    style: 'blue-2px/polyline',
+    format: 'image/png',
+    service: BASELAYERS_SERVICE,
+    layerType: LayerType.overLayer,
+    enabled: false,
+  },
+  {
+    id: 'overlay-graticules10',
+    name: 'graticules10',
+    title: 'Latitude/longitude lines (every 10°)',
+    format: 'image/png',
+    service: BASELAYERS_SERVICE,
+    layerType: LayerType.overLayer,
+    enabled: false,
   },
 ];

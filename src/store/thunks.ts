@@ -12,6 +12,9 @@ export interface AddLayerInterface {
   enabled?: boolean;
   opacity?: number;
   styleName?: string;
+  // Confirms the layer once added (a snackbar) - for a layer the user just
+  // chose, not ones restored from a permalink.
+  announce?: boolean;
 }
 
 export interface AddLayerInterfaceFulFilled {
@@ -24,6 +27,8 @@ export interface AddLayerInterfaceFulFilled {
   opacity?: number;
   styleName?: string;
   hasError?: boolean;
+  // Its title in the service's capabilities, once they could be read.
+  title?: string;
 }
 
 export const fetchWMSService = createAsyncThunk(
@@ -97,12 +102,14 @@ export const addLayer = createAppAsyncThunk(
 
     let dimensions: AdagucLayerDimension[] = [];
     let hasError = false;
+    let title: string | undefined;
     try {
       await withTimeout(wmLayer.parseLayer(), ADD_LAYER_TIMEOUT_MS);
       wmLayer.enabled = enabled;
       if (styleName && styleName.length > 0) {
         wmLayer.setStyle(styleName);
       }
+      title = wmLayer.title || undefined;
       dimensions = wmLayer.dimensions.map((dim) => ({
         name: dim.name,
         currentValue: dim.currentValue,
@@ -128,6 +135,7 @@ export const addLayer = createAppAsyncThunk(
       id,
       dimensions,
       hasError,
+      title,
     };
   },
 );

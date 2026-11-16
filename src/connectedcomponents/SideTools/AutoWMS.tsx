@@ -1,14 +1,17 @@
 import * as React from 'react';
 import { LayerProps } from '@opengeoweb/webmap';
 import {
+  Box,
   Button,
   IconButton,
   LinearProgress,
   Paper,
+  Snackbar,
   Stack,
   Tooltip,
   Typography,
 } from '@mui/material';
+import { keyframes } from '@emotion/react';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { alpha } from '@mui/material/styles';
@@ -36,6 +39,14 @@ import { resolveAutoWMSUrl } from '../../utils/resolveAutoWMSUrl';
 import { useKeyedState } from '../../utils/useKeyedState';
 
 const AUTOWMS_INPUT_DEBOUNCE_MS = 600;
+
+// How long a refresh's loading indicators show at least.
+const MIN_REFRESH_INDICATOR_MS = 100;
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
 
 interface AutoWMSProps {
   addLayer: (service: string, name: string) => void;
@@ -125,14 +136,33 @@ const AutoWMS = ({
   const { layers } = wms.contents;
   const isLoading = isResolving || listing.isFetching || wms.isFetching;
 
+  // A refresh from a fast server is over before anyone could notice - its
+  // loading indicators stay on for at least MIN_REFRESH_INDICATOR_MS.
+  const [refreshClicked, setRefreshClicked] = React.useState(false);
+  // Confirms a service the user opened here (Enter/Load, or sent from the
+  // top bar's field), like the copy buttons confirm a copy.
+  const [openedMessage, setOpenedMessage] = React.useState<string | null>(null);
+  const refreshTimer = React.useRef<ReturnType<typeof setTimeout>>(undefined);
+  React.useEffect(() => () => clearTimeout(refreshTimer.current), []);
+  const showsLoading = isLoading || refreshClicked;
+
   // Reloads whichever is actually showing: a selected dataset's (or a
   // directly entered WMS url's) layers, or - only otherwise - the folder.
+  // Its old contents are dropped first, so the list is blank until the
+  // fresh ones arrive: visibly reloaded, not just quietly the same.
   const refresh = (): void => {
+    setRefreshClicked(true);
+    clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => {
+      setRefreshClicked(false);
+    }, MIN_REFRESH_INDICATOR_MS);
     if (isWMSService(autoWMSService) || currentLeaf.length > 0) {
-      wms.refetch();
+      void queryClient.resetQueries({ queryKey: wmsServiceKey(ogcWMSService) });
       return;
     }
-    listing.refetch();
+    void queryClient.resetQueries({
+      queryKey: autoWMSListingKey(autoWMSService, path),
+    });
   };
 
   // Backs out one level: out of a selected dataset's layers, or one folder
@@ -193,7 +223,7 @@ const AutoWMS = ({
   // Enter/Load, an externally requested service, and the initial one.
   // Loading a service that's already shown fetches it again, rather than
   // just keeping what's cached.
-  const loadAutoWMSService = (service: string): void => {
+  const loadAutoWMSService = (service: string, announce = false): void => {
     setPath('');
     setCurrentLeaf('');
     setOGCWMSService('');
@@ -207,6 +237,9 @@ const AutoWMS = ({
       setAutoWMSService(service);
       setOGCWMSService(service);
       setRecentServices(rememberRecentService(service));
+      if (announce) {
+        setOpenedMessage(`Opened ${service} in AutoWMS \u2705`);
+      }
       void queryClient.invalidateQueries({ queryKey: wmsServiceKey(service) });
       return;
     }
@@ -223,6 +256,9 @@ const AutoWMS = ({
         setAutoWMSServiceInput(finalService);
         setAutoWMSService(finalService);
         setRecentServices(rememberRecentService(finalService));
+        if (announce) {
+          setOpenedMessage(`Opened ${finalService} in AutoWMS \u2705`);
+        }
         void queryClient.invalidateQueries({
           queryKey: autoWMSListingKey(finalService),
         });
@@ -244,7 +280,7 @@ const AutoWMS = ({
   // An effect event, so the effect below only re-runs for a new request,
   // while still calling the current render's loadAutoWMSService.
   const onExternalServiceRequest = React.useEffectEvent((service: string) => {
-    loadAutoWMSService(service);
+    loadAutoWMSService(service, true);
   });
   React.useEffect(() => {
     if (
@@ -323,7 +359,9 @@ const AutoWMS = ({
       <AutoWMSServiceField
         value={autoWMSServiceInput}
         onChange={setAutoWMSServiceInput}
-        onLoad={loadAutoWMSService}
+        onLoad={(service) => {
+          loadAutoWMSService(service, true);
+        }}
         recentServices={recentServices}
         defaultService={defaultAutoWMSService}
         onForgetRecentService={(service) => {
@@ -358,12 +396,27 @@ const AutoWMS = ({
               </IconButton>
             </Tooltip>
             <Tooltip title="Refresh">
-              <IconButton size="small" aria-label="Refresh" onClick={refresh}>
-                <RefreshIcon fontSize="small" />
+              <IconButton
+                size="small"
+                aria-label="Refresh"
+                aria-busy={showsLoading}
+                onClick={refresh}
+              >
+                <RefreshIcon
+                  fontSize="small"
+                  sx={
+                    showsLoading
+                      ? { animation: `${spin} 0.8s linear infinite` }
+                      : undefined
+                  }
+                />
               </IconButton>
             </Tooltip>
           </Stack>
         </Stack>
+        {/* Room for it is always kept, so the list doesn't jump when it
+            shows. */}
+        <Box sx={{ height: 4 }}>{showsLoading && <LinearProgress />}</Box>
         <Button
           fullWidth
           size="small"
@@ -380,9 +433,9 @@ const AutoWMS = ({
         </Button>
         {showsExplorerList && (
           <AutoWMSExplorerList
-            items={listing.items}
+            items={refreshClicked ? [] : listing.items}
             error={explorerError}
-            isLoading={isLoading}
+            isLoading={showsLoading}
             filter={datasetFilter}
             onFilterChange={setDatasetFilter}
             onOpenFolder={(folderPath) => {
@@ -396,7 +449,7 @@ const AutoWMS = ({
           <AutoWMSLayerList
             serviceUrl={ogcWMSService}
             abstract={wms.contents.abstract}
-            layers={layers}
+            layers={refreshClicked ? [] : layers}
             // While a dataset is open the explorer list (which otherwise
             // shows this) is hidden.
             error={currentLeaf.length > 0 && !isLoading ? wms.error : null}
@@ -408,8 +461,15 @@ const AutoWMS = ({
             onShowDetails={setDetailsLayer}
           />
         )}
-        {isLoading && <LinearProgress />}
       </Paper>
+      <Snackbar
+        open={openedMessage !== null}
+        autoHideDuration={3000}
+        onClose={() => {
+          setOpenedMessage(null);
+        }}
+        message={openedMessage}
+      />
       <AutoWMSLayerDetailsDialog
         serviceUrl={ogcWMSService}
         layer={detailsLayer}

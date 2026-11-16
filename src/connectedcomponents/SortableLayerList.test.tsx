@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { act, screen } from '@testing-library/react';
 import { ReactSortable } from 'react-sortablejs';
+import { thunks } from '../store/thunks';
 import { emptyMap, renderWithStore } from '../testUtils/renderWithStore';
 import { SortableLayerList } from './SortableLayerList';
 
@@ -47,5 +49,41 @@ describe('SortableLayerList', () => {
         preventOnFilter: false,
       }),
     );
+  });
+});
+
+describe('SortableLayerList: layers being added', () => {
+  it('shows a loading card for a layer while it is being added, and removes it once done', () => {
+    const { store } = renderWithStore(<SortableLayerList mapId={mapId} />, {
+      [mapId]: emptyMap(),
+    });
+    const request = {
+      mapId,
+      name: 'RAD_NL25_PCP_CM',
+      serviceUrl: 'https://geoservices.knmi.nl/adagucserver?dataset=RADAR&',
+    };
+
+    act(() => {
+      store.dispatch(thunks.addLayer.pending('request-1', request));
+    });
+
+    const card = screen.getByRole('status', {
+      name: 'Loading layer RAD_NL25_PCP_CM',
+    });
+    expect(card).toHaveTextContent('Layer RAD_NL25_PCP_CM');
+    expect(card).toHaveTextContent('Dataset: RADAR');
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(
+        thunks.addLayer.rejected(
+          new Error('unreachable'),
+          'request-1',
+          request,
+        ),
+      );
+    });
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

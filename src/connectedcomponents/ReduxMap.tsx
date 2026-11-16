@@ -9,6 +9,7 @@ import 'react-mosaic-component/react-mosaic-component.css';
 import '../assets/styles.css';
 import LayerPanel from './LayerPanel';
 import AdagucAppBar from './AdagucAppBar';
+import LayerAddedSnackbar from './LayerAddedSnackbar';
 import { handleWindowLocationQueryString } from './handleWindowLocationQueryString';
 import { handleAddLayerHash } from './handleAddLayerHashTag';
 import { AdagucMosaic } from './AdagucMosaic';
@@ -148,6 +149,7 @@ const ReduxMap = (): React.ReactElement => {
           toolsPanelIsExpanded={toolsPanelIsExpanded}
         />
       </div>
+      <LayerAddedSnackbar />
     </div>
   );
 };

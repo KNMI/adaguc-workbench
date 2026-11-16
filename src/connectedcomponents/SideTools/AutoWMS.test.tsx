@@ -1007,9 +1007,44 @@ describe('AutoWMS', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
 
+    // Blank until the fresh contents arrive.
+    expect(screen.queryByText('Layer One')).not.toBeInTheDocument();
     expect(await screen.findByText('Layer One')).toBeInTheDocument();
     expect(screen.queryByText('No items found.')).not.toBeInTheDocument();
     expect(screen.queryByText(/No layers match/)).not.toBeInTheDocument();
+  });
+
+  it('confirms a service opened with Load, but not one loaded at start-up', async () => {
+    const mockFetch = makeFetchMock(configJsonHandler);
+    globalThis.fetch = mockFetch;
+    render(<AutoWMS addLayer={vi.fn()} />);
+    await flushConfigFetch(mockFetch);
+    expect(screen.queryByText(/in AutoWMS/)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Add AutoWMS or WMS service'), {
+      target: { value: AUTOWMS_URL },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Load service' }));
+
+    expect(
+      await screen.findByText(`Opened ${AUTOWMS_URL} in AutoWMS ✅`),
+    ).toBeInTheDocument();
+  });
+
+  it('shows that it is refreshing, however quickly the server answers', async () => {
+    const mockFetch = makeFetchMock(configJsonHandler);
+    globalThis.fetch = mockFetch;
+    render(<AutoWMS addLayer={vi.fn()} />);
+    await flushConfigFetch(mockFetch);
+
+    const refreshButton = screen.getByRole('button', { name: 'Refresh' });
+    expect(refreshButton).toHaveAttribute('aria-busy', 'false');
+    fireEvent.click(refreshButton);
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(refreshButton).toHaveAttribute('aria-busy', 'true');
+    await waitForLoadingToFinish();
+    expect(refreshButton).toHaveAttribute('aria-busy', 'false');
   });
 
   it('shows a could-not-reach message, not "No items found.", when the service is unreachable', async () => {
