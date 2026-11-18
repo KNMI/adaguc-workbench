@@ -280,7 +280,7 @@ export const LayerComponent = ({
       title={
         layer?.hasError
           ? 'Layer has an error'
-          : "Server unreachable - could not load this layer's image"
+          : "Could not load this layer's image: the server can't be reached, or answered with an error (such as no data for the chosen time)"
       }
     >
       <WarningAmberIcon

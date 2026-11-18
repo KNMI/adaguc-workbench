@@ -137,12 +137,24 @@ describe('baselayers', () => {
     ]);
   });
 
-  it('switches everything off for a present but empty parameter', () => {
-    expect(parseBaseLayers('', known)).toEqual([]);
+  it("writes and reads 'none' for everything switched off", () => {
+    expect(
+      formatBaseLayers(
+        known.map((id) => ({
+          id,
+          name: id,
+          layerType: 'baseLayer',
+          enabled: false,
+        })) as never,
+      ),
+    ).toBe('none');
+    expect(parseBaseLayers('none', known)).toEqual([]);
   });
 
-  it('leaves the defaults alone without the parameter, or with only unknown ids', () => {
+  it('leaves the defaults alone without the parameter, an empty one, or only unknown ids', () => {
     expect(parseBaseLayers(null, known)).toBeUndefined();
+    // As some links have - not a map with nothing under the data.
+    expect(parseBaseLayers('', known)).toBeUndefined();
     expect(parseBaseLayers('renamed-preset', known)).toBeUndefined();
   });
 });

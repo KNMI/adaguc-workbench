@@ -243,7 +243,7 @@ describe('LayerComponent', () => {
     const icon = screen.getByTestId('WarningAmberIcon');
     expect(icon).toHaveAttribute(
       'aria-label',
-      "Server unreachable - could not load this layer's image",
+      "Could not load this layer's image: the server can't be reached, or answered with an error (such as no data for the chosen time)",
     );
 
     act(() => {

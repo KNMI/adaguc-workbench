@@ -203,13 +203,25 @@ describe('handleWindowLocationQueryString', () => {
     );
   });
 
-  it('keeps the default base maps for a permalink without baselayers', async () => {
-    setUrl(TWO_LAYERS);
+  it('keeps the default base maps for a permalink without baselayers, or with an empty one', async () => {
+    for (const url of [TWO_LAYERS, `${TWO_LAYERS}&baselayers=`]) {
+      setUrl(url);
+
+      const dispatched = await dispatchedActionsFor();
+
+      expect(dispatched.map((action) => action.type)).not.toContain(
+        actions.setEnabledBaseLayers({ ids: [] }).type,
+      );
+    }
+  });
+
+  it('switches every base map and overlay off for baselayers=none', async () => {
+    setUrl(`${TWO_LAYERS}&baselayers=none`);
 
     const dispatched = await dispatchedActionsFor();
 
-    expect(dispatched.map((action) => action.type)).not.toContain(
-      actions.setEnabledBaseLayers({ ids: [] }).type,
+    expect(dispatched).toContainEqual(
+      actions.setEnabledBaseLayers({ ids: [] }),
     );
   });
 

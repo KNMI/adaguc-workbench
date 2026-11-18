@@ -18,8 +18,9 @@ import {
 //   <layer> is the layer's position in the `layer` parameter.
 // baselayers=<id>,<id>,...
 //   The base maps and overlays (the Baselayers tab) that are switched on,
-//   by their fixed ids (see utils/baseLayerPresets.ts). Present but empty
-//   means all of them are off.
+//   by their fixed ids (see utils/baseLayerPresets.ts). 'none' when all of
+//   them are off. Empty (as some links have) counts as not given: the
+//   defaults, rather than a map with nothing under the data.
 // collapsed=<panel>,...
 //   The side panels that are collapsed: 'layers' (left), 'tools' (right).
 //   Left out while both are open.
@@ -132,29 +133,28 @@ export const parseAutoUpdate = (param: string | null): number[] =>
     return layerIndex === undefined ? [] : [layerIndex];
   });
 
+const NO_BASE_LAYERS = 'none';
+
 export const formatBaseLayers = (baseLayers: AdagucBaseLayer[]): string =>
   baseLayers
     .filter((baseLayer) => baseLayer.enabled)
     .map((baseLayer) => baseLayer.id)
-    .join(',');
+    .join(',') || NO_BASE_LAYERS;
 
-// The ids of the base maps/overlays to switch on - or undefined to leave
-// the defaults alone: when the parameter is missing (an older permalink),
-// or names only ids this version doesn't know (rather than switching
-// everything off over, say, a renamed preset).
+// The ids of the base maps/overlays to switch on (none for 'none') - or
+// undefined to leave the defaults alone: when the parameter is missing (an
+// older permalink) or empty, or names only ids this version doesn't know
+// (rather than switching everything off over, say, a renamed preset).
 export const parseBaseLayers = (
   param: string | null,
   knownIds: string[],
 ): string[] | undefined => {
-  if (param === null) {
-    return undefined;
+  if (param === NO_BASE_LAYERS) {
+    return [];
   }
-  const ids = param.split(',').filter(Boolean);
+  const ids = (param ?? '').split(',').filter(Boolean);
   const known = ids.filter((id) => knownIds.includes(id));
-  if (ids.length > 0 && known.length === 0) {
-    return undefined;
-  }
-  return known;
+  return known.length > 0 ? known : undefined;
 };
 
 export interface PanelsExpanded {
