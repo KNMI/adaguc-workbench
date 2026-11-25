@@ -75,13 +75,13 @@
     "vitest": "^5.1.0"
   },
   "overrides": {
-    "glob": "^14.0.6",
-    "uuid": "^14.0.3",
+    "glob": "14.0.6",
+    "uuid": "14.0.3",
     "@typescript-eslint/eslint-plugin": {
-      "minimatch": "^11.0.8"
+      "minimatch": "11.0.8"
     },
     "@typescript-eslint/parser": {
-      "minimatch": "^11.0.8"
+      "minimatch": "11.0.8"
     }
   },
   "allowScripts": {
