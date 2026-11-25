@@ -7,6 +7,7 @@ import {
   useAnimationForLayer,
 } from '@opengeoweb/webmap-react';
 import { AdagucLayer } from '../store/types';
+import { dimensionsWithValues } from '../utils/dimensionsWithValues';
 
 export const ANIMATION_INTERVAL_MS = 300;
 const ANIMATION_NUM_STEPS = 24;
@@ -75,7 +76,7 @@ export const AnimationClock = ({
     opacity: layer.opacity ?? 1,
     layerType: LayerType.mapLayer,
     name: layer.name,
-    dimensions: layer.dimensions,
+    dimensions: dimensionsWithValues(layer.dimensions),
   };
   // Computed once, from the layer's dimensions as they are at the moment
   // this mounts (i.e. when animation is switched on) - not recomputed on

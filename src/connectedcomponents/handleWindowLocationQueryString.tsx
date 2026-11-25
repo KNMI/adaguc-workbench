@@ -269,6 +269,7 @@ export const makePermaLink = (
   // Still written for older versions of the app, which apply `dims` to
   // the first layer only - so it holds the first layer's own values.
   const dimsLink = (layers[0]?.dimensions ?? [])
+    .filter((dim) => dim.currentValue !== undefined)
     .map((dim) => `${dim.name}$${dim.currentValue}`)
     .join(',');
   // Every layer's own values and link checkboxes, and a running animation

@@ -3,7 +3,9 @@ import { MapLocation } from '@opengeoweb/webmap-react';
 
 export interface AdagucLayerDimension {
   name: string;
-  currentValue: string;
+  // Can be missing: a service may advertise a dimension with no values and
+  // no default (e.g. a dataset without data yet).
+  currentValue?: string;
   // When true, changing this dimension on any layer (see
   // reducers.changeLayerDimension) also updates this one to match - lets
   // e.g. several layers' own time sliders be "linked" into one sync group.

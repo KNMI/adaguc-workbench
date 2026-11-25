@@ -23,6 +23,14 @@ vi.mock('./OpenLayersHistogramBoxSelect', () => ({
 }));
 
 // Lets each test decide which srs's OpenLayers knows - by default, all.
+const mockGraticuleCalls = vi.hoisted(() => [] as { zIndex: number }[]);
+vi.mock('./OpenLayersGraticule', () => ({
+  default: (props: { zIndex: number }) => {
+    mockGraticuleCalls.push(props);
+    return null;
+  },
+}));
+
 vi.mock('ol/proj', () => ({
   get: vi.fn(() => ({})),
 }));
@@ -188,6 +196,69 @@ describe('ReduxMapViewComponent', () => {
     const [fittedView, fittedBbox] = mockFitViewToBbox.mock.calls[0];
     expect(fittedView).toBe(attachedView);
     expect(fittedBbox).toEqual(bbox);
+  });
+
+  it('fits each view to its own bbox when two view commands arrive in quick succession', async () => {
+    // Regression guard: stepping through projections with a key held down
+    // asks for the next view before the previous one has been rendered.
+    // The bbox still to fit was kept on its own, so the first view to
+    // render took the bbox meant for the second - which then got none, and
+    // stayed on the whole world.
+    const srsOfView = new Map<unknown, string>();
+    mockMakeView.mockImplementation((srs?: string) => {
+      const view = makeFakeView();
+      srsOfView.set(view, srs ?? '');
+      return view as ReturnType<typeof makeView>;
+    });
+    render(<ReduxMapViewComponent mapId={mapId} />);
+    mockFitViewToBbox.mockClear();
+    const bboxFor28992 = { left: 1, bottom: 2, right: 3, top: 4 };
+    const bboxFor4326 = { left: 5, bottom: 50, right: 6, top: 51 };
+
+    // Not in act(), which would finish the first command - rendering its
+    // view included - before the second one is dispatched.
+    const environment = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+    environment.IS_REACT_ACT_ENVIRONMENT = false;
+    try {
+      store.dispatch(
+        actions.requestSetProjection({
+          mapId,
+          srs: 'EPSG:28992',
+          bbox: bboxFor28992,
+        }),
+      );
+      // Long enough for the first command to be taken up, not for its
+      // view to be rendered: React renders that in a task of its own.
+      await Promise.resolve();
+      store.dispatch(
+        actions.requestSetProjection({
+          mapId,
+          srs: 'EPSG:4326',
+          bbox: bboxFor4326,
+        }),
+      );
+      await new Promise((resolve) => {
+        setTimeout(resolve, 50);
+      });
+    } finally {
+      environment.IS_REACT_ACT_ENVIRONMENT = true;
+    }
+
+    const fits = mockFitViewToBbox.mock.calls.map(([fittedView, bbox]) => ({
+      srs: srsOfView.get(fittedView),
+      bbox,
+    }));
+    // No view with another one's bbox...
+    fits.forEach((fit) => {
+      expect(fit.bbox).toEqual(
+        fit.srs === 'EPSG:4326' ? bboxFor4326 : bboxFor28992,
+      );
+    });
+    // ...and the one the map ends up with has its own.
+    expect(fits[fits.length - 1]).toEqual({
+      srs: 'EPSG:4326',
+      bbox: bboxFor4326,
+    });
   });
 
   it('syncs the new srs/bbox to redux right after switching projections, without needing a later pan', () => {
@@ -414,6 +485,69 @@ describe('ReduxMapViewComponent', () => {
     expect(zIndexById.get('layer-data') ?? NaN).toBeLessThan(
       zIndexById.get('overlay-countryborders') ?? NaN,
     );
+  });
+
+  it('draws the latitude/longitude lines itself, above the data layers, instead of asking a server for them', () => {
+    initialState.viewer.baseLayers = [
+      {
+        id: 'overlay-countryborders',
+        name: 'countryborders',
+        title: 'World country borders',
+        layerType: LayerType.overLayer,
+        enabled: true,
+      },
+      {
+        id: 'overlay-graticule',
+        name: 'graticule',
+        title: 'Latitude/longitude lines (follow the zoom level)',
+        type: 'graticule',
+        layerType: LayerType.overLayer,
+        enabled: true,
+      },
+    ];
+    const dataLayer: AdagucLayer = {
+      id: 'layer-data',
+      name: 'Data layer',
+      serviceUrl: 'http://example.com/wms',
+      style: 'default',
+      dimensions: [],
+      enabled: true,
+      opacity: 1,
+    };
+    initialState.viewer.maps[mapId].layers = [dataLayer];
+    mockGraticuleCalls.length = 0;
+
+    render(<ReduxMapViewComponent mapId={mapId} />);
+
+    const zIndexById = new Map(
+      mockOpenLayersLayerCalls.map((call) => [call.id, call.zIndex]),
+    );
+    expect(zIndexById.has('overlay-graticule')).toBe(false);
+    expect(mockGraticuleCalls.length).toBeGreaterThan(0);
+    expect(mockGraticuleCalls[0].zIndex).toBeGreaterThan(
+      zIndexById.get('layer-data') ?? NaN,
+    );
+    expect(mockGraticuleCalls[0].zIndex).not.toBe(
+      zIndexById.get('overlay-countryborders'),
+    );
+  });
+
+  it('does not draw the latitude/longitude lines while they are switched off', () => {
+    initialState.viewer.baseLayers = [
+      {
+        id: 'overlay-graticule',
+        name: 'graticule',
+        title: 'Latitude/longitude lines (follow the zoom level)',
+        type: 'graticule',
+        layerType: LayerType.overLayer,
+        enabled: false,
+      },
+    ];
+    mockGraticuleCalls.length = 0;
+
+    render(<ReduxMapViewComponent mapId={mapId} />);
+
+    expect(mockGraticuleCalls).toHaveLength(0);
   });
 
   it('draws the layer at the top of the list above the ones below it', () => {

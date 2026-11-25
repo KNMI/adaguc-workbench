@@ -5,7 +5,7 @@
 // definition registerExtraProjections adds, so the map can switch to it.
 //
 // Mind an srs's axis order when giving it a proj4 definition: under WMS 1.3
-// some (like EPSG:4258 and EPSG:32661) are requested north first. Their
+// some (like EPSG:4258, EPSG:3035 and EPSG:32661) are requested north first. Their
 // definitions say so with +axis=neu - OpenLayers then swaps the BBOX it
 // sends for them, while still keeping its own map coordinates east first
 // (proj4 only applies +axis when explicitly asked to, which OpenLayers
@@ -43,6 +43,12 @@ export const projections: Record<string, ProjectionInfo> = {
   'EPSG:28992': {
     name: 'Amersfoort / RD New -- Netherlands - Holland - Dutch',
   },
+  'EPSG:3035': {
+    name: 'ETRS89-extended / LAEA Europe (N,E)',
+    // adaguc-server's definition, plus its northing-first axis order.
+    proj4:
+      '+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs +axis=neu',
+  },
   'EPSG:3067': { name: 'ETRS89 / TM35FIN(E,N) -- Finland' },
   'EPSG:32661': {
     name: 'WGS 84 / UPS North (N,E)',
@@ -50,13 +56,37 @@ export const projections: Record<string, ProjectionInfo> = {
     proj4:
       '+proj=stere +lat_0=90 +lon_0=0 +k=0.994 +x_0=2000000 +y_0=2000000 +datum=WGS84 +units=m +no_defs +type=crs +axis=neu',
   },
+  'EPSG:3395': {
+    name: 'WGS 84 / World Mercator',
+    // adaguc-server's definition.
+    proj4:
+      '+proj=merc +lon_0=0 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs',
+  },
   'EPSG:3411': { name: 'NSIDC Sea Ice Polar Stereographic North' },
   'EPSG:3412': { name: 'NSIDC Sea Ice Polar Stereographic South' },
   'EPSG:3575': { name: 'WGS 84 / North Pole LAEA Europe' },
+  'EPSG:3832': {
+    name: 'WGS 84 / PDC Mercator -- Pacific, centred on 150°E',
+    // adaguc-server's definition.
+    proj4:
+      '+proj=merc +lon_0=150 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs',
+  },
   'EPSG:3857': {
     name: 'WGS 84 / Pseudo-Mercator -- Spherical Mercator, Google Maps, OpenStreetMap, Bing, ArcGIS, ESRI',
   },
-  'EPSG:40000': { name: 'KNMI ECA&D Polar stereographic' },
+  'EPSG:3994': {
+    name: 'WGS 84 / Mercator 41 -- centred on 100°E',
+    // adaguc-server's definition.
+    proj4:
+      '+proj=merc +lat_ts=-41 +lon_0=100 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs +type=crs',
+  },
+  // Not an EPSG code: adaguc-server's own definition.
+  'EPSG:40000': {
+    name: 'KNMI ECA&D Polar stereographic',
+    // Plus +units=m, which the server leaves implicit: without it
+    // OpenLayers can't tell the map's scale, and draws nothing at all.
+    proj4: '+proj=stere +ellps=WGS84 +lat_0=90 +lon_0=0 +units=m +no_defs',
+  },
   'EPSG:4258': {
     name: 'ETRS89',
     // epsg.io, plus its latitude-first axis order.
@@ -66,7 +96,12 @@ export const projections: Record<string, ProjectionInfo> = {
   'EPSG:4326': {
     name: 'WGS 84 -- WGS84 - World Geodetic System 1984, used in GPS',
   },
-  'EPSG:50001': { name: '' },
+  // Not an EPSG code: adaguc-server's own definition.
+  'EPSG:50001': {
+    name: 'Polar stereographic North -- true scale at 60°N, centred on 111°W',
+    proj4:
+      '+proj=stere +lat_ts=60.0 +lat_0=90 +lon_0=-111.0 +k_0=1.0 +x_0=3020946.0 +y_0=7622187.0 +units=m +ellps=WGS84 +datum=WGS84 +no_defs',
+  },
   'EPSG:54030': {
     name: 'Robinson',
     // The standard, widely-used proj4 string for this projection (also
@@ -79,7 +114,17 @@ export const projections: Record<string, ProjectionInfo> = {
       8625154.880728867,
     ],
   },
-  'EPSG:7399': { name: 'WISCRS Vilas County (ftUS)' },
+  // adaguc-server serves Mollweide under this code. (The EPSG registry has
+  // it as "WISCRS Vilas County (ftUS)", which no adaguc layer means by it.)
+  'EPSG:7399': {
+    name: 'Mollweide (as adaguc-server defines EPSG:7399)',
+    proj4: '+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs',
+    // Longitude +/-180 and latitude +/-90, projected.
+    extent: [
+      -18040095.6961652, -9020047.847897789, 18040095.6961652,
+      9020047.847897789,
+    ],
+  },
   'EPSG:900913': {
     name: 'Google Maps Global Mercator -- Spherical Mercator (unofficial - used in open source projects / OSGEO)',
   },

@@ -101,10 +101,15 @@ const LayerDetailsComponent = ({
           justifyContent: 'space-between',
         }}
       >
+        {/* Scrollable, so every tab stays reachable when the dialog is
+            resized to less than their combined width. */}
         <Tabs
           value={value}
           onChange={handleChange}
           aria-label="basic tabs example"
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ minWidth: 0 }}
         >
           <Tab label="Coordinate reference systems" />
           <Tab label="WMS Details" />

@@ -64,17 +64,21 @@ const parseIndex = (value: string | undefined): number | undefined => {
   return Number(value);
 };
 
+// A dimension without a value (its service advertises none, e.g. an empty
+// dataset) has nothing to restore, and is left out.
 export const formatLayerDimensions = (layers: AdagucLayer[]): string =>
   layers
     .flatMap((layer, layerIndex) =>
-      layer.dimensions.map((dimension) =>
-        [
-          String(layerIndex),
-          escapeField(dimension.name),
-          escapeField(dimension.currentValue),
-          dimension.linked ? '1' : '0',
-        ].join('$'),
-      ),
+      layer.dimensions
+        .filter((dimension) => dimension.currentValue !== undefined)
+        .map((dimension) =>
+          [
+            String(layerIndex),
+            escapeField(dimension.name),
+            escapeField(dimension.currentValue ?? ''),
+            dimension.linked ? '1' : '0',
+          ].join('$'),
+        ),
     )
     .join(',');
 

@@ -415,4 +415,39 @@ describe('makePermaLink', () => {
     expect(collapsedParam(true, false)).toBe('tools');
     expect(collapsedParam(true, true)).toBeNull();
   });
+
+  it('leaves out a dimension without a value, rather than writing "undefined"', () => {
+    // As a service advertising a dimension with no values and no default
+    // (an empty dataset) leaves it.
+    const map: AdagucMap = {
+      isAnimating: false,
+      isGetFeatureInfoActive: false,
+      isHistogramBoxSelectActive: false,
+      layers: [
+        {
+          id: 'a',
+          name: 'a',
+          serviceUrl: 'https://example.com/wms?',
+          style: '',
+          enabled: true,
+          opacity: 1,
+          dimensions: [
+            { name: 'time', currentValue: undefined },
+            { name: 'elevation', currentValue: '850' },
+          ],
+        },
+      ],
+      view: {
+        srs: 'EPSG:3857',
+        bbox: { left: -1, bottom: -2, right: 3, top: 4 },
+      },
+    };
+
+    const link = makePermaLink(map);
+    const params = new URL(link).searchParams;
+
+    expect(link).not.toContain('undefined');
+    expect(params.get('dims')).toBe('elevation$850');
+    expect(params.get('layerdims')).toBe('0$elevation$850$0');
+  });
 });

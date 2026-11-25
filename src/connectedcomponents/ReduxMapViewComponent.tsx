@@ -9,7 +9,6 @@ import {
   OpenLayersMapView,
   OpenLayersLayer,
   OpenLayersGetFeatureInfo,
-  getLayerExtentForProjection,
   makeView,
   MapLocation,
 } from '@opengeoweb/webmap-react';
@@ -26,8 +25,11 @@ import { ReduxMapLayer } from './ReduxMapLayer';
 import { AnimationClock, AnimationTick } from './AnimationClock';
 import { ErrorBoundary } from '../components/ErrorBoundary/ErrorBoundary';
 import OpenLayersHistogramBoxSelect from './OpenLayersHistogramBoxSelect';
+import OpenLayersGraticule from './OpenLayersGraticule';
+import { GRATICULE_LAYER_TYPE } from '../utils/baseLayerPresets';
 import { registerExtraProjections } from '../utils/registerExtraProjections';
 import { fitViewToBbox } from '../utils/fitViewToBbox';
+import { getLayerMapExtent } from '../utils/getLayerMapExtent';
 import { isLayerInAnimation } from '../store/animation';
 
 registerExtraProjections();
@@ -148,7 +150,16 @@ export const ReduxMapViewComponent = ({
   );
   const lastAppliedViewCommandId = React.useRef<number>(0);
   const lastAppliedZoomCommandId = React.useRef<number>(0);
-  const pendingFitBbox = React.useRef<AdagucMapView['bbox'] | null>(null);
+  // The extent a newly made view still has to be fitted to - kept with
+  // the view it is for. Two view commands can arrive before the first
+  // one's view has been rendered (stepping through projections with a key
+  // held down): by the extent alone, the first view to render would take
+  // the extent meant for the second, which then got none at all and stayed
+  // on the whole world.
+  const pendingFit = React.useRef<{
+    view: View;
+    bbox: AdagucMapView['bbox'];
+  } | null>(null);
 
   // Reads the view directly (rather than waiting for its 'change' event)
   // so a fit triggered here is reflected in redux - and so the permalink -
@@ -205,16 +216,19 @@ export const ReduxMapViewComponent = ({
     // effect) runs after OpenLayersMapView's own effect has attached this
     // view to the map via map.setView(), which is what gives it its real
     // size.
-    pendingFitBbox.current = viewCommand.bbox;
-    setView(makeView(viewCommand.srs));
+    const newView = makeView(viewCommand.srs);
+    pendingFit.current = { view: newView, bbox: viewCommand.bbox };
+    setView(newView);
   }, [viewCommand]);
 
   React.useEffect(() => {
-    if (!pendingFitBbox.current) {
+    // Not for this view: it has already been replaced by a newer one, which
+    // is the one to fit (and to tell redux about) once it is rendered.
+    if (pendingFit.current?.view !== view) {
       return;
     }
-    fitViewToBbox(view, pendingFitBbox.current);
-    pendingFitBbox.current = null;
+    fitViewToBbox(view, pendingFit.current.bbox);
+    pendingFit.current = null;
     // Fitting above can itself fire the view's 'change' event before the
     // listener effect further below (declared after this one, so it
     // subscribes later in this same commit) has attached to this new
@@ -236,11 +250,10 @@ export const ReduxMapViewComponent = ({
     lastAppliedZoomCommandId.current = zoomToLayerCommand.requestId;
     const wmLayer = getWMLayer(zoomToLayerCommand.layerId);
     const extent =
-      wmLayer &&
-      getLayerExtentForProjection(wmLayer, view.getProjection().getCode());
+      wmLayer && getLayerMapExtent(wmLayer, view.getProjection().getCode());
     if (extent) {
       // view.fit() fires 'change' synchronously - same race as the
-      // pendingFitBbox effect above, so this needs the same explicit sync
+      // pendingFit effect above, so this needs the same explicit sync
       // rather than relying on the debounced listener further below:
       // without it, the map visibly zooms to the layer but redux (and so
       // the permalink) keeps advertising the view from before the zoom.
@@ -344,13 +357,20 @@ export const ReduxMapViewComponent = ({
         .filter(
           (layer) => layer.layerType === LayerType.overLayer && layer.enabled,
         )
-        .map((layer, index) => (
-          <OpenLayersLayer
-            key={layer.id}
-            {...layer}
-            zIndex={OVERLAY_BASE_ZINDEX + index}
-          />
-        ))}
+        .map((layer, index) =>
+          layer.type === GRATICULE_LAYER_TYPE ? (
+            <OpenLayersGraticule
+              key={layer.id}
+              zIndex={OVERLAY_BASE_ZINDEX + index}
+            />
+          ) : (
+            <OpenLayersLayer
+              key={layer.id}
+              {...layer}
+              zIndex={OVERLAY_BASE_ZINDEX + index}
+            />
+          ),
+        )}
       <OpenLayersGetFeatureInfo
         displayMapPin={isGetFeatureInfoActive}
         mapPinLocation={mapPinLocation}

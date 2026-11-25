@@ -3,6 +3,7 @@ import { getMapDimURL } from '@opengeoweb/webmap';
 import { getWMLayer } from './getWMLayer';
 import { MapLocation } from '@opengeoweb/webmap-react';
 import { AdagucLayer } from '../store/types';
+import { dimensionsWithValues } from './dimensionsWithValues';
 
 export const getFeatureInfoUrl = (
   layer: AdagucLayer,
@@ -37,5 +38,8 @@ export const getFeatureInfoUrl = (
     return undefined;
   }
 
-  return `${url}&${getMapDimURL(wmLayer, layer.dimensions).toString()}`;
+  return `${url}&${getMapDimURL(
+    wmLayer,
+    dimensionsWithValues(layer.dimensions),
+  ).toString()}`;
 };

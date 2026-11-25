@@ -1,6 +1,9 @@
 import { LayerType } from '@opengeoweb/webmap';
 import { AdagucBaseLayer } from '../store/types';
 
+// The `type` of the overlay the viewer draws itself, rather than a server.
+export const GRATICULE_LAYER_TYPE = 'graticule';
+
 // KNMI's WMS for overlays: borders, graticules, ...
 const BASELAYERS_SERVICE =
   'https://geoservices.knmi.nl/wms?DATASET=baselayers&';
@@ -126,6 +129,16 @@ export const DEFAULT_BASE_LAYERS: AdagucBaseLayer[] = [
     title: 'Latitude/longitude lines (every 10°)',
     format: 'image/png',
     service: BASELAYERS_SERVICE,
+    layerType: LayerType.overLayer,
+    enabled: false,
+  },
+  // Not an image from a server like the other overlays: drawn in the
+  // browser (see OpenLayersGraticule), so its lines can follow the view.
+  {
+    id: 'overlay-graticule',
+    name: 'graticule',
+    title: 'Latitude/longitude lines (follow the zoom level)',
+    type: GRATICULE_LAYER_TYPE,
     layerType: LayerType.overLayer,
     enabled: false,
   },

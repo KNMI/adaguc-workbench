@@ -48,10 +48,14 @@ const AdagucCreatePermalinkDialog = ({
     (state: ViewerState): boolean =>
       state?.viewer?.toolsPanelIsExpanded ?? true,
   );
-  const link = makePermaLink(map, baseLayers, {
-    layers: layerPanelIsExpanded,
-    tools: toolsPanelIsExpanded,
-  });
+  // Only while open: the dialog is always mounted, and this would otherwise
+  // run on every change to the map.
+  const link = isDialogOpen
+    ? makePermaLink(map, baseLayers, {
+        layers: layerPanelIsExpanded,
+        tools: toolsPanelIsExpanded,
+      })
+    : '';
 
   // Anchors the fallback share menu (Email/WhatsApp/X) below - only shown
   // on browsers without the native Web Share API, which most desktop

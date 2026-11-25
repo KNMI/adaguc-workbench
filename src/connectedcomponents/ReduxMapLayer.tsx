@@ -11,6 +11,7 @@ import {
 import { actions, useAppDispatch } from '../store/store';
 import { AdagucLayer } from '../store/types';
 import { AnimationTick } from './AnimationClock';
+import { dimensionsWithValues } from '../utils/dimensionsWithValues';
 
 // Stable reference, since a fresh {} literal on every render would make
 // TimeContext.Provider's value prop "change" every render even when
@@ -52,7 +53,7 @@ const getLayerProps = (
   opacity: layer.opacity ?? 1,
   layerType: LayerType.mapLayer,
   name: layer.name,
-  dimensions: layer.dimensions,
+  dimensions: dimensionsWithValues(layer.dimensions),
   zIndex,
   extentRatio: WMS_EXTENT_RATIO,
 });
