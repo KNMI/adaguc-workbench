@@ -62,7 +62,7 @@ All optional, and applied when the container starts:
 
 | Variable | Default | Sets |
 | --- | --- | --- |
-| `ADAGUC_AUTOWMS_ENDPOINT` | `http://localhost:8090/adaguc-services/autowms?` | The AutoWMS server the viewer starts with. See [Setting the default AutoWMS server](#setting-the-default-autowms-server). |
+| `ADAGUC_AUTOWMS_ENDPOINT` | _(none)_ | The AutoWMS server the viewer starts with; without one, it starts without. See [Setting the default AutoWMS server](#setting-the-default-autowms-server). |
 | `ADAGUCSERVICES_AUTOWMS` | _(none)_ | The same, under the name older setups use. Only used when `ADAGUC_AUTOWMS_ENDPOINT` isn't set. |
 | `BASE_PATH` | `/` | The path the viewer is served under, e.g. `/workbench/`. See [Serving under a path](#serving-under-a-path). |
 
@@ -100,7 +100,7 @@ Things to know:
   - an AutoWMS endpoint, e.g. `https://geoservices.knmi.nl/autowms?`;
   - just the server's address, e.g. `https://geoservices.knmi.nl`: the viewer then tries `…/autowms` and `…/adaguc-server/autowms` itself;
   - a WMS url, whose layers are then listed straight away.
-- **Without the variable** the image uses `ADAGUCSERVICES_AUTOWMS` if that is set (the name older setups use), and otherwise `http://localhost:8090/adaguc-services/autowms?`, the address in a local [Adaguc-Server](https://github.com/KNMI/adaguc-server) setup.
+- **Without the variable** the image uses `ADAGUCSERVICES_AUTOWMS` if that is set (the name older setups use). Without either, the viewer starts without a default server: the AutoWMS panel is empty until a service is entered.
 - **How it works:** on every start, the container writes the value into the site's `config.json` as `{"autowmsurl": "…"}`, and the viewer reads that file when the page loads. So change the variable and restart the container; mounting your own `config.json` doesn't work, because it's overwritten at start.
 - **For a single visit**, a link can open another service instead with `?autowms=<url>` (see the examples at the top).
 

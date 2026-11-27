@@ -3,11 +3,15 @@
 SITE_DIR=/usr/share/nginx/html
 
 # The AutoWMS server the viewer starts with: ADAGUC_AUTOWMS_ENDPOINT, or -
-# for setups configured before that name - ADAGUCSERVICES_AUTOWMS, or else
-# the address in a local Adaguc-Server setup.
-AUTOWMS_ENDPOINT="${ADAGUC_AUTOWMS_ENDPOINT:-${ADAGUCSERVICES_AUTOWMS:-http://localhost:8090/adaguc-services/autowms?}}"
+# for setups configured before that name - ADAGUCSERVICES_AUTOWMS. Empty
+# without either: the viewer then starts without one.
+AUTOWMS_ENDPOINT="${ADAGUC_AUTOWMS_ENDPOINT:-${ADAGUCSERVICES_AUTOWMS:-}}"
 
-echo "Writing config.json using ${AUTOWMS_ENDPOINT}"
+if [ -n "${AUTOWMS_ENDPOINT}" ]; then
+  echo "Writing config.json using ${AUTOWMS_ENDPOINT}"
+else
+  echo "Writing config.json without a default AutoWMS server"
+fi
 
 echo "{\"autowmsurl\":\"${AUTOWMS_ENDPOINT}\"}" > "${SITE_DIR}/config.json"
 
