@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import {
   getLayerExtentForProjection,
   makeView,
+  setViewFromExtent,
   useAnimationForLayer,
 } from '@opengeoweb/webmap-react';
 import { LayerType, getWMLayerById } from '@opengeoweb/webmap';
@@ -14,7 +15,6 @@ import { actions, createAppStore } from '../store/store';
 import { AdagucLayer, ViewerState } from '../store/types';
 import { emptyMap } from '../testUtils/renderWithStore';
 import { ReduxMapViewComponent } from './ReduxMapViewComponent';
-import { fitViewToBbox } from '../utils/fitViewToBbox';
 
 // Needs a real OpenLayers map - its own behaviour is covered by
 // OpenLayersHistogramBoxSelect's own test file instead.
@@ -33,10 +33,6 @@ vi.mock('./OpenLayersGraticule', () => ({
 
 vi.mock('ol/proj', () => ({
   get: vi.fn(() => ({})),
-}));
-
-vi.mock('../utils/fitViewToBbox', () => ({
-  fitViewToBbox: vi.fn(),
 }));
 
 vi.mock('../utils/registerExtraProjections', () => ({
@@ -83,6 +79,7 @@ vi.mock('@opengeoweb/webmap-react', async () => {
     OpenLayersGetFeatureInfo: () => null,
     getLayerExtentForProjection: vi.fn(),
     makeView: vi.fn(),
+    setViewFromExtent: vi.fn(),
     useAnimationForLayer: vi.fn(() => ({ dimensions: [] })),
     TimeContext: ReactLib.createContext({}),
   };
@@ -92,7 +89,7 @@ vi.mock('@opengeoweb/webmap-react', async () => {
 });
 
 const mockMakeView = vi.mocked(makeView);
-const mockFitViewToBbox = vi.mocked(fitViewToBbox);
+const mockSetViewFromExtent = vi.mocked(setViewFromExtent);
 const mockGetLayerExtentForProjection = vi.mocked(getLayerExtentForProjection);
 const mockUseAnimationForLayer = vi.mocked(useAnimationForLayer);
 // opengeoweb types this as always returning a WMLayer, but it returns
@@ -159,8 +156,8 @@ describe('ReduxMapViewComponent', () => {
       callOrder.push('attachViewToMap');
       return view;
     });
-    mockFitViewToBbox.mockImplementation(() => {
-      callOrder.push('fitViewToBbox');
+    mockSetViewFromExtent.mockImplementation(() => {
+      callOrder.push('setViewFromExtent');
     });
 
     initialState = {
@@ -185,7 +182,11 @@ describe('ReduxMapViewComponent', () => {
     const bbox = { left: 10, bottom: 20, right: 30, top: 40 };
     requestSetProjection('EPSG:28992', bbox);
 
-    expect(callOrder).toEqual(['makeView', 'attachViewToMap', 'fitViewToBbox']);
+    expect(callOrder).toEqual([
+      'makeView',
+      'attachViewToMap',
+      'setViewFromExtent',
+    ]);
 
     // Fitting must happen on the exact view that was created for this
     // viewCommand and attached to the map - not on some other view (e.g.
@@ -193,7 +194,7 @@ describe('ReduxMapViewComponent', () => {
     const lastAttachCall =
       mockAttachViewToMap.mock.calls[mockAttachViewToMap.mock.calls.length - 1];
     const attachedView = lastAttachCall[0];
-    const [fittedView, fittedBbox] = mockFitViewToBbox.mock.calls[0];
+    const [fittedView, fittedBbox] = mockSetViewFromExtent.mock.calls[0];
     expect(fittedView).toBe(attachedView);
     expect(fittedBbox).toEqual(bbox);
   });
@@ -211,7 +212,7 @@ describe('ReduxMapViewComponent', () => {
       return view as ReturnType<typeof makeView>;
     });
     render(<ReduxMapViewComponent mapId={mapId} />);
-    mockFitViewToBbox.mockClear();
+    mockSetViewFromExtent.mockClear();
     const bboxFor28992 = { left: 1, bottom: 2, right: 3, top: 4 };
     const bboxFor4326 = { left: 5, bottom: 50, right: 6, top: 51 };
 
@@ -244,7 +245,7 @@ describe('ReduxMapViewComponent', () => {
       environment.IS_REACT_ACT_ENVIRONMENT = true;
     }
 
-    const fits = mockFitViewToBbox.mock.calls.map(([fittedView, bbox]) => ({
+    const fits = mockSetViewFromExtent.mock.calls.map(([fittedView, bbox]) => ({
       srs: srsOfView.get(fittedView),
       bbox,
     }));
@@ -405,13 +406,13 @@ describe('ReduxMapViewComponent', () => {
       rerender(<ReduxMapViewComponent mapId={mapId} />);
     });
 
-    expect(mockFitViewToBbox).not.toHaveBeenCalled();
+    expect(mockSetViewFromExtent).not.toHaveBeenCalled();
 
     // A handled viewCommand stays in the store - later state changes (here
     // the user panning, which updates the view in redux) re-render with
     // that same command, which must not fit the view to it again.
     requestSetProjection('EPSG:28992');
-    expect(mockFitViewToBbox).toHaveBeenCalledTimes(1);
+    expect(mockSetViewFromExtent).toHaveBeenCalledTimes(1);
 
     act(() => {
       store.dispatch(
@@ -425,7 +426,7 @@ describe('ReduxMapViewComponent', () => {
       );
     });
 
-    expect(mockFitViewToBbox).toHaveBeenCalledTimes(1);
+    expect(mockSetViewFromExtent).toHaveBeenCalledTimes(1);
   });
 
   it('draws enabled base layers below the data layers and enabled overlays above them', () => {

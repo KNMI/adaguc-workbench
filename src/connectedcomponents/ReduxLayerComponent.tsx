@@ -11,6 +11,7 @@ import {
   AUTO_UPDATE_INTERVAL_MS,
   useLayerAutoUpdate,
 } from './useLayerAutoUpdate';
+import { useReferenceTimeSteps } from './useReferenceTimeSteps';
 
 // webmap-react assigns the live OL source onto the WMLayer instance at
 // `olSource` (for its own internal "metronome" use), but that isn't part
@@ -103,6 +104,8 @@ export const ReduxLayerComponent = ({
   const isAnimating = useAppSelector((state: ViewerState): boolean =>
     selectors.isLayerAnimating(state, mapId, layerId),
   );
+
+  useReferenceTimeSteps({ mapId, layerIndex, layer });
 
   const autoUpdateCheckStartedAt = useLayerAutoUpdate({
     mapId,

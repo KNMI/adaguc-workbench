@@ -32,6 +32,9 @@ COPY --chmod=755 entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-ENV ADAGUC_AUTOWMS_ENDPOINT="http://localhost:8090/adaguc-services/autowms?"
+# Settings, applied by entrypoint.sh at start (see the README's Docker
+# section): ADAGUC_AUTOWMS_ENDPOINT (or ADAGUCSERVICES_AUTOWMS) for the
+# default AutoWMS server, and BASE_PATH for the path the viewer is served
+# under.
 
 CMD ["nginx","-g","daemon off;"]

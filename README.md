@@ -55,3 +55,70 @@ docker run -it -p 8080:80 \
   -e ADAGUC_AUTOWMS_ENDPOINT=https://geoservices.knmi.nl/autowms \
   adaguc-workbench
 ```
+
+### Environment variables
+
+All optional, and applied when the container starts:
+
+| Variable | Default | Sets |
+| --- | --- | --- |
+| `ADAGUC_AUTOWMS_ENDPOINT` | `http://localhost:8090/adaguc-services/autowms?` | The AutoWMS server the viewer starts with. See [Setting the default AutoWMS server](#setting-the-default-autowms-server). |
+| `ADAGUCSERVICES_AUTOWMS` | _(none)_ | The same, under the name older setups use. Only used when `ADAGUC_AUTOWMS_ENDPOINT` isn't set. |
+| `BASE_PATH` | `/` | The path the viewer is served under, e.g. `/workbench/`. See [Serving under a path](#serving-under-a-path). |
+
+The container serves the viewer over HTTP on port 80, with gzip compression.
+
+### Setting the default AutoWMS server
+
+The `ADAGUC_AUTOWMS_ENDPOINT` environment variable sets which AutoWMS server the viewer starts with. That server:
+
+- opens in the AutoWMS panel when the page loads, and
+- is always the first suggestion in both "add a WMS or AutoWMS service" fields.
+
+```bash
+docker run -it -p 8080:80 \
+  -e ADAGUC_AUTOWMS_ENDPOINT=https://my-server.example.com/autowms? \
+  knmiadaguc/adaguc-workbench:main
+```
+
+Or with Docker Compose:
+
+```yaml
+services:
+  workbench:
+    image: knmiadaguc/adaguc-workbench:main
+    ports:
+      - '8080:80'
+    environment:
+      ADAGUC_AUTOWMS_ENDPOINT: https://my-server.example.com/autowms?
+```
+
+Things to know:
+
+- **The user's browser fetches this url, not the container.** It must be reachable from the machine the viewer is opened on, so `localhost` there means the user's own computer, not the container or the Docker host.
+- **The value can be:**
+  - an AutoWMS endpoint, e.g. `https://geoservices.knmi.nl/autowms?`;
+  - just the server's address, e.g. `https://geoservices.knmi.nl`: the viewer then tries `…/autowms` and `…/adaguc-server/autowms` itself;
+  - a WMS url, whose layers are then listed straight away.
+- **Without the variable** the image uses `ADAGUCSERVICES_AUTOWMS` if that is set (the name older setups use), and otherwise `http://localhost:8090/adaguc-services/autowms?`, the address in a local [Adaguc-Server](https://github.com/KNMI/adaguc-server) setup.
+- **How it works:** on every start, the container writes the value into the site's `config.json` as `{"autowmsurl": "…"}`, and the viewer reads that file when the page loads. So change the variable and restart the container; mounting your own `config.json` doesn't work, because it's overwritten at start.
+- **For a single visit**, a link can open another service instead with `?autowms=<url>` (see the examples at the top).
+
+Without Docker, for example a `npm run build` served by your own web server, set the same `autowmsurl` in [`static/config.json`](static/config.json) before building, or edit `config.json` in `dist/` afterwards.
+
+### Serving under a path
+
+By default the viewer is served at the root, `/`. To serve it under a path instead, for example behind a reverse proxy that sends `/workbench/` to this container, set `BASE_PATH`:
+
+```bash
+docker run -it -p 8080:80 \
+  -e BASE_PATH=/workbench/ \
+  knmiadaguc/adaguc-workbench:main
+# → http://localhost:8080/workbench/
+```
+
+- The slashes are optional: `workbench`, `/workbench` and `/workbench/` all serve it under `/workbench/`.
+- `/workbench` without the trailing slash redirects to `/workbench/`.
+- Addresses outside the path give "not found".
+- The site refers to its own files relatively, so it needs no rebuild for a path.
+- A reverse proxy in front should pass the path on unchanged, not strip it: the container expects requests for `/workbench/…`.

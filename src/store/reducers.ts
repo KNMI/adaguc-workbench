@@ -395,11 +395,20 @@ export const reducers = {
         dimensionValue: string;
         // Set when auto-update itself moves the layer to its default time.
         fromAutoUpdate?: boolean;
+        // Set when the time moves into a newly chosen model run's steps
+        // (see useReferenceTimeSteps), rather than being picked by hand.
+        fromReferenceTime?: boolean;
       };
     },
   ): void => {
-    const { mapId, layerIndex, dimensionName, dimensionValue, fromAutoUpdate } =
-      action.payload;
+    const {
+      mapId,
+      layerIndex,
+      dimensionName,
+      dimensionValue,
+      fromAutoUpdate,
+      fromReferenceTime,
+    } = action.payload;
     const draftLayer = getReduxLayer(draftState, mapId, layerIndex);
     if (!draftLayer) {
       return;
@@ -413,7 +422,8 @@ export const reducers = {
     }
     // And a time picked by hand (here, or through a linked layer below)
     // ends auto-update, rather than it jumping back to the default time.
-    const stopsAutoUpdate = dimensionName === 'time' && !fromAutoUpdate;
+    const stopsAutoUpdate =
+      dimensionName === 'time' && !fromAutoUpdate && !fromReferenceTime;
     if (stopsAutoUpdate) {
       draftLayer.autoUpdate = undefined;
     }
@@ -445,6 +455,20 @@ export const reducers = {
         }
       }
     });
+  },
+  // Records which model run the layer's time steps were set to - see
+  // AdagucLayer.timeStepsFor.
+  setLayerTimeStepsFor: (
+    draftState: AdagucMapsState,
+    action: {
+      payload: { mapId: string; layerIndex: number; referenceTime: string };
+    },
+  ): void => {
+    const { mapId, layerIndex, referenceTime } = action.payload;
+    const draftLayer = getReduxLayer(draftState, mapId, layerIndex);
+    if (draftLayer) {
+      draftLayer.timeStepsFor = referenceTime;
+    }
   },
   setLayerAutoUpdate: (
     draftState: AdagucMapsState,

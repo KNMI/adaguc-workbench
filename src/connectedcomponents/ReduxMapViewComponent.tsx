@@ -11,6 +11,7 @@ import {
   OpenLayersGetFeatureInfo,
   makeView,
   MapLocation,
+  setViewFromExtent,
 } from '@opengeoweb/webmap-react';
 import { actions, useAppDispatch, useAppSelector } from '../store/store';
 import { selectors } from '../store/selectors';
@@ -28,7 +29,6 @@ import OpenLayersHistogramBoxSelect from './OpenLayersHistogramBoxSelect';
 import OpenLayersGraticule from './OpenLayersGraticule';
 import { GRATICULE_LAYER_TYPE } from '../utils/baseLayerPresets';
 import { registerExtraProjections } from '../utils/registerExtraProjections';
-import { fitViewToBbox } from '../utils/fitViewToBbox';
 import { getLayerMapExtent } from '../utils/getLayerMapExtent';
 import { isLayerInAnimation } from '../store/animation';
 
@@ -227,7 +227,7 @@ export const ReduxMapViewComponent = ({
     if (pendingFit.current?.view !== view) {
       return;
     }
-    fitViewToBbox(view, pendingFit.current.bbox);
+    setViewFromExtent(view, pendingFit.current.bbox);
     pendingFit.current = null;
     // Fitting above can itself fire the view's 'change' event before the
     // listener effect further below (declared after this one, so it

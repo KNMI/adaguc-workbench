@@ -419,6 +419,16 @@ export const LayerComponent = ({
                 />
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                   <WMSDimensionSlider
+                    // The time slider is set up anew for another model run's
+                    // time steps, so its position is looked up in those (see
+                    // useReferenceTimeSteps). Only that one: recreating the
+                    // reference_time slider too would cut off a drag of it,
+                    // as the run changes while it's being dragged.
+                    key={
+                      layerDimension.name === 'time'
+                        ? `time-${layer.timeStepsFor ?? ''}`
+                        : layerDimension.name
+                    }
                     selectedDimensionValue={dimensionValue}
                     layerId={layer?.id}
                     onSelectDimensionValue={(value) => {

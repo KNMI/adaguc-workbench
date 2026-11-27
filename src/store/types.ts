@@ -36,6 +36,10 @@ export interface AdagucLayer {
   // checking for a new one every 20 seconds (see useLayerAutoUpdate) -
   // until the time is changed by hand.
   autoUpdate?: boolean;
+  // The reference_time (model run) the layer's time steps were last set to
+  // (see useReferenceTimeSteps) - also what makes its time slider and the
+  // TIME panel, which read those steps from the WMLayer, redraw.
+  timeStepsFor?: string;
 }
 
 export interface AdagucService {

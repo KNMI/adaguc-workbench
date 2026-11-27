@@ -608,6 +608,47 @@ describe('LayerComponent', () => {
     );
   });
 
+  it('sets up only the time slider anew for another model run, so a drag of the reference_time slider carries on', () => {
+    const dimension = (name: string) => ({
+      name,
+      units: 'ISO8601',
+      getIndexForValue: vi.fn(() => 0),
+      getValueForIndex: vi.fn(() => '2024-01-01T00:00:00Z'),
+      size: vi.fn(() => 5),
+    });
+    const time = dimension('time');
+    const referenceTime = dimension('reference_time');
+    mockGetWMLayerById.mockReturnValue({
+      dimensions: [time, referenceTime],
+      getDimension: (name: string) =>
+        name === 'time'
+          ? time
+          : name === 'reference_time'
+            ? referenceTime
+            : undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    const renderFor = (timeStepsFor: string) => (
+      <LayerComponent
+        {...requiredProps}
+        layer={{ ...baseLayer, timeStepsFor }}
+        getDimensionValue={vi.fn(() => '2024-01-01T00:00:00Z')}
+      />
+    );
+
+    const { rerender } = render(renderFor('2024-01-01T00:00:00Z'));
+    const [timeSlider, referenceTimeSlider] = screen.getAllByRole('slider');
+
+    // The run changes (as it does while the reference_time slider is
+    // dragged).
+    rerender(renderFor('2024-01-01T06:00:00Z'));
+    const [newTimeSlider, newReferenceTimeSlider] =
+      screen.getAllByRole('slider');
+
+    expect(newReferenceTimeSlider).toBe(referenceTimeSlider);
+    expect(newTimeSlider).not.toBe(timeSlider);
+  });
+
   it("reflects the dimension's linked state and reports toggling it, for the global time slider sync group", () => {
     const fakeTimeDimension = {
       name: 'time',
